@@ -53,6 +53,9 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/mi-delegacion/empleado/{empleado}/reactivar', [MiDelegacionController::class, 'reactivarEmpleado'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
         ->name('my-delegation.empleado.reactivar');
+    Route::get('/mi-delegacion/empleado/{empleado}/productos', [MiDelegacionController::class, 'productosEmpleado'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('my-delegation.empleado.productos');
 
     Route::get('/solicitudes-movimiento', [SolicitudMovimientoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)

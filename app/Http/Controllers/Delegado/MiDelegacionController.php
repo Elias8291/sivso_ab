@@ -350,6 +350,92 @@ class MiDelegacionController extends Controller
     }
 
     /**
+     * Devuelve los productos licitados y cotizados de un empleado para el año de referencia.
+     */
+    public function productosEmpleado(Request $request, int $empleadoId): JsonResponse
+    {
+        $empleado = Empleado::findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+
+        // Licitados — producto base de la licitación
+        $licitados = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
+            ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pl.clasificacion_principal_id')
+            ->where('aep.empleado_id', $empleadoId)
+            ->where('aep.anio', self::ANIO_REFERENCIA)
+            ->select([
+                'aep.id                        as asignacion_id',
+                'pl.id                         as id',
+                'pl.numero_partida',
+                'pl.partida_especifica',
+                'pl.codigo_catalogo             as codigo',
+                'pl.descripcion',
+                'pl.cantidad_propuesta          as cantidad',
+                'pl.unidad',
+                'pl.marca',
+                'pl.precio_unitario',
+                'pl.proveedor',
+                'pl.medida',
+                'cb.nombre                      as categoria',
+                'aep.clave_partida_presupuestal as clave_rubro',
+                'aep.cantidad                   as cantidad_asignada',
+                'aep.talla',
+                'aep.estado_anio_actual         as estado',
+            ])
+            ->orderBy('pl.numero_partida')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->values()
+            ->all();
+
+        // Cotizados — producto contractual (puede ser null)
+        $cotizados = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
+            ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pc.clasificacion_principal_id')
+            ->where('aep.empleado_id', $empleadoId)
+            ->where('aep.anio', self::ANIO_REFERENCIA)
+            ->whereNotNull('aep.producto_cotizado_id')
+            ->select([
+                'aep.id                        as asignacion_id',
+                'pc.id                         as id',
+                'pc.numero_partida',
+                'pc.partida_especifica',
+                'pc.clave                       as codigo',
+                'pc.descripcion',
+                'pc.precio_unitario',
+                'pc.importe',
+                'pc.total',
+                'pc.referencia_codigo           as referencia',
+                'cb.nombre                      as categoria',
+                'aep.clave_partida_presupuestal as clave_rubro',
+                'aep.cantidad                   as cantidad_asignada',
+                'aep.talla_anio_actual          as talla',
+                'aep.medida_anio_actual         as medida',
+                'aep.estado_anio_actual         as estado',
+            ])
+            ->orderBy('pc.numero_partida')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => [
+                'empleado'  => [
+                    'id'             => $empleado->id,
+                    'nombre_completo'=> strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
+                    'nue'            => $empleado->nue,
+                ],
+                'anio'      => self::ANIO_REFERENCIA,
+                'licitados' => $licitados,
+                'cotizados' => $cotizados,
+            ],
+            'message' => null,
+            'errors'  => null,
+        ]);
+    }
+
+    /**
      * Cancela una solicitud pendiente (el delegado se arrepiente).
      */
     public function cancelarSolicitud(Request $request, int $solicitudId): JsonResponse

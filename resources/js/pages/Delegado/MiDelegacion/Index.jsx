@@ -11,6 +11,7 @@ import {
     Clock,
     Info,
     LayoutList,
+    Package,
     Pencil,
     RotateCcw,
     Search,
@@ -440,11 +441,190 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
     );
 }
 
+/* ─── ModalProductos ─────────────────────────────────────────────── */
+
+function ModalProductos({ empleado, open, onClose }) {
+    const [tab, setTab]     = useState('licitados');
+    const [data, setData]   = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!open || !empleado) return;
+        setLoading(true);
+        setError('');
+        setData(null);
+        axios
+            .get(route('my-delegation.empleado.productos', empleado.id))
+            .then((r) => setData(r.data?.data ?? null))
+            .catch(() => setError('No se pudieron cargar los productos.'))
+            .finally(() => setLoading(false));
+    }, [open, empleado?.id]);
+
+    useEffect(() => { if (open) setTab('licitados'); }, [open]);
+
+    const fmtMoneda = (v) =>
+        v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : '—';
+
+    const TabBtn = ({ id, label, count }) => (
+        <button
+            type="button"
+            onClick={() => setTab(id)}
+            className={`rounded px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                tab === id
+                    ? 'bg-zinc-100 text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
+            }`}
+        >
+            {label}
+            {count != null && (
+                <span className={`ml-1.5 tabular-nums ${tab === id ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400'}`}>
+                    ({count})
+                </span>
+            )}
+        </button>
+    );
+
+    return (
+        <Modal open={open} onClose={onClose}>
+            {/* cabecera */}
+            <div className="flex items-start justify-between gap-3 px-6 pb-4 pt-6">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                        <Package className="size-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                        <h2 className="text-[14px] font-bold text-zinc-900 dark:text-zinc-100">Productos asignados</h2>
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                            {empleado?.nombre_completo}
+                            {data?.anio && <span className="ml-1.5 tabular-nums">· Año {data.anio}</span>}
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onClick={onClose}
+                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+                    <X className="size-4" />
+                </button>
+            </div>
+
+            <div className="mx-6 h-px bg-zinc-100 dark:bg-zinc-800" />
+
+            <div className="px-6 py-4">
+                {loading && (
+                    <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-zinc-400">
+                        <RotateCcw className="size-4 animate-spin" /> Cargando…
+                    </div>
+                )}
+                {error && (
+                    <p className="rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>
+                )}
+
+                {data && (
+                    <>
+                        {/* tabs */}
+                        <div className="mb-4 flex gap-0.5 rounded-md border border-zinc-200/80 bg-zinc-50/70 p-px dark:border-zinc-800 dark:bg-zinc-900/50">
+                            <TabBtn id="licitados" label="Licitados" count={data.licitados?.length} />
+                            <TabBtn id="cotizados"  label="Cotizados"  count={data.cotizados?.length} />
+                        </div>
+
+                        {/* ── LICITADOS ── */}
+                        {tab === 'licitados' && (
+                            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                                {data.licitados.length === 0 ? (
+                                    <p className="py-6 text-center text-[12px] text-zinc-400">Sin productos licitados.</p>
+                                ) : data.licitados.map((p) => (
+                                    <div key={p.asignacion_id} className="rounded-xl border border-zinc-200/80 bg-zinc-50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
+                                                    {p.descripcion}
+                                                </p>
+                                                {p.codigo && (
+                                                    <p className="font-mono text-[10px] text-zinc-400">{p.codigo}</p>
+                                                )}
+                                            </div>
+                                            {p.categoria && (
+                                                <span className="shrink-0 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                                    {p.categoria}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-600 dark:text-zinc-400 sm:grid-cols-3">
+                                            {p.numero_partida && <span><span className="text-zinc-400">Partida:</span> {p.numero_partida}</span>}
+                                            {p.marca          && <span><span className="text-zinc-400">Marca:</span> {p.marca}</span>}
+                                            {p.unidad         && <span><span className="text-zinc-400">Unidad:</span> {p.unidad}</span>}
+                                            {p.medida         && <span><span className="text-zinc-400">Medida:</span> {p.medida}</span>}
+                                            {p.proveedor      && <span><span className="text-zinc-400">Proveedor:</span> {p.proveedor}</span>}
+                                            {p.precio_unitario!= null && <span><span className="text-zinc-400">P.U.:</span> {fmtMoneda(p.precio_unitario)}</span>}
+                                            {p.clave_rubro    && <span><span className="text-zinc-400">Rubro:</span> <span className="font-mono">{p.clave_rubro}</span></span>}
+                                            {p.cantidad_asignada != null && <span><span className="text-zinc-400">Cant. asig.:</span> {p.cantidad_asignada}</span>}
+                                            {p.talla          && <span><span className="text-zinc-400">Talla:</span> <span className="font-mono">{p.talla}</span></span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ── COTIZADOS ── */}
+                        {tab === 'cotizados' && (
+                            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+                                {data.cotizados.length === 0 ? (
+                                    <p className="py-6 text-center text-[12px] text-zinc-400">Sin productos cotizados.</p>
+                                ) : data.cotizados.map((p) => (
+                                    <div key={p.asignacion_id} className="rounded-xl border border-zinc-200/80 bg-zinc-50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
+                                                    {p.descripcion}
+                                                </p>
+                                                {p.codigo && (
+                                                    <p className="font-mono text-[10px] text-zinc-400">{p.codigo}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                {p.estado && (
+                                                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${
+                                                        p.estado === 'confirmado'
+                                                            ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
+                                                            : 'border-transparent bg-zinc-100/80 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400'
+                                                    }`}>
+                                                        {p.estado}
+                                                    </span>
+                                                )}
+                                                {p.categoria && (
+                                                    <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                                        {p.categoria}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-600 dark:text-zinc-400 sm:grid-cols-3">
+                                            {p.numero_partida && <span><span className="text-zinc-400">Partida:</span> {p.numero_partida}</span>}
+                                            {p.referencia     && <span><span className="text-zinc-400">Ref.:</span> <span className="font-mono">{p.referencia}</span></span>}
+                                            {p.precio_unitario != null && <span><span className="text-zinc-400">P.U.:</span> {fmtMoneda(p.precio_unitario)}</span>}
+                                            {p.total          != null && <span><span className="text-zinc-400">Total:</span> {fmtMoneda(p.total)}</span>}
+                                            {p.clave_rubro    && <span><span className="text-zinc-400">Rubro:</span> <span className="font-mono">{p.clave_rubro}</span></span>}
+                                            {p.cantidad_asignada != null && <span><span className="text-zinc-400">Cant. asig.:</span> {p.cantidad_asignada}</span>}
+                                            {p.talla          && <span><span className="text-zinc-400">Talla:</span> <span className="font-mono">{p.talla}</span></span>}
+                                            {p.medida         && <span><span className="text-zinc-400">Medida:</span> {p.medida}</span>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </Modal>
+    );
+}
+
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
 function EmpleadoRow({ empleado, delegaciones, anioActual }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
+    const [verProductos, setVerProductos]          = useState(false);
     const [vestuario, setVestuario]                = useState(empleado.vestuario);
     const [estadoDelegacion, setEstadoDelegacion]  = useState(empleado.estado_delegacion || 'activo');
     const [obsDelegacion, setObsDelegacion]        = useState(empleado.observacion_delegacion || '');
@@ -624,6 +804,13 @@ function EmpleadoRow({ empleado, delegaciones, anioActual }) {
                         </button>
                     )}
 
+                    <button type="button" onClick={() => setVerProductos(true)}
+                        title="Ver productos asignados (licitados y cotizados)"
+                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1.5">
+                        <Package className="size-3.5 shrink-0" strokeWidth={1.75} />
+                        <span className="hidden sm:inline">Productos</span>
+                    </button>
+
                     {!esBaja && !solicitudPendiente && (
                         <>
                             <button type="button" onClick={() => setModal('cambio')} title="Solicitar cambio de delegación"
@@ -672,6 +859,11 @@ function EmpleadoRow({ empleado, delegaciones, anioActual }) {
             {/* ── modales ── */}
             <ModalAccionEmpleado open={modal === 'baja'}   accion="baja"   empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
             <ModalAccionEmpleado open={modal === 'cambio'} accion="cambio" empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
+            <ModalProductos
+                empleado={{ id: empleado.id, nombre_completo: empleado.nombre_completo }}
+                open={verProductos}
+                onClose={() => setVerProductos(false)}
+            />
         </div>
     );
 }
