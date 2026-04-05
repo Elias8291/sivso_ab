@@ -6,7 +6,9 @@ namespace App\Console\Commands;
 
 use Database\Seeders\Concerns\SyncsSivsoAutoIncrements;
 use Database\Seeders\DelegadoDelegacionFromCsvSeeder;
+use Database\Seeders\DelegadoDelegacionFromExcelSeeder;
 use Database\Seeders\DelegadoFromCsvSeeder;
+use Database\Seeders\DelegadoFromExcelSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +24,10 @@ final class ReloadDelegadosFromCsvCommand extends Command
 
     protected $signature = 'sivso:reload-delegados
                             {--force : Pone a NULL user_id y empleado_id en todos los delegados antes de borrar; no restaura vínculos}
+                            {--excel : Carga desde database/seeders/excel_datos/sivso_delegados.xlsx (hojas delegado y delegado_delegacion)}
                             {--dry-run : Solo muestra conteos}';
 
-    protected $description = 'Elimina y recarga tablas delegado y delegado_delegacion desde los CSV del proyecto';
+    protected $description = 'Elimina y recarga delegado y delegado_delegacion desde CSV o sivso_delegados.xlsx';
 
     public function handle(): int
     {
@@ -48,7 +51,18 @@ final class ReloadDelegadosFromCsvCommand extends Command
             return self::SUCCESS;
         }
 
-        if (! $this->confirm('¿Seguro? Se borrarán delegados y pivotes; luego se insertan desde CSV.')) {
+        $useExcel = (bool) $this->option('excel');
+        if ($useExcel) {
+            $xlsx = database_path('seeders/excel_datos/sivso_delegados.xlsx');
+            if (! is_readable($xlsx)) {
+                $this->error('No existe o no se puede leer: '.$xlsx.' (usa sivso:export-delegados-excel o quita --excel).');
+
+                return self::FAILURE;
+            }
+        }
+
+        $fuente = $useExcel ? 'Excel (sivso_delegados.xlsx)' : 'CSV 05 y 06';
+        if (! $this->confirm("¿Seguro? Se borrarán delegados y pivotes; luego se insertan desde {$fuente}.")) {
             return self::SUCCESS;
         }
 
@@ -75,9 +89,11 @@ final class ReloadDelegadosFromCsvCommand extends Command
             }
         }
 
-        Artisan::call('db:seed', ['--class' => DelegadoFromCsvSeeder::class, '--no-interaction' => true]);
+        $delegadoSeeder = $useExcel ? DelegadoFromExcelSeeder::class : DelegadoFromCsvSeeder::class;
+        $pivotSeeder = $useExcel ? DelegadoDelegacionFromExcelSeeder::class : DelegadoDelegacionFromCsvSeeder::class;
+        Artisan::call('db:seed', ['--class' => $delegadoSeeder, '--no-interaction' => true]);
         $this->output->write(Artisan::output());
-        Artisan::call('db:seed', ['--class' => DelegadoDelegacionFromCsvSeeder::class, '--no-interaction' => true]);
+        Artisan::call('db:seed', ['--class' => $pivotSeeder, '--no-interaction' => true]);
         $this->output->write(Artisan::output());
 
         $this->syncSivsoAutoIncrements(['delegado']);

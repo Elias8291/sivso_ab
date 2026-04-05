@@ -119,6 +119,63 @@
     }
 }
 
+@keyframes auth-brand-title-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes auth-brand-line {
+    from {
+        opacity: 0;
+        transform: scaleX(0);
+    }
+    to {
+        opacity: 1;
+        transform: scaleX(1);
+    }
+}
+
+@keyframes auth-brand-tagline {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes auth-brand-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes auth-brand-line-shine {
+    0%,
+    100% {
+        opacity: 0.55;
+        box-shadow: 0 0 10px rgb(212 175 55 / 0.15);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 18px rgb(212 175 55 / 0.35);
+    }
+}
+
 @utility scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -190,6 +247,43 @@
 
 @utility animate-auth-vertical-sivso {
     animation: auth-vertical-glow 6s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-brand-title {
+    animation: auth-brand-title-in 0.95s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-brand-line {
+    animation:
+        auth-brand-line 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both,
+        auth-brand-line-shine 4.5s ease-in-out 0.9s infinite;
+    transform-origin: center;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@utility animate-auth-brand-tagline {
+    animation: auth-brand-tagline 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-brand-float {
+    animation: auth-brand-float 5.5s ease-in-out 1.05s infinite;
 
     @media (prefers-reduced-motion: reduce) {
         animation: none;

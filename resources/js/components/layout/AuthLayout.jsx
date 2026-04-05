@@ -45,7 +45,7 @@ export default function AuthLayout({
                     aria-hidden
                 >
                     <span
-                        className="font-extralight tracking-[0.45em] text-brand-gold/[0.18] transition-all duration-500 [font-size:clamp(4.5rem,11vh,8rem)] [writing-mode:vertical-rl] [-webkit-text-stroke:1px_rgb(212_175_55_/_0.7)] dark:text-brand-gold/[0.08]"
+                        className="font-extralight tracking-[0.42em] text-brand-gold/[0.14] transition-all duration-500 [font-size:clamp(4rem,10vh,7.5rem)] [writing-mode:vertical-rl] [-webkit-text-stroke:0.5px_rgb(212_175_55_/_0.45)] dark:text-brand-gold/[0.07]"
                     >
                         SIVSO
                     </span>
@@ -74,15 +74,19 @@ export default function AuthLayout({
                         />
 
                         <div className="relative z-10 flex h-full min-h-[280px] flex-col items-center justify-end px-4 pb-12 sm:min-h-[320px] sm:px-6 lg:min-h-0 lg:items-start lg:justify-end lg:px-8 lg:pb-8">
-                            <div className="animate-auth-fade-up w-full max-w-[340px] border-0 bg-transparent px-5 py-6 text-center shadow-none delay-[240ms] sm:max-w-[360px] sm:px-6 sm:py-7 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:text-left lg:shadow-none">
-                                <div className="space-y-2 lg:space-y-1">
-                                    <div className="mb-2 lg:mb-0">
-                                        <h1 className="text-[2.4rem] font-light uppercase tracking-[0.6em] text-brand-gold [text-shadow:0_2px_8px_rgba(212,175,55,0.2)] sm:text-[2.6rem] lg:text-[1.5rem] lg:font-light lg:tracking-[0.35em] lg:text-brand-gold/85 lg:[text-shadow:none]">
+                            <div className="w-full max-w-[340px] border-0 bg-transparent px-5 py-6 text-center shadow-none sm:max-w-[360px] sm:px-6 sm:py-7 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:text-left lg:shadow-none">
+                                <div className="flex flex-col items-center gap-4 lg:items-start lg:gap-3">
+                                    <div className="animate-auth-brand-float flex flex-col items-center gap-3 lg:items-start">
+                                        <h1 className="animate-auth-brand-title max-w-[min(100%,20rem)] text-[clamp(1.5rem,5vw+0.55rem,2.25rem)] font-extralight uppercase leading-none tracking-[0.14em] text-white antialiased drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] sm:max-w-none sm:text-[2.2rem] sm:tracking-[0.18em] lg:text-[1.28rem] lg:tracking-[0.22em] lg:text-brand-gold/88 lg:drop-shadow-none">
                                             SIVSO
                                         </h1>
+                                        <span
+                                            className="animate-auth-brand-line block h-px w-10 rounded-full bg-gradient-to-r from-transparent via-brand-gold to-transparent sm:w-12 lg:w-11"
+                                            aria-hidden
+                                        />
                                     </div>
 
-                                    <p className="text-[10px] font-light uppercase tracking-[0.15em] text-white/70 sm:text-[11px] lg:text-[10px] lg:leading-tight lg:font-light lg:tracking-[0.12em] lg:text-brand-gold/75">
+                                    <p className="animate-auth-brand-tagline max-w-[17.5rem] text-[10px] font-light leading-relaxed tracking-[0.06em] text-white/55 sm:max-w-none sm:text-[11px] lg:max-w-[13.5rem] lg:text-[10px] lg:leading-tight lg:tracking-[0.08em] lg:text-brand-gold/60">
                                         Sistema Integral de Vestuario Sindicato
                                     </p>
                                 </div>
