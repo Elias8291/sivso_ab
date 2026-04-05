@@ -6,10 +6,14 @@ import { route } from 'ziggy-js';
 /**
  * Búsqueda asíncrona de empleados. Con delegadoId filtra por delegaciones de ese delegado.
  */
+/**
+ * @param {(item: { id: number, nue: string|null, nombre_completo: string, delegacion_codigo: string, label: string }) => void} [onEmpleadoPick]
+ */
 export default function EmpleadoBusquedaInput({
     delegadoId = null,
     value = '',
     onValueChange,
+    onEmpleadoPick,
     error,
     delegacionesCodigos = [],
     seedLabel = '',
@@ -101,6 +105,7 @@ export default function EmpleadoBusquedaInput({
 
     const pick = (item) => {
         onValueChange(String(item.id));
+        onEmpleadoPick?.(item);
         setPickedLabel(item.label);
         setQ('');
         setResults([]);

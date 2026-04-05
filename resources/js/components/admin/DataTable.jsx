@@ -29,9 +29,12 @@ export default function DataTable({
     emptyTitle = 'Sin registros',
     emptyDescription = 'No hay datos para mostrar en este momento.',
     footer = null,
+    /** Móvil: `card` = caja por fila; `divided` = solo líneas entre registros (sin contenedor gris). */
+    mobileRowStyle = 'card',
 }) {
     const isEmpty = !rows?.length;
     const isActionsCol = (col) => col.key === 'acciones';
+    const mobilePlain = mobileRowStyle === 'divided';
 
     return (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
@@ -40,10 +43,21 @@ export default function DataTable({
             ) : (
                 <>
                     {/* Móvil: cada registro = tarjeta; campos en filas (etiqueta + valor) */}
-                    <ul className="divide-y divide-zinc-900/5 p-3 dark:divide-white/5 md:hidden">
+                    <ul
+                        className={`md:hidden ${mobilePlain ? 'divide-y divide-zinc-200/75 px-3 py-2 dark:divide-zinc-700/55' : 'divide-y divide-zinc-900/5 p-3 dark:divide-white/5'}`}
+                    >
                         {rows.map((row) => (
-                            <li key={keyExtractor(row)} className="py-4 first:pt-1">
-                                <div className="space-y-0 rounded-xl bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-900/5 dark:bg-zinc-900/40 dark:ring-white/10">
+                            <li
+                                key={keyExtractor(row)}
+                                className={mobilePlain ? 'py-3.5 first:pt-3' : 'py-4 first:pt-1'}
+                            >
+                                <div
+                                    className={
+                                        mobilePlain
+                                            ? 'space-y-0'
+                                            : 'space-y-0 rounded-xl bg-zinc-50/80 px-3 py-3 ring-1 ring-zinc-900/5 dark:bg-zinc-900/40 dark:ring-white/10'
+                                    }
+                                >
                                     {columns.map((col, colIndex) => {
                                         const actions = isActionsCol(col);
                                         const label = headerLabel(col, actions);

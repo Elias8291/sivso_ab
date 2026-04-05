@@ -124,7 +124,7 @@ function DelegadosIndex({
                     name: (vincularDelegado.nombre_completo || '').trim(),
                     email: '',
                     rfc: '',
-                    nue: '',
+                    nue: (vincularDelegado.empleado?.nue || '').toUpperCase(),
                     password: '',
                     password_confirmation: '',
                     roles: defaultRolesDelegado(rolesDisponibles),
@@ -325,6 +325,7 @@ function DelegadosIndex({
                     emptyTitle="Sin delegados"
                     emptyDescription="No hay registros en delegado. Ejecuta migraciones y el seeder de delegados si aplica."
                     footer={delegados.last_page > 1 ? <TablePagination pagination={delegados} /> : null}
+                    mobileRowStyle="divided"
                 />
             </AdminPageShell>
 
@@ -341,7 +342,17 @@ function DelegadosIndex({
                             key={`create-${createModalKey}`}
                             delegadoId={null}
                             value={form.data.empleado_id}
-                            onValueChange={(id) => form.setData('empleado_id', id)}
+                            onValueChange={(id) => {
+                                form.setData('empleado_id', id);
+                                if (!id) {
+                                    form.setData('nue', '');
+                                    form.setData('nombre_completo', '');
+                                }
+                            }}
+                            onEmpleadoPick={(item) => {
+                                form.setData('nombre_completo', item.nombre_completo || '');
+                                form.setData('nue', (item.nue || '').toUpperCase());
+                            }}
                             error={form.errors.empleado_id}
                             delegacionesCodigos={[]}
                         />
@@ -452,7 +463,22 @@ function DelegadosIndex({
                                 key={vincularDelegado.id}
                                 delegadoId={vincularDelegado.id}
                                 value={vinculoForm.data.empleado_id}
-                                onValueChange={(id) => vinculoForm.setData('empleado_id', id)}
+                                onValueChange={(id) => {
+                                    vinculoForm.setData('empleado_id', id);
+                                    if (!id) {
+                                        vinculoForm.setData('nuevo_usuario', {
+                                            ...vinculoForm.data.nuevo_usuario,
+                                            nue: '',
+                                        });
+                                    }
+                                }}
+                                onEmpleadoPick={(item) => {
+                                    const nue = (item.nue || '').toUpperCase();
+                                    vinculoForm.setData('nuevo_usuario', {
+                                        ...vinculoForm.data.nuevo_usuario,
+                                        nue,
+                                    });
+                                }}
                                 error={vinculoForm.errors.empleado_id}
                                 delegacionesCodigos={vincularDelegado.delegaciones_codigos ?? []}
                                 seedLabel={

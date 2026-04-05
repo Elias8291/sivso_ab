@@ -42,37 +42,39 @@ export default function Modal({
     return (
         <div
             ref={dialogRef}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overscroll-contain p-0 sm:items-center sm:p-4"
             role="dialog"
             aria-modal="true"
             aria-label={title}
         >
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] dark:bg-black/60"
+                className="fixed inset-0 bg-black/40 backdrop-blur-[2px] dark:bg-black/60"
                 onClick={onClose}
                 aria-hidden
             />
 
-            {/* Panel */}
+            {/* Panel: altura máxima + cuerpo con scroll (móvil: formularios largos y botones al final) */}
             <div
                 ref={panelRef}
-                className={`relative w-full ${maxWidth} rounded-xl border border-zinc-200/70 bg-white shadow-xl dark:border-zinc-800/70 dark:bg-zinc-950`}
+                className={`relative z-10 flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full flex-col rounded-t-2xl border border-zinc-200/70 bg-white shadow-xl sm:max-h-[min(88dvh,900px)] sm:rounded-xl dark:border-zinc-800/70 dark:bg-zinc-950 ${maxWidth}`}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800/60">
-                    <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">{title}</h2>
+                <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-5 py-4 dark:border-zinc-800/60 sm:px-6">
+                    <h2 className="pr-2 text-[15px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50">
+                        {title}
+                    </h2>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex size-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                     >
                         <X className="size-4" strokeWidth={2} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="px-6 py-5">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
                     {children}
                 </div>
             </div>
