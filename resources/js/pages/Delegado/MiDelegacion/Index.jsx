@@ -443,11 +443,24 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
 
 /* ─── ModalProductos ─────────────────────────────────────────────── */
 
+/** Fila de ficha técnica: etiqueta a la izquierda, valor a la derecha */
+function FilaDato({ label, value, mono = false }) {
+    if (value === null || value === undefined || value === '') return null;
+    return (
+        <div className="flex items-baseline gap-3 border-b border-zinc-100 py-2 last:border-0 dark:border-zinc-800">
+            <dt className="w-28 shrink-0 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">{label}</dt>
+            <dd className={`flex-1 text-[12px] font-medium leading-relaxed text-zinc-800 dark:text-zinc-200 ${mono ? 'font-mono' : ''}`}>
+                {value}
+            </dd>
+        </div>
+    );
+}
+
 function ModalProductos({ empleado, open, onClose }) {
-    const [tab, setTab]     = useState('licitados');
-    const [data, setData]   = useState(null);
+    const [tab, setTab]         = useState('licitados');
+    const [data, setData]       = useState(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError]     = useState('');
 
     useEffect(() => {
         if (!open || !empleado) return;
@@ -463,156 +476,153 @@ function ModalProductos({ empleado, open, onClose }) {
 
     useEffect(() => { if (open) setTab('licitados'); }, [open]);
 
-    const fmtMoneda = (v) =>
-        v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : '—';
+    const fmt$ = (v) =>
+        v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : null;
 
     const TabBtn = ({ id, label, count }) => (
-        <button
-            type="button"
-            onClick={() => setTab(id)}
-            className={`rounded px-3 py-1.5 text-[11px] font-medium transition-colors ${
+        <button type="button" onClick={() => setTab(id)}
+            className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors ${
                 tab === id
-                    ? 'bg-zinc-100 text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50'
+                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50'
                     : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
             }`}
         >
             {label}
             {count != null && (
-                <span className={`ml-1.5 tabular-nums ${tab === id ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-400'}`}>
-                    ({count})
-                </span>
+                <span className={`rounded px-1.5 py-0.5 text-[10px] tabular-nums ${
+                    tab === id
+                        ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-600 dark:text-zinc-300'
+                        : 'bg-zinc-100/80 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500'
+                }`}>{count}</span>
             )}
         </button>
     );
 
+    /** Tarjeta de un producto (licitado o cotizado) */
+    const ProductoCard = ({ p, tipo }) => {
+        const estadoClass = p.estado === 'confirmado'
+            ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
+            : 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400';
+
+        return (
+            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700/80 dark:bg-zinc-900">
+                {/* cabecera de la tarjeta */}
+                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
+                    <div className="min-w-0">
+                        <p className="text-[13px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50 [overflow-wrap:anywhere]">
+                            {p.descripcion}
+                        </p>
+                        {p.codigo && (
+                            <p className="mt-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{p.codigo}</p>
+                        )}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                        {tipo === 'cotizados' && p.estado && (
+                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${estadoClass}`}>
+                                {p.estado}
+                            </span>
+                        )}
+                        {p.categoria && (
+                            <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                {p.categoria}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* ficha técnica */}
+                <dl className="px-4 py-1">
+                    {tipo === 'licitados' ? (
+                        <>
+                            <FilaDato label="Partida"      value={p.numero_partida} />
+                            <FilaDato label="Marca"        value={p.marca} />
+                            <FilaDato label="Unidad"       value={p.unidad} />
+                            <FilaDato label="Medida"       value={p.medida} />
+                            <FilaDato label="Proveedor"    value={p.proveedor} />
+                            <FilaDato label="Precio unit." value={fmt$(p.precio_unitario)} />
+                            <FilaDato label="Rubro presup." value={p.clave_rubro} mono />
+                            <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
+                            <FilaDato label="Talla"        value={p.talla} mono />
+                        </>
+                    ) : (
+                        <>
+                            <FilaDato label="Partida"      value={p.numero_partida} />
+                            <FilaDato label="Referencia"   value={p.referencia} mono />
+                            <FilaDato label="Precio unit." value={fmt$(p.precio_unitario)} />
+                            <FilaDato label="Total"        value={fmt$(p.total)} />
+                            <FilaDato label="Rubro presup." value={p.clave_rubro} mono />
+                            <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
+                            <FilaDato label="Talla"        value={p.talla} mono />
+                            <FilaDato label="Medida"       value={p.medida} />
+                        </>
+                    )}
+                </dl>
+            </div>
+        );
+    };
+
+    const lista = data ? (tab === 'licitados' ? data.licitados : data.cotizados) : [];
+
     return (
         <Modal open={open} onClose={onClose}>
-            {/* cabecera */}
+            {/* ── encabezado ── */}
             <div className="flex items-start justify-between gap-3 px-6 pb-4 pt-6">
                 <div className="flex items-center gap-3">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
                         <Package className="size-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
                     </div>
                     <div>
-                        <h2 className="text-[14px] font-bold text-zinc-900 dark:text-zinc-100">Productos asignados</h2>
-                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                        <h2 className="text-[14px] font-bold text-zinc-900 dark:text-zinc-100">
+                            Productos asignados
+                        </h2>
+                        <p className="mt-0.5 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
                             {empleado?.nombre_completo}
-                            {data?.anio && <span className="ml-1.5 tabular-nums">· Año {data.anio}</span>}
+                            {data?.anio && <span className="ml-1.5 tabular-nums">· {data.anio}</span>}
                         </p>
                     </div>
                 </div>
                 <button type="button" onClick={onClose}
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
                     <X className="size-4" />
                 </button>
             </div>
 
-            <div className="mx-6 h-px bg-zinc-100 dark:bg-zinc-800" />
+            {/* ── tabs ── */}
+            <div className="mx-6 mb-4 flex gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-0.5 dark:border-zinc-800 dark:bg-zinc-800/50">
+                {data && (
+                    <>
+                        <TabBtn id="licitados" label="Licitados" count={data.licitados?.length} />
+                        <TabBtn id="cotizados"  label="Cotizados"  count={data.cotizados?.length} />
+                    </>
+                )}
+            </div>
 
-            <div className="px-6 py-4">
+            {/* ── contenido ── */}
+            <div className="max-h-[60vh] overflow-y-auto px-6 pb-6">
                 {loading && (
-                    <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-zinc-400">
+                    <div className="flex items-center justify-center gap-2 py-14 text-[12px] text-zinc-400">
                         <RotateCcw className="size-4 animate-spin" /> Cargando…
                     </div>
                 )}
                 {error && (
-                    <p className="rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>
+                    <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-[12px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                        {error}
+                    </p>
                 )}
-
-                {data && (
-                    <>
-                        {/* tabs */}
-                        <div className="mb-4 flex gap-0.5 rounded-md border border-zinc-200/80 bg-zinc-50/70 p-px dark:border-zinc-800 dark:bg-zinc-900/50">
-                            <TabBtn id="licitados" label="Licitados" count={data.licitados?.length} />
-                            <TabBtn id="cotizados"  label="Cotizados"  count={data.cotizados?.length} />
-                        </div>
-
-                        {/* ── LICITADOS ── */}
-                        {tab === 'licitados' && (
-                            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-                                {data.licitados.length === 0 ? (
-                                    <p className="py-6 text-center text-[12px] text-zinc-400">Sin productos licitados.</p>
-                                ) : data.licitados.map((p) => (
-                                    <div key={p.asignacion_id} className="rounded-xl border border-zinc-200/80 bg-zinc-50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/30">
-                                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
-                                                    {p.descripcion}
-                                                </p>
-                                                {p.codigo && (
-                                                    <p className="font-mono text-[10px] text-zinc-400">{p.codigo}</p>
-                                                )}
-                                            </div>
-                                            {p.categoria && (
-                                                <span className="shrink-0 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                                                    {p.categoria}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-600 dark:text-zinc-400 sm:grid-cols-3">
-                                            {p.numero_partida && <span><span className="text-zinc-400">Partida:</span> {p.numero_partida}</span>}
-                                            {p.marca          && <span><span className="text-zinc-400">Marca:</span> {p.marca}</span>}
-                                            {p.unidad         && <span><span className="text-zinc-400">Unidad:</span> {p.unidad}</span>}
-                                            {p.medida         && <span><span className="text-zinc-400">Medida:</span> {p.medida}</span>}
-                                            {p.proveedor      && <span><span className="text-zinc-400">Proveedor:</span> {p.proveedor}</span>}
-                                            {p.precio_unitario!= null && <span><span className="text-zinc-400">P.U.:</span> {fmtMoneda(p.precio_unitario)}</span>}
-                                            {p.clave_rubro    && <span><span className="text-zinc-400">Rubro:</span> <span className="font-mono">{p.clave_rubro}</span></span>}
-                                            {p.cantidad_asignada != null && <span><span className="text-zinc-400">Cant. asig.:</span> {p.cantidad_asignada}</span>}
-                                            {p.talla          && <span><span className="text-zinc-400">Talla:</span> <span className="font-mono">{p.talla}</span></span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* ── COTIZADOS ── */}
-                        {tab === 'cotizados' && (
-                            <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
-                                {data.cotizados.length === 0 ? (
-                                    <p className="py-6 text-center text-[12px] text-zinc-400">Sin productos cotizados.</p>
-                                ) : data.cotizados.map((p) => (
-                                    <div key={p.asignacion_id} className="rounded-xl border border-zinc-200/80 bg-zinc-50 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/30">
-                                        <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
-                                                    {p.descripcion}
-                                                </p>
-                                                {p.codigo && (
-                                                    <p className="font-mono text-[10px] text-zinc-400">{p.codigo}</p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                {p.estado && (
-                                                    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${
-                                                        p.estado === 'confirmado'
-                                                            ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
-                                                            : 'border-transparent bg-zinc-100/80 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400'
-                                                    }`}>
-                                                        {p.estado}
-                                                    </span>
-                                                )}
-                                                {p.categoria && (
-                                                    <span className="rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                                                        {p.categoria}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-zinc-600 dark:text-zinc-400 sm:grid-cols-3">
-                                            {p.numero_partida && <span><span className="text-zinc-400">Partida:</span> {p.numero_partida}</span>}
-                                            {p.referencia     && <span><span className="text-zinc-400">Ref.:</span> <span className="font-mono">{p.referencia}</span></span>}
-                                            {p.precio_unitario != null && <span><span className="text-zinc-400">P.U.:</span> {fmtMoneda(p.precio_unitario)}</span>}
-                                            {p.total          != null && <span><span className="text-zinc-400">Total:</span> {fmtMoneda(p.total)}</span>}
-                                            {p.clave_rubro    && <span><span className="text-zinc-400">Rubro:</span> <span className="font-mono">{p.clave_rubro}</span></span>}
-                                            {p.cantidad_asignada != null && <span><span className="text-zinc-400">Cant. asig.:</span> {p.cantidad_asignada}</span>}
-                                            {p.talla          && <span><span className="text-zinc-400">Talla:</span> <span className="font-mono">{p.talla}</span></span>}
-                                            {p.medida         && <span><span className="text-zinc-400">Medida:</span> {p.medida}</span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
+                {data && lista.length === 0 && (
+                    <div className="flex flex-col items-center justify-center gap-2 py-14">
+                        <Package className="size-8 text-zinc-300 dark:text-zinc-700" strokeWidth={1.25} />
+                        <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
+                            Sin productos {tab === 'licitados' ? 'licitados' : 'cotizados'}.
+                        </p>
+                    </div>
+                )}
+                {data && lista.length > 0 && (
+                    <div className="space-y-3">
+                        {lista.map((p) => (
+                            <ProductoCard key={p.asignacion_id} p={p} tipo={tab} />
+                        ))}
+                    </div>
                 )}
             </div>
         </Modal>
