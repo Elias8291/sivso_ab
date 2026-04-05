@@ -1,16 +1,21 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-/** Solo conecta si VITE_REVERB_ENABLED=true y hay clave (requiere `php artisan reverb:start`). */
+/** Reverb local / VPS con proceso `reverb:start`. */
 export const isReverbRealtimeEnabled =
     import.meta.env.VITE_REVERB_ENABLED === 'true' && Boolean(import.meta.env.VITE_REVERB_APP_KEY);
 
-const reverbEnabled = isReverbRealtimeEnabled;
+/** Pusher (recomendado en hosting compartido: sin proceso WebSocket en tu servidor). */
+const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY ?? '';
+export const isPusherRealtimeEnabled = Boolean(pusherKey);
+
+export const isWebsocketRealtimeEnabled = isReverbRealtimeEnabled || isPusherRealtimeEnabled;
+
+window.Pusher = Pusher;
 
 let echo = null;
 
-if (reverbEnabled) {
-    window.Pusher = Pusher;
+if (isReverbRealtimeEnabled) {
     echo = new Echo({
         broadcaster: 'reverb',
         key: import.meta.env.VITE_REVERB_APP_KEY,
@@ -21,6 +26,22 @@ if (reverbEnabled) {
         forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https',
         enabledTransports: ['ws', 'wss'],
         disableStats: true,
+    });
+} else if (isPusherRealtimeEnabled) {
+    echo = new Echo({
+        broadcaster: 'pusher',
+        key: pusherKey,
+        cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
+        forceTLS: true,
+        encrypted: true,
+        authEndpoint: '/broadcasting/auth',
+        auth: {
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                Accept: 'application/json',
+            },
+        },
+        withCredentials: true,
     });
 }
 

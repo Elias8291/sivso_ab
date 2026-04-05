@@ -1,6 +1,7 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
-import { isReverbRealtimeEnabled } from '@/echo';
+import echo, { isWebsocketRealtimeEnabled } from '@/echo';
+import { getPollIntervalMs, POLL_BACKUP_WHEN_WS_MS } from '@/lib/realtimePoll';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -21,9 +22,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /* ─── pestañas de estado ─────────────────────────────────────────── */
-
-/** Sin WebSocket (p. ej. Hostinger): lista y contadores se refrescan solos. */
-const SOLICITUDES_MOVIMIENTO_POLL_MS = 12_000;
 
 const TABS = [
     { key: 'pendiente', label: 'Pendientes', color: 'amber'   },
@@ -382,16 +380,32 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
     const modalAbierto = modalSolicitud !== null;
 
     useEffect(() => {
-        if (!auth?.user || isReverbRealtimeEnabled || modalAbierto) return;
+        if (!auth?.user || modalAbierto) return;
 
-        const interval = setInterval(() => {
+        const reloadList = () => {
             if (document.visibilityState === 'hidden') return;
             router.reload({
                 only: ['solicitudes', 'totales', 'filters'],
                 preserveScroll: true,
             });
-        }, SOLICITUDES_MOVIMIENTO_POLL_MS);
+        };
 
+        if (isWebsocketRealtimeEnabled && echo) {
+            const uid = auth.user.id;
+            const channel = echo.private(`App.Models.User.${uid}`);
+            const onNueva = (payload) => {
+                if (payload?.tipo === 'nueva_solicitud') reloadList();
+            };
+            channel.listen('.sivso.notificacion', onNueva);
+            const backupMs = POLL_BACKUP_WHEN_WS_MS;
+            const interval = setInterval(reloadList, backupMs);
+            return () => {
+                channel.stopListening('.sivso.notificacion', onNueva);
+                clearInterval(interval);
+            };
+        }
+
+        const interval = setInterval(reloadList, getPollIntervalMs());
         return () => clearInterval(interval);
     }, [auth?.user?.id, modalAbierto]);
 

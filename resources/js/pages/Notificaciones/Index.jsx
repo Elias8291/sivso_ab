@@ -1,5 +1,6 @@
 import TablePagination from '@/components/admin/TablePagination';
-import { isReverbRealtimeEnabled } from '@/echo';
+import echo, { isWebsocketRealtimeEnabled } from '@/echo';
+import { getPollIntervalMs } from '@/lib/realtimePoll';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
@@ -189,16 +190,24 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
     }, [notificaciones]);
 
     useEffect(() => {
-        if (!auth?.user || isReverbRealtimeEnabled) return;
+        if (!auth?.user) return;
 
-        const interval = setInterval(() => {
+        const reloadList = () => {
             if (document.visibilityState === 'hidden') return;
             router.reload({
                 only: ['notificaciones', 'totales'],
                 preserveScroll: true,
             });
-        }, NOTIFICACIONES_INDEX_POLL_MS);
+        };
 
+        if (isWebsocketRealtimeEnabled && echo) {
+            const channel = echo.private(`App.Models.User.${auth.user.id}`);
+            const handler = () => reloadList();
+            channel.listen('.sivso.notificacion', handler);
+            return () => channel.stopListening('.sivso.notificacion', handler);
+        }
+
+        const interval = setInterval(reloadList, getPollIntervalMs());
         return () => clearInterval(interval);
     }, [auth?.user?.id]);
 

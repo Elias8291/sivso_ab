@@ -1,4 +1,5 @@
-import echo, { isReverbRealtimeEnabled } from '@/echo';
+import echo, { isWebsocketRealtimeEnabled } from '@/echo';
+import { getPollIntervalMs } from '@/lib/realtimePoll';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -88,9 +89,6 @@ function NotifRow({ notif, onRead }) {
 
 /* ── campana principal ───────────────────────────────────────────── */
 
-/** En Hostinger / sin Reverb no hay WebSocket; el sondeo mantiene la campana al día. */
-const NOTIF_POLL_MS = 10_000;
-
 export default function NotificationBell() {
     const { auth, notificaciones = [] } = usePage().props;
     const [open, setOpen]               = useState(false);
@@ -128,9 +126,9 @@ export default function NotificationBell() {
         };
     }, [userId]);
 
-    /* ── Polling HTTP si no hay Reverb (p. ej. hosting compartido) ─ */
+    /* ── Polling HTTP si no hay WebSocket (Pusher/Reverb) ─ */
     useEffect(() => {
-        if (!userId || isReverbRealtimeEnabled) return;
+        if (!userId || isWebsocketRealtimeEnabled) return;
 
         const fetchUnread = async () => {
             if (document.visibilityState === 'hidden') return;
@@ -153,7 +151,7 @@ export default function NotificationBell() {
             }
         };
 
-        const interval = setInterval(fetchUnread, NOTIF_POLL_MS);
+        const interval = setInterval(fetchUnread, getPollIntervalMs());
         void fetchUnread();
 
         return () => clearInterval(interval);
