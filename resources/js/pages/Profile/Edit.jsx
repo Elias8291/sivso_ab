@@ -1,5 +1,6 @@
+import AdminPageShell from '@/components/admin/AdminPageShell';
 import PasswordInput from '@/components/ui/PasswordInput';
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 
@@ -60,21 +61,12 @@ export default function ProfileEdit({ profile }) {
     return (
         <>
             <Head title="Mi cuenta" />
-            <div className="mx-auto w-full max-w-xl">
-                <article className="overflow-hidden rounded-xl border border-zinc-200/85 bg-white/90 shadow-sm dark:border-zinc-800/90 dark:bg-zinc-950/80">
-                    <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-4 dark:border-zinc-800/80 dark:from-zinc-900/40 dark:to-zinc-950/50 sm:px-5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-gold/90 dark:text-brand-gold-soft/85">
-                            Perfil de usuario
-                        </p>
-                        <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-2xl">
-                            Mi cuenta
-                        </h1>
-                        <p className="mt-2 max-w-lg text-[13px] leading-snug text-zinc-500 dark:text-zinc-400">
-                            Datos de acceso. Los identificadores institucionales solo los modifica administración.
-                        </p>
-                    </div>
-
-                    <div className="px-4 py-5 sm:px-5 sm:py-6">
+            <AdminPageShell
+                title="Mi cuenta"
+                description="Datos de acceso. Los identificadores institucionales solo los modifica administración."
+            >
+                <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
+                    <div className="px-5 py-5 sm:px-6 sm:py-6">
                         {(flash?.status || recentlySuccessful) && (
                             <output
                                 className="mb-5 block border-l-2 border-brand-gold/60 bg-brand-gold/[0.06] py-2 pl-3 pr-3 text-[13px] leading-snug text-zinc-800 dark:border-brand-gold-soft/50 dark:bg-brand-gold-soft/[0.07] dark:text-zinc-200"
@@ -261,20 +253,10 @@ export default function ProfileEdit({ profile }) {
                             </footer>
                         </form>
                     </div>
-                </article>
-            </div>
+                </div>
+            </AdminPageShell>
         </>
     );
 }
 
-ProfileEdit.layout = (page) => (
-    <AuthenticatedLayout
-        header={
-            <span className="truncate text-sm font-medium tracking-wide text-zinc-800 dark:text-zinc-100 sm:text-[15px]">
-                Mi cuenta
-            </span>
-        }
-    >
-        {page}
-    </AuthenticatedLayout>
-);
+ProfileEdit.layout = createAdminPageLayout('Mi cuenta');
