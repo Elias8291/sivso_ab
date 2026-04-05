@@ -108,16 +108,17 @@ class MiDelegacionController extends Controller
             ->all();
 
         return Inertia::render('Delegado/MiDelegacion/Index', [
-            'empleados'    => $empleados,
-            'delegaciones' => $delegaciones,
-            'contexto'     => $contexto,
-            'resumen'      => [
+            'empleados'        => $empleados,
+            'delegaciones'     => $delegaciones,
+            'contexto'         => $contexto,
+            'resumen'          => [
                 'total'       => $total,
                 'listos'      => $listos,
                 'sin_empezar' => $sinEmpezar,
                 'anio_ref'    => self::ANIO_REFERENCIA,
                 'anio_actual' => self::ANIO_ACTUAL,
             ],
+            'resumen_prendas'  => $this->resumenPorCategoria($codigosDelegacion),
             'filters' => array_merge(
                 $request->only(['search']),
                 ['filtro' => $filtro, 'per_page' => $perPage],
@@ -403,6 +404,47 @@ class MiDelegacionController extends Controller
 
         return $codigos !== []
             && in_array($empleado->delegacion_codigo, $codigos, true);
+    }
+
+    /**
+     * Resumen de asignaciones agrupado por prenda (clave + descripción) para el año de referencia.
+     * Incluye totales por año disponible en la delegación.
+     *
+     * @param  list<string>|null  $codigosDelegacion
+     * @return list<array<string, mixed>>
+     */
+    private function resumenPorCategoria(?array $codigosDelegacion): array
+    {
+        $query = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
+            ->select([
+                'aep.anio',
+                'pc.clave',
+                'pc.descripcion',
+                \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'),
+                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
+                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
+                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
+            ])
+            ->where('e.estado_delegacion', 'activo')
+            ->whereNotNull('aep.producto_cotizado_id')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->groupBy('aep.anio', 'pc.clave', 'pc.descripcion')
+            ->orderBy('aep.anio', 'desc')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        return $query->map(fn ($row) => [
+            'anio'        => $row->anio,
+            'clave'       => $row->clave,
+            'descripcion' => $row->descripcion,
+            'total'       => (int) $row->total,
+            'confirmadas' => (int) $row->confirmadas,
+            'pendientes'  => (int) $row->pendientes,
+            'bajas'       => (int) $row->bajas,
+            'porcentaje'  => $row->total > 0 ? round(($row->confirmadas / $row->total) * 100) : 0,
+        ])->values()->all();
     }
 
     /**
