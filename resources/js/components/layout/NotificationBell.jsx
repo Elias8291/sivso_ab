@@ -47,15 +47,31 @@ function notifCfg(tipo, decision, tipoSol) {
           };
 }
 
-/** Inertia a veces entrega colecciones Laravel como objeto `{0:…}`; siempre trabajar como array. */
+/**
+ * Lista de ítems para la campana: siempre un array de objetos con id.
+ * Cubre: null/undefined, envoltorio `{ data: [...] }`, objetos índice, filas inválidas.
+ */
 function coerceNotifBellList(value) {
+    if (value == null) return [];
+
     let raw;
-    if (Array.isArray(value)) raw = value;
-    else if (value != null && typeof value === 'object') raw = Object.values(value);
-    else raw = [];
+    if (Array.isArray(value)) {
+        raw = value;
+    } else if (typeof value === 'object' && Array.isArray(value.data)) {
+        raw = value.data;
+    } else if (typeof value === 'object') {
+        raw = Object.values(value).filter((v) => v != null && typeof v === 'object');
+    } else {
+        return [];
+    }
 
     return raw.filter(
-        (n) => n != null && typeof n === 'object' && n.id != null && String(n.id).length > 0,
+        (n) =>
+            n != null
+            && typeof n === 'object'
+            && !Array.isArray(n)
+            && n.id != null
+            && String(n.id).length > 0,
     );
 }
 
@@ -102,7 +118,8 @@ function NotifRow({ notif, onRead }) {
 /* ── campana principal ───────────────────────────────────────────── */
 
 export default function NotificationBell() {
-    const { auth, notificaciones = [] } = usePage().props;
+    const { auth, notificaciones: notificacionesRaw } = usePage().props;
+    const notificaciones = notificacionesRaw ?? [];
     const [open, setOpen]               = useState(false);
     const [items, setItems]             = useState(() => coerceNotifBellList(notificaciones));
     const [isNew, setIsNew]             = useState(false);   // pulso al llegar nueva
@@ -140,15 +157,19 @@ export default function NotificationBell() {
         };
     }, [userId]);
 
-    /* ── Polling HTTP si no hay WebSocket (Pusher/Reverb) ─ */
+    /*
+     * Sondeo HTTP: siempre activo. Sin WebSocket va al ritmo de VITE_POLL_INTERVAL_MS;
+     * con Pusher/Reverb activo se usa intervalo largo como respaldo (p. ej. .env mal en servidor).
+     */
     useEffect(() => {
-        if (!userId || isWebsocketRealtimeEnabled) return;
+        if (!userId) return;
 
         const fetchUnread = async () => {
             if (document.visibilityState === 'hidden') return;
             try {
                 const { data } = await axios.get(route('notificaciones.unread-poll'));
-                const list = coerceNotifBellList(Array.isArray(data?.data) ? data.data : []);
+                const payload = data?.data !== undefined ? data.data : data;
+                const list = coerceNotifBellList(payload);
                 setItems((prev) => {
                     const prevList = coerceNotifBellList(prev);
                     const prevIds = new Set(prevList.map((n) => n.id));
@@ -166,11 +187,15 @@ export default function NotificationBell() {
             }
         };
 
-        const interval = setInterval(fetchUnread, getPollIntervalMs());
+        const intervalMs = isWebsocketRealtimeEnabled
+            ? Math.max(45_000, getPollIntervalMs() * 9)
+            : getPollIntervalMs();
+
+        const interval = setInterval(fetchUnread, intervalMs);
         void fetchUnread();
 
         return () => clearInterval(interval);
-    }, [userId]);
+    }, [userId, isWebsocketRealtimeEnabled]);
 
     /* cerrar al click fuera */
     useEffect(() => {

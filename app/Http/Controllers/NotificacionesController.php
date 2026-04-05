@@ -30,7 +30,8 @@ class NotificacionesController extends Controller
             ->limit(self::BELL_UNREAD_LIMIT)
             ->get()
             ->map(fn (DatabaseNotification $n): array => $this->mapBellItem($n))
-            ->values();
+            ->values()
+            ->all();
 
         return response()->json([
             'data' => $items,
