@@ -120,11 +120,16 @@ function AlertaModal({ delegacion, onClose, onSent }) {
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
                             <BellRing className="size-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                             <p className="font-semibold text-zinc-900 dark:text-zinc-100">
                                 Delegación{' '}
                                 <span className="font-mono">{delegacion.codigo}</span>
                             </p>
+                            {delegacion.delegados?.length > 0 && (
+                                <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    {delegacion.delegados.join(' · ')}
+                                </p>
+                            )}
                             {delegacion.pendientes > 0 && (
                                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                                     {delegacion.pendientes} talla(s) pendiente(s)
@@ -269,6 +274,27 @@ function DelegacionesIndex({
                 render: (row) =>
                     row.referencia_nombre ?? (
                         <span className="text-zinc-400">—</span>
+                    ),
+            },
+            {
+                key: 'delegados',
+                header: 'Delegado(s)',
+                className: 'text-left',
+                cellClassName: 'text-left',
+                render: (row) =>
+                    row.delegados?.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                            {row.delegados.map((nombre) => (
+                                <span
+                                    key={nombre}
+                                    className="text-[12px] text-zinc-700 dark:text-zinc-300"
+                                >
+                                    {nombre}
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <span className="text-[11px] text-zinc-400">Sin delegado</span>
                     ),
             },
             {
@@ -514,6 +540,24 @@ function DelegacionesIndex({
                                     {showView.referencia_nombre ?? '—'}
                                     {showView.ur_referencia != null && (
                                         <span className="ml-1 text-zinc-400">(UR {showView.ur_referencia})</span>
+                                    )}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                    Delegado(s)
+                                </dt>
+                                <dd className="mt-0.5">
+                                    {showView.delegados?.length > 0 ? (
+                                        <ul className="space-y-0.5">
+                                            {showView.delegados.map((nombre) => (
+                                                <li key={nombre} className="text-zinc-900 dark:text-zinc-100">
+                                                    {nombre}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <span className="text-zinc-400">Sin delegado asignado</span>
                                     )}
                                 </dd>
                             </div>

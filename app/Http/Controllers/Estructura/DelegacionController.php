@@ -48,6 +48,15 @@ class DelegacionController extends Controller
         $globalConfirmadas = $stats->sum('confirmadas');
         $globalPendientes  = $stats->sum('pendientes');
 
+        // Delegados por delegación (puede haber varios)
+        $delegadosPor = DB::table('delegado_delegacion')
+            ->join('delegado', 'delegado.id', '=', 'delegado_delegacion.delegado_id')
+            ->select('delegado_delegacion.delegacion_codigo', 'delegado.nombre_completo')
+            ->orderBy('delegado.nombre_completo')
+            ->get()
+            ->groupBy('delegacion_codigo')
+            ->map(fn ($rows) => $rows->pluck('nombre_completo')->all());
+
         $delegaciones = Delegacion::query()
             ->with('dependenciaReferencia:ur,nombre')
             ->when($search, function ($query, $search) {
@@ -60,22 +69,23 @@ class DelegacionController extends Controller
             ->orderBy('codigo')
             ->paginate(15)
             ->withQueryString()
-            ->through(function (Delegacion $row) use ($stats) {
+            ->through(function (Delegacion $row) use ($stats, $delegadosPor) {
                 $s = $stats->get($row->codigo);
-                $total      = (int) ($s?->total_asignaciones ?? 0);
+                $total       = (int) ($s?->total_asignaciones ?? 0);
                 $confirmadas = (int) ($s?->confirmadas ?? 0);
                 $pendientes  = (int) ($s?->pendientes ?? 0);
                 $porcentaje  = $total > 0 ? round(($confirmadas / $total) * 100) : 0;
 
                 return [
-                    'codigo'           => $row->codigo,
-                    'ur_referencia'    => $row->ur_referencia,
-                    'referencia_nombre'=> $row->dependenciaReferencia?->nombre,
-                    'total_empleados'  => (int) ($s?->total_empleados ?? 0),
+                    'codigo'             => $row->codigo,
+                    'ur_referencia'      => $row->ur_referencia,
+                    'referencia_nombre'  => $row->dependenciaReferencia?->nombre,
+                    'delegados'          => $delegadosPor->get($row->codigo, []),
+                    'total_empleados'    => (int) ($s?->total_empleados ?? 0),
                     'total_asignaciones' => $total,
-                    'confirmadas'      => $confirmadas,
-                    'pendientes'       => $pendientes,
-                    'porcentaje'       => $porcentaje,
+                    'confirmadas'        => $confirmadas,
+                    'pendientes'         => $pendientes,
+                    'porcentaje'         => $porcentaje,
                 ];
             });
 
