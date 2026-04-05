@@ -423,36 +423,42 @@ function DelegacionesIndex({
                         </dl>
 
                         {showView.total_asignaciones > 0 && (
-                            <div className="rounded-xl border border-zinc-200/80 border-l-2 border-l-brand-gold/35 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:border-l-brand-gold-soft/30 dark:bg-zinc-900/30">
-                                <p className="mb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                                    Progreso vestuario {anio}
-                                </p>
-                                <ProgressBar
-                                    porcentaje={showView.porcentaje}
-                                    confirmadas={showView.confirmadas}
-                                    total={showView.total_asignaciones}
-                                />
-                                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-zinc-200/60 pt-3 text-center dark:border-zinc-800/60">
-                                    <div>
-                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-                                            {showView.confirmadas}
-                                        </p>
-                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Confirmadas</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-                                            {showView.pendientes}
-                                        </p>
-                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Pendientes</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
-                                            {showView.total_asignaciones}
-                                        </p>
-                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Total</p>
+                            <>
+                                {/* divisor visible solo en móvil */}
+                                <div className="h-px bg-zinc-100 dark:bg-zinc-800/50 sm:hidden" />
+
+                                {/* sin contenedor en móvil; tarjeta en sm+ */}
+                                <div className="sm:rounded-xl sm:border sm:border-l-2 sm:border-zinc-200/80 sm:border-l-brand-gold/35 sm:bg-zinc-50 sm:px-3.5 sm:py-3 sm:dark:border-zinc-800 sm:dark:border-l-brand-gold-soft/30 sm:dark:bg-zinc-900/30">
+                                    <p className="mb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                        Progreso vestuario {anio}
+                                    </p>
+                                    <ProgressBar
+                                        porcentaje={showView.porcentaje}
+                                        confirmadas={showView.confirmadas}
+                                        total={showView.total_asignaciones}
+                                    />
+                                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-zinc-100 pt-3 text-center dark:border-zinc-800/50">
+                                        <div>
+                                            <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+                                                {showView.confirmadas}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Confirmadas</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+                                                {showView.pendientes}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Pendientes</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
+                                                {showView.total_asignaciones}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Total</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
                 )}
