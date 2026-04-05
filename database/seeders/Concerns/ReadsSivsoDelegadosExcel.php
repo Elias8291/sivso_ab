@@ -99,7 +99,11 @@ trait ReadsSivsoDelegadosExcel
             return (string) $cell;
         }
         if (is_float($cell)) {
-            return (string) (floor($cell) === $cell ? (int) $cell : $cell);
+            if (floor($cell) === $cell && abs($cell) < 1e15 && abs($cell) < PHP_INT_MAX) {
+                return (string) (int) $cell;
+            }
+
+            return trim(strtoupper((string) $cell)) ?: null;
         }
 
         $t = trim((string) $cell);

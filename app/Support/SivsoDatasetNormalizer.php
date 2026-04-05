@@ -16,6 +16,12 @@ final class SivsoDatasetNormalizer
         }
 
         $s = trim((string) $v);
+        // Excel interpreta códigos tipo «3E108» como número (3.0E+108). Reconstruir texto de delegación.
+        if (preg_match('/^(\d)\.0+E\+(\d+)$/i', $s, $m)) {
+            $s = $m[1].'E'.$m[2];
+        } elseif (preg_match('/^(\d)E\+(\d+)$/i', $s, $m)) {
+            $s = $m[1].'E'.$m[2];
+        }
         $s = preg_replace('/[\x{200B}\x{FEFF}]/u', '', $s) ?? $s;
         $s = str_replace(["\u{2013}", "\u{2014}", "\u{2212}", "\u{FF0D}"], '-', $s);
 

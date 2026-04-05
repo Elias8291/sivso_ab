@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -104,7 +105,7 @@ final class ExportSivsoDelegadosExcelCommand extends Command
             DB::table('delegado')->count(),
             DB::table('delegado_delegacion')->count(),
         ));
-        $this->line('Si este archivo existe, SivsoDatasetSeeder lo usa en lugar de los CSV 02, 05 y 06.');
+        $this->line('Si existe, SivsoDatasetSeeder usa el Excel para delegado y delegado_delegacion (no para catálogo delegacion).');
 
         return self::SUCCESS;
     }
@@ -115,14 +116,23 @@ final class ExportSivsoDelegadosExcelCommand extends Command
      */
     private function writeSheet(Worksheet $sheet, array $headers, Collection $rows): void
     {
+        $textColumnIndexes = [];
         foreach ($headers as $i => $h) {
+            if ($h === 'codigo' || $h === 'delegacion_codigo') {
+                $textColumnIndexes[$i] = true;
+            }
             $sheet->setCellValue([$i + 1, 1], $h);
         }
         $rowNum = 2;
         foreach ($rows as $record) {
             foreach ($headers as $i => $h) {
                 $v = $record[$h] ?? null;
-                $sheet->setCellValue([$i + 1, $rowNum], $v ?? '');
+                $col = $i + 1;
+                if (isset($textColumnIndexes[$i])) {
+                    $sheet->setCellValueExplicit([$col, $rowNum], $v === null || $v === '' ? '' : (string) $v, DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue([$col, $rowNum], $v ?? '');
+                }
             }
             $rowNum++;
         }
