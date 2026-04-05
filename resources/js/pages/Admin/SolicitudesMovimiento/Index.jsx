@@ -1,8 +1,9 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
+import { isReverbRealtimeEnabled } from '@/echo';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertTriangle,
@@ -20,6 +21,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /* ─── pestañas de estado ─────────────────────────────────────────── */
+
+/** Sin WebSocket (p. ej. Hostinger): lista y contadores se refrescan solos. */
+const SOLICITUDES_MOVIMIENTO_POLL_MS = 12_000;
 
 const TABS = [
     { key: 'pendiente', label: 'Pendientes', color: 'amber'   },
@@ -368,11 +372,28 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
 /* ─── página principal ───────────────────────────────────────────── */
 
 function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} }) {
+    const { auth } = usePage().props;
     const puedeResolver = useAuthCan()('Resolver solicitudes');
     const [estado, setEstado]     = useState(filters.estado || 'pendiente');
     const [search, setSearch]     = useState(filters.search || '');
     const [modalSolicitud, setModalSolicitud] = useState(null);
     const isFirstRender           = useRef(true);
+
+    const modalAbierto = modalSolicitud !== null;
+
+    useEffect(() => {
+        if (!auth?.user || isReverbRealtimeEnabled || modalAbierto) return;
+
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'hidden') return;
+            router.reload({
+                only: ['solicitudes', 'totales', 'filters'],
+                preserveScroll: true,
+            });
+        }, SOLICITUDES_MOVIMIENTO_POLL_MS);
+
+        return () => clearInterval(interval);
+    }, [auth?.user?.id, modalAbierto]);
 
     const applyFilters = (e, s) => {
         router.get(
