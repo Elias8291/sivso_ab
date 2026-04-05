@@ -4,6 +4,7 @@ import CrudRowActions from '@/components/admin/CrudRowActions';
 import DataTable from '@/components/admin/DataTable';
 import FormField from '@/components/admin/FormField';
 import Modal from '@/components/admin/Modal';
+import PasswordInput from '@/components/ui/PasswordInput';
 import TablePagination from '@/components/admin/TablePagination';
 import EmpleadoBusquedaInput from '@/components/estructura/EmpleadoBusquedaInput';
 import { useAuthCan } from '@/hooks/useAuthCan';
@@ -543,33 +544,50 @@ function DelegadosIndex({
                                         error={vinculoForm.errors['nuevo_usuario.nue']}
                                         autoComplete="off"
                                     />
-                                    <FormField
-                                        label="Contraseña"
-                                        id="nu-password"
-                                        type="password"
-                                        value={vinculoForm.data.nuevo_usuario.password}
-                                        onChange={(e) =>
-                                            vinculoForm.setData('nuevo_usuario', {
-                                                ...vinculoForm.data.nuevo_usuario,
-                                                password: e.target.value,
-                                            })
-                                        }
-                                        error={vinculoForm.errors['nuevo_usuario.password']}
-                                        autoComplete="new-password"
-                                    />
-                                    <FormField
-                                        label="Confirmar contraseña"
-                                        id="nu-password-2"
-                                        type="password"
-                                        value={vinculoForm.data.nuevo_usuario.password_confirmation}
-                                        onChange={(e) =>
-                                            vinculoForm.setData('nuevo_usuario', {
-                                                ...vinculoForm.data.nuevo_usuario,
-                                                password_confirmation: e.target.value,
-                                            })
-                                        }
-                                        autoComplete="new-password"
-                                    />
+                                    <div className="space-y-1.5">
+                                        <label
+                                            htmlFor="nu-password"
+                                            className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Contraseña
+                                        </label>
+                                        <PasswordInput
+                                            id="nu-password"
+                                            variant="panel"
+                                            value={vinculoForm.data.nuevo_usuario.password}
+                                            onChange={(e) =>
+                                                vinculoForm.setData('nuevo_usuario', {
+                                                    ...vinculoForm.data.nuevo_usuario,
+                                                    password: e.target.value,
+                                                })
+                                            }
+                                            error={vinculoForm.errors['nuevo_usuario.password']}
+                                            autoComplete="new-password"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label
+                                            htmlFor="nu-password-2"
+                                            className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                                        >
+                                            Confirmar contraseña
+                                        </label>
+                                        <PasswordInput
+                                            id="nu-password-2"
+                                            variant="panel"
+                                            value={vinculoForm.data.nuevo_usuario.password_confirmation}
+                                            onChange={(e) =>
+                                                vinculoForm.setData('nuevo_usuario', {
+                                                    ...vinculoForm.data.nuevo_usuario,
+                                                    password_confirmation: e.target.value,
+                                                })
+                                            }
+                                            error={vinculoForm.errors['nuevo_usuario.password_confirmation']}
+                                            autoComplete="new-password"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
                                     <RoleCheckboxesDelegado
                                         rolesDisponibles={rolesDisponibles}
                                         value={

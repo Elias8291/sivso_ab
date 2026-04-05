@@ -2,17 +2,19 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PeriodoController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SolicitudMovimientoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Delegado\MiDelegacionController;
 use App\Http\Controllers\Estructura\DelegacionController;
 use App\Http\Controllers\Estructura\DelegadoController;
 use App\Http\Controllers\Estructura\DependenciaController;
 use App\Http\Controllers\Estructura\EmpleadoController;
-use App\Http\Controllers\Delegado\MiDelegacionController;
+use App\Http\Controllers\NotificacionesController;
+use App\Http\Controllers\Profile\ProfileController;
 use App\Support\SivsoPermissions;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -28,7 +30,8 @@ Route::middleware('auth')->group(function (): void {
 
     $sidebarPlaceholder = static fn () => Inertia::render('Dashboard');
 
-    Route::get('/profile', $sidebarPlaceholder)->name('profile.edit');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/mi-delegacion', [MiDelegacionController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
@@ -53,9 +56,9 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('permission:'.SivsoPermissions::RESOLVER_SOLICITUDES)
         ->name('solicitudes-movimiento.resolver');
 
-    Route::get('/notificaciones', [\App\Http\Controllers\NotificacionesController::class, 'index'])->name('notificaciones.index');
-    Route::post('/notificaciones/{id}/leer', [\App\Http\Controllers\NotificacionesController::class, 'leer'])->name('notificaciones.leer');
-    Route::post('/notificaciones/leer-todas', [\App\Http\Controllers\NotificacionesController::class, 'leerTodas'])->name('notificaciones.leer-todas');
+    Route::get('/notificaciones', [NotificacionesController::class, 'index'])->name('notificaciones.index');
+    Route::post('/notificaciones/{id}/leer', [NotificacionesController::class, 'leer'])->name('notificaciones.leer');
+    Route::post('/notificaciones/leer-todas', [NotificacionesController::class, 'leerTodas'])->name('notificaciones.leer-todas');
 
     Route::get('/empleados', [EmpleadoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_EMPLEADOS)

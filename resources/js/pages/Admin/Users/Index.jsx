@@ -5,6 +5,7 @@ import CrudRowActions from '@/components/admin/CrudRowActions';
 import DataTable from '@/components/admin/DataTable';
 import FormField from '@/components/admin/FormField';
 import Modal from '@/components/admin/Modal';
+import PasswordInput from '@/components/ui/PasswordInput';
 import TablePagination from '@/components/admin/TablePagination';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
@@ -309,26 +310,42 @@ function UsersIndex({ users, filters = {}, rolesDisponibles = [] }) {
                         error={form.errors.roles}
                     />
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <FormField
-                            label="Contraseña"
-                            id="user-password"
-                            type="password"
-                            value={form.data.password}
-                            onChange={(e) => form.setData('password', e.target.value)}
-                            error={form.errors.password}
-                            placeholder="••••••••"
-                            required
-                        />
-                        <FormField
-                            label="Confirmar contraseña"
-                            id="user-password-confirm"
-                            type="password"
-                            value={form.data.password_confirmation}
-                            onChange={(e) => form.setData('password_confirmation', e.target.value)}
-                            error={form.errors.password_confirmation}
-                            placeholder="••••••••"
-                            required
-                        />
+                        <div className="space-y-1.5">
+                            <label
+                                htmlFor="user-password"
+                                className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                            >
+                                Contraseña
+                            </label>
+                            <PasswordInput
+                                id="user-password"
+                                variant="panel"
+                                value={form.data.password}
+                                onChange={(e) => form.setData('password', e.target.value)}
+                                error={form.errors.password}
+                                placeholder="••••••••"
+                                required
+                                autoComplete="new-password"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label
+                                htmlFor="user-password-confirm"
+                                className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                            >
+                                Confirmar contraseña
+                            </label>
+                            <PasswordInput
+                                id="user-password-confirm"
+                                variant="panel"
+                                value={form.data.password_confirmation}
+                                onChange={(e) => form.setData('password_confirmation', e.target.value)}
+                                error={form.errors.password_confirmation}
+                                placeholder="••••••••"
+                                required
+                                autoComplete="new-password"
+                            />
+                        </div>
                     </div>
                     <div className="flex items-center justify-end gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800/60">
                         <button
@@ -411,21 +428,40 @@ function UsersIndex({ users, filters = {}, rolesDisponibles = [] }) {
                             error={editForm.errors.nue}
                         />
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <FormField
-                                label="Nueva contraseña (opcional)"
-                                id="edit-user-pw"
-                                type="password"
-                                value={editForm.data.password}
-                                onChange={(e) => editForm.setData('password', e.target.value)}
-                                error={editForm.errors.password}
-                            />
-                            <FormField
-                                label="Confirmar nueva contraseña"
-                                id="edit-user-pw2"
-                                type="password"
-                                value={editForm.data.password_confirmation}
-                                onChange={(e) => editForm.setData('password_confirmation', e.target.value)}
-                            />
+                            <div className="space-y-1.5">
+                                <label
+                                    htmlFor="edit-user-pw"
+                                    className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                                >
+                                    Nueva contraseña (opcional)
+                                </label>
+                                <PasswordInput
+                                    id="edit-user-pw"
+                                    variant="panel"
+                                    value={editForm.data.password}
+                                    onChange={(e) => editForm.setData('password', e.target.value)}
+                                    error={editForm.errors.password}
+                                    placeholder="••••••••"
+                                    autoComplete="new-password"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label
+                                    htmlFor="edit-user-pw2"
+                                    className="block text-[12px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+                                >
+                                    Confirmar nueva contraseña
+                                </label>
+                                <PasswordInput
+                                    id="edit-user-pw2"
+                                    variant="panel"
+                                    value={editForm.data.password_confirmation}
+                                    onChange={(e) => editForm.setData('password_confirmation', e.target.value)}
+                                    error={editForm.errors.password_confirmation}
+                                    placeholder="••••••••"
+                                    autoComplete="new-password"
+                                />
+                            </div>
                         </div>
                         <RoleCheckboxes
                             rolesDisponibles={rolesDisponibles}

@@ -29,7 +29,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </span>
                 <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
                     <DashboardHeader onMenuClick={() => setSidebarOpen(true)} header={header} />
-                    <div className="w-full max-w-full flex-1 min-h-0 overflow-x-hidden px-4 py-6 sm:px-8 sm:py-10 lg:px-16 lg:py-12 xl:px-20 xl:py-14">
+                    <div className="w-full max-w-full flex-1 min-h-0 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-7 lg:px-10 lg:py-9 xl:px-14 xl:py-10">
                         {children}
                     </div>
                 </div>

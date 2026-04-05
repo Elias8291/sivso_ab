@@ -81,10 +81,8 @@ export default function Login() {
                         value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         placeholder="••••••••"
+                        error={errors.password}
                     />
-                    {errors.password && (
-                        <p className="text-xs font-medium text-red-600 dark:text-red-400">{errors.password}</p>
-                    )}
                 </div>
                 <label className="animate-auth-fade-up flex cursor-pointer items-center gap-2 text-xs text-zinc-600 transition-colors delay-[480ms] hover:text-brand-gold/90 dark:text-zinc-400 dark:hover:text-brand-gold/80">
                     <input

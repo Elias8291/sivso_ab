@@ -163,7 +163,12 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                             className={navLink(route().current('profile.edit'))}
                             title="Mi Cuenta"
                         >
-                            <User className={iconClass(route().current('profile.edit'))} strokeWidth={2} aria-hidden />
+                            <span
+                                className={`hidden size-4 shrink-0 items-center justify-center text-[9px] font-bold uppercase leading-none tabular-nums ${iconClass(route().current('profile.edit'))} ${collapsed ? 'lg:flex' : ''}`}
+                                aria-hidden
+                            >
+                                MC
+                            </span>
                             <span className={collapsed ? 'lg:hidden' : ''}>Mi Cuenta</span>
                         </Link>
                     </nav>
