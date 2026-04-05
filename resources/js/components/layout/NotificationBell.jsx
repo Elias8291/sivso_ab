@@ -47,6 +47,18 @@ function notifCfg(tipo, decision, tipoSol) {
           };
 }
 
+/** Inertia a veces entrega colecciones Laravel como objeto `{0:…}`; siempre trabajar como array. */
+function coerceNotifBellList(value) {
+    let raw;
+    if (Array.isArray(value)) raw = value;
+    else if (value != null && typeof value === 'object') raw = Object.values(value);
+    else raw = [];
+
+    return raw.filter(
+        (n) => n != null && typeof n === 'object' && n.id != null && String(n.id).length > 0,
+    );
+}
+
 /* ── fila de notificación ────────────────────────────────────────── */
 
 function NotifRow({ notif, onRead }) {
@@ -92,13 +104,15 @@ function NotifRow({ notif, onRead }) {
 export default function NotificationBell() {
     const { auth, notificaciones = [] } = usePage().props;
     const [open, setOpen]               = useState(false);
-    const [items, setItems]             = useState(notificaciones);
+    const [items, setItems]             = useState(() => coerceNotifBellList(notificaciones));
     const [isNew, setIsNew]             = useState(false);   // pulso al llegar nueva
     const panelRef                      = useRef(null);
     const userId                        = auth?.user?.id;
 
     /* sincronizar al navegar con Inertia */
-    useEffect(() => { setItems(notificaciones); }, [notificaciones]);
+    useEffect(() => {
+        setItems(coerceNotifBellList(notificaciones));
+    }, [notificaciones]);
 
     /* ── WebSocket: canal privado del usuario ───────────────────── */
     useEffect(() => {
@@ -116,7 +130,7 @@ export default function NotificationBell() {
                 tipo_sol:   payload.tipo_sol    ?? null,
                 created_at: 'Ahora mismo',
             };
-            setItems((prev) => [nueva, ...prev]);
+            setItems((prev) => [nueva, ...coerceNotifBellList(prev)]);
             setIsNew(true);
             setTimeout(() => setIsNew(false), 2500);
         });
@@ -134,10 +148,11 @@ export default function NotificationBell() {
             if (document.visibilityState === 'hidden') return;
             try {
                 const { data } = await axios.get(route('notificaciones.unread-poll'));
-                const list = Array.isArray(data?.data) ? data.data : [];
+                const list = coerceNotifBellList(Array.isArray(data?.data) ? data.data : []);
                 setItems((prev) => {
-                    const prevIds = new Set(prev.map((n) => n.id));
-                    const hasNew = list.some((n) => !prevIds.has(n.id));
+                    const prevList = coerceNotifBellList(prev);
+                    const prevIds = new Set(prevList.map((n) => n.id));
+                    const hasNew = list.some((n) => n.id != null && !prevIds.has(n.id));
                     if (hasNew) {
                         queueMicrotask(() => {
                             setIsNew(true);
@@ -170,7 +185,7 @@ export default function NotificationBell() {
     const markOne = useCallback(async (id) => {
         try {
             await axios.post(route('notificaciones.leer', id));
-            setItems((prev) => prev.filter((n) => n.id !== id));
+            setItems((prev) => coerceNotifBellList(prev).filter((n) => n.id !== id));
         } catch { /* sin acción crítica */ }
     }, []);
 

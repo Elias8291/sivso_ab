@@ -60,7 +60,8 @@ class HandleInertiaRequests extends Middleware
                     'created_at' => $n->created_at->diffForHumans(),
                 ])
                 ->values()
-            : collect();
+                ->all()
+            : [];
 
         return array_merge(parent::share($request), [
             'flash' => [
