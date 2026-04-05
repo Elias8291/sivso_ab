@@ -59,7 +59,10 @@ function NotifRow({ notif, onRead }) {
     return (
         <button
             type="button"
-            onClick={() => { onRead(notif.id); if (notif.url) router.visit(notif.url); }}
+            onClick={async () => {
+                await onRead(notif.id);           // espera a quitar del estado y hacer POST
+                if (notif.url) router.visit(notif.url);
+            }}
             className="group flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
         >
             <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${cfg.iconBg} ${cfg.iconClr}`}>
@@ -88,6 +91,8 @@ export default function NotificationBell() {
     const [isNew, setIsNew] = useState(false);
     const [open,  setOpen]  = useState(false);
     const panelRef          = useRef(null);
+    /** IDs que el usuario ya descartó pero cuyo POST de "leer" aún no completó. */
+    const pendingRead       = useRef(new Set());
 
     /* ── carga inicial y actualizaciones desde Inertia ─────────────── */
     const propsNotif = usePage().props.notificaciones;
@@ -103,17 +108,19 @@ export default function NotificationBell() {
         });
     }, [propsNotif]);
 
-    /* ── aplica lista nueva y anima si hay ítems desconocidos ───────── */
+    /* ── aplica lista del servidor; descarta ítems ya marcados como leídos ── */
     const applyList = useCallback((newList) => {
         setItems((prev) => {
-            const prevIds = new Set(prev.map((n) => n.id));
-            if (newList.some((n) => !prevIds.has(n.id))) {
+            // No re-agregar ítems que el usuario acaba de descartar mientras el POST viaja
+            const filtered = newList.filter((n) => !pendingRead.current.has(n.id));
+            const prevIds  = new Set(prev.map((n) => n.id));
+            if (filtered.some((n) => !prevIds.has(n.id))) {
                 queueMicrotask(() => {
                     setIsNew(true);
                     setTimeout(() => setIsNew(false), 2500);
                 });
             }
-            return newList;
+            return filtered;
         });
     }, []);
 
@@ -213,18 +220,27 @@ export default function NotificationBell() {
 
     /* ── acciones ───────────────────────────────────────────────────── */
     const markOne = useCallback(async (id) => {
+        // Optimista: quitar de la UI inmediatamente y proteger del SSE
+        pendingRead.current.add(id);
+        setItems((prev) => prev.filter((n) => n.id !== id));
         try {
             await axios.post(route('notificaciones.leer', id));
-            setItems((prev) => prev.filter((n) => n.id !== id));
-        } catch { /* sin acción crítica */ }
+        } finally {
+            pendingRead.current.delete(id);
+        }
     }, []);
 
     const markAll = useCallback(async () => {
+        // Optimista: vaciar inmediatamente
+        const ids = items.map((n) => n.id);
+        ids.forEach((id) => pendingRead.current.add(id));
+        setItems([]);
         try {
             await axios.post(route('notificaciones.leer-todas'));
-            setItems([]);
-        } catch { /* sin acción crítica */ }
-    }, []);
+        } finally {
+            ids.forEach((id) => pendingRead.current.delete(id));
+        }
+    }, [items]);
 
     /* ── render ─────────────────────────────────────────────────────── */
     const count = items.length;
