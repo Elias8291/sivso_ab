@@ -443,19 +443,6 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
 
 /* ─── ModalProductos ─────────────────────────────────────────────── */
 
-/** Fila de ficha técnica: etiqueta a la izquierda, valor a la derecha */
-function FilaDato({ label, value, mono = false }) {
-    if (value === null || value === undefined || value === '') return null;
-    return (
-        <div className="flex items-baseline gap-3 border-b border-zinc-100 py-2 last:border-0 dark:border-zinc-800">
-            <dt className="w-28 shrink-0 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">{label}</dt>
-            <dd className={`flex-1 text-[12px] font-medium leading-relaxed text-zinc-800 dark:text-zinc-200 ${mono ? 'font-mono' : ''}`}>
-                {value}
-            </dd>
-        </div>
-    );
-}
-
 function ModalProductos({ empleado, open, onClose }) {
     const [tab, setTab]         = useState('licitados');
     const [data, setData]       = useState(null);
@@ -479,168 +466,168 @@ function ModalProductos({ empleado, open, onClose }) {
     const fmt$ = (v) =>
         v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : null;
 
-    const TabBtn = ({ id, label, count }) => (
-        <button type="button" onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors ${
-                tab === id
-                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50'
-                    : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-            }`}
-        >
-            {label}
-            {count != null && (
-                <span className={`rounded px-1.5 py-0.5 text-[10px] tabular-nums ${
-                    tab === id
-                        ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-600 dark:text-zinc-300'
-                        : 'bg-zinc-100/80 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500'
-                }`}>{count}</span>
-            )}
-        </button>
-    );
-
-    /** Tarjeta de un producto (licitado o cotizado) */
-    const ProductoCard = ({ p, tipo }) => {
-        const estadoClass = p.estado === 'confirmado'
-            ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
-            : 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400';
-
-        const clasifs = Array.isArray(p.clasificaciones) ? p.clasificaciones : [];
-
-        return (
-            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700/80 dark:bg-zinc-900">
-                {/* cabecera de la tarjeta */}
-                <div className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                            <p className="text-[13px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50 [overflow-wrap:anywhere]">
-                                {p.descripcion}
-                            </p>
-                            {p.codigo && (
-                                <p className="mt-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{p.codigo}</p>
-                            )}
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                            {tipo === 'cotizados' && p.estado && (
-                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${estadoClass}`}>
-                                    {p.estado}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* clasificaciones como chips */}
-                    {clasifs.length > 0 && (
-                        <div className="mt-2.5 flex flex-wrap gap-1.5">
-                            {clasifs.map((c) => (
-                                <span key={c.codigo}
-                                    className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                                    title={c.nombre}
-                                >
-                                    <Tag className="size-2.5 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
-                                    <span className="font-mono tracking-wide">{c.codigo}</span>
-                                    <span className="text-zinc-400 dark:text-zinc-500">·</span>
-                                    {c.nombre}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* ficha técnica */}
-                <dl className="px-4 py-1">
-                    {tipo === 'licitados' ? (
-                        <>
-                            <FilaDato label="Partida"        value={p.numero_partida} />
-                            <FilaDato label="Marca"          value={p.marca} />
-                            <FilaDato label="Unidad"         value={p.unidad} />
-                            <FilaDato label="Medida"         value={p.medida} />
-                            <FilaDato label="Proveedor"      value={p.proveedor} />
-                            <FilaDato label="Precio unit."   value={fmt$(p.precio_unitario)} />
-                            <FilaDato label="Rubro presup."  value={p.clave_rubro} mono />
-                            <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
-                            <FilaDato label="Talla"          value={p.talla} mono />
-                        </>
-                    ) : (
-                        <>
-                            <FilaDato label="Partida"        value={p.numero_partida} />
-                            <FilaDato label="Referencia"     value={p.referencia} mono />
-                            <FilaDato label="Precio unit."   value={fmt$(p.precio_unitario)} />
-                            <FilaDato label="Total"          value={fmt$(p.total)} />
-                            <FilaDato label="Rubro presup."  value={p.clave_rubro} mono />
-                            <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
-                            <FilaDato label="Talla"          value={p.talla} mono />
-                            <FilaDato label="Medida"         value={p.medida} />
-                        </>
-                    )}
-                </dl>
-            </div>
-        );
-    };
-
     const lista = data ? (tab === 'licitados' ? data.licitados : data.cotizados) : [];
 
     return (
         <Modal open={open} onClose={onClose}>
             {/* ── encabezado ── */}
-            <div className="flex items-start justify-between gap-3 px-6 pb-4 pt-6">
-                <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                        <Package className="size-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
-                    </div>
-                    <div>
-                        <h2 className="text-[14px] font-bold text-zinc-900 dark:text-zinc-100">
-                            Productos asignados
-                        </h2>
-                        <p className="mt-0.5 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-                            {empleado?.nombre_completo}
-                            {data?.anio && <span className="ml-1.5 tabular-nums">· {data.anio}</span>}
-                        </p>
-                    </div>
+            <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
+                <div className="min-w-0">
+                    <h2 className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+                        Productos asignados
+                    </h2>
+                    <p className="mt-0.5 truncate text-[11px] text-zinc-400 dark:text-zinc-500">
+                        {empleado?.nombre_completo}
+                        {data?.anio && <span className="ml-1 tabular-nums">· {data.anio}</span>}
+                    </p>
                 </div>
                 <button type="button" onClick={onClose}
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
-                    <X className="size-4" />
+                    className="flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+                    <X className="size-3.5" />
                 </button>
             </div>
 
             {/* ── tabs ── */}
-            <div className="mx-6 mb-4 flex gap-1 rounded-lg border border-zinc-200/80 bg-zinc-100/70 p-0.5 dark:border-zinc-800 dark:bg-zinc-800/50">
-                {data && (
-                    <>
-                        <TabBtn id="licitados" label="Licitados" count={data.licitados?.length} />
-                        <TabBtn id="cotizados"  label="Cotizados"  count={data.cotizados?.length} />
-                    </>
-                )}
+            <div className="flex border-b border-zinc-100 px-5 dark:border-zinc-800">
+                {['licitados', 'cotizados'].map((id) => {
+                    const count = data?.[id]?.length ?? null;
+                    const active = tab === id;
+                    return (
+                        <button key={id} type="button" onClick={() => setTab(id)}
+                            className={`relative mr-5 pb-2.5 pt-1 text-[12px] font-medium transition-colors ${
+                                active
+                                    ? 'text-zinc-900 dark:text-zinc-50'
+                                    : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
+                            }`}
+                        >
+                            {id.charAt(0).toUpperCase() + id.slice(1)}
+                            {count != null && (
+                                <span className={`ml-1.5 tabular-nums text-[10px] ${active ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                                    {count}
+                                </span>
+                            )}
+                            {active && (
+                                <span className="absolute inset-x-0 bottom-0 h-px bg-zinc-900 dark:bg-zinc-100" />
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* ── contenido ── */}
-            <div className="max-h-[60vh] overflow-y-auto px-6 pb-6">
+            {/* ── lista ── */}
+            <div className="max-h-[62vh] overflow-y-auto">
                 {loading && (
-                    <div className="flex items-center justify-center gap-2 py-14 text-[12px] text-zinc-400">
-                        <RotateCcw className="size-4 animate-spin" /> Cargando…
+                    <div className="flex items-center justify-center gap-2 py-16 text-[11px] text-zinc-400">
+                        <RotateCcw className="size-3.5 animate-spin" /> Cargando…
                     </div>
                 )}
                 {error && (
-                    <p className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-[12px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                    <p className="mx-5 my-4 rounded-lg bg-red-50 px-3 py-2.5 text-[11px] text-red-600 dark:bg-red-950/30 dark:text-red-400">
                         {error}
                     </p>
                 )}
                 {data && lista.length === 0 && (
-                    <div className="flex flex-col items-center justify-center gap-2 py-14">
-                        <Package className="size-8 text-zinc-300 dark:text-zinc-700" strokeWidth={1.25} />
-                        <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
+                    <div className="flex flex-col items-center gap-2 py-16 text-center">
+                        <Package className="size-7 text-zinc-200 dark:text-zinc-700" strokeWidth={1.25} />
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
                             Sin productos {tab === 'licitados' ? 'licitados' : 'cotizados'}.
                         </p>
                     </div>
                 )}
+
                 {data && lista.length > 0 && (
-                    <div className="space-y-3">
-                        {lista.map((p) => (
-                            <ProductoCard key={p.asignacion_id} p={p} tipo={tab} />
-                        ))}
-                    </div>
+                    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                        {lista.map((p) => {
+                            const clasifs = Array.isArray(p.clasificaciones) ? p.clasificaciones : [];
+                            const confirmado = p.estado === 'confirmado';
+
+                            /* pares label/valor filtrados */
+                            const campos = tab === 'licitados'
+                                ? [
+                                    ['Partida',    p.numero_partida, false],
+                                    ['Marca',      p.marca,          false],
+                                    ['Unidad',     p.unidad,         false],
+                                    ['Medida',     p.medida,         false],
+                                    ['Proveedor',  p.proveedor,      false],
+                                    ['P.U.',       fmt$(p.precio_unitario), false],
+                                    ['Cant.',      p.cantidad_asignada, false],
+                                    ['Talla',      p.talla,          true],
+                                    ['Rubro',      p.clave_rubro,    true],
+                                ]
+                                : [
+                                    ['Partida',    p.numero_partida, false],
+                                    ['Ref.',       p.referencia,     true],
+                                    ['P.U.',       fmt$(p.precio_unitario), false],
+                                    ['Total',      fmt$(p.total),    false],
+                                    ['Cant.',      p.cantidad_asignada, false],
+                                    ['Talla',      p.talla,          true],
+                                    ['Medida',     p.medida,         false],
+                                    ['Rubro',      p.clave_rubro,    true],
+                                ];
+
+                            const camposValidos = campos.filter(([, v]) => v != null && v !== '');
+
+                            return (
+                                <li key={p.asignacion_id} className="px-5 py-4">
+                                    {/* nombre + estado */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
+                                                {p.descripcion}
+                                            </p>
+                                            {p.codigo && (
+                                                <p className="mt-0.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                                                    {p.codigo}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {tab === 'cotizados' && p.estado && (
+                                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${
+                                                confirmado
+                                                    ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
+                                                    : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500'
+                                            }`}>
+                                                {p.estado}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* clasificaciones */}
+                                    {clasifs.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {clasifs.map((c) => (
+                                                <span key={c.codigo}
+                                                    className="rounded-full border border-zinc-200/80 px-2 py-px text-[10px] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+                                                    title={c.nombre}
+                                                >
+                                                    {c.nombre}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* atributos en grid compacto */}
+                                    {camposValidos.length > 0 && (
+                                        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
+                                            {camposValidos.map(([label, value, mono]) => (
+                                                <span key={label} className="flex items-baseline gap-1 text-[11px]">
+                                                    <span className="text-zinc-400 dark:text-zinc-500">{label}</span>
+                                                    <span className={`text-zinc-700 dark:text-zinc-300 ${mono ? 'font-mono' : ''}`}>
+                                                        {value}
+                                                    </span>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </div>
+
+            {/* espaciado inferior */}
+            <div className="h-3" />
         </Modal>
     );
 }
