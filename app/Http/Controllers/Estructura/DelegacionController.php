@@ -8,6 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Delegacion;
 use App\Models\Dependencia;
 use App\Models\Empleado;
+use App\Models\User;
+use App\Notifications\AlertaVestuarioNotification;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -149,5 +152,43 @@ class DelegacionController extends Controller
         $delegacion->delete();
 
         return redirect()->route('delegaciones.index');
+    }
+
+    public function alertar(Delegacion $delegacion): JsonResponse
+    {
+        // IDs de usuarios vinculados a delegados de esta delegación
+        $userIds = DB::table('delegado_delegacion')
+            ->where('delegacion_codigo', $delegacion->codigo)
+            ->join('delegado', 'delegado.id', '=', 'delegado_delegacion.delegado_id')
+            ->whereNotNull('delegado.user_id')
+            ->pluck('delegado.user_id');
+
+        if ($userIds->isEmpty()) {
+            return response()->json(
+                ['message' => 'Esta delegación no tiene delegados con cuenta de usuario.'],
+                422,
+            );
+        }
+
+        $pendientes = (int) DB::table('empleado')
+            ->leftJoin('asignacion_empleado_producto as aep', function ($join) {
+                $join->on('aep.empleado_id', '=', 'empleado.id')
+                    ->where('aep.anio', '=', self::ANIO_REFERENCIA);
+            })
+            ->where('empleado.delegacion_codigo', $delegacion->codigo)
+            ->where('empleado.estado_delegacion', 'activo')
+            ->where('aep.estado_anio_actual', 'pendiente')
+            ->count();
+
+        $users = User::whereIn('id', $userIds)->get();
+
+        foreach ($users as $user) {
+            $user->notify(new AlertaVestuarioNotification($delegacion, $pendientes));
+        }
+
+        return response()->json([
+            'message'  => "Alerta enviada a {$users->count()} delegado(s).",
+            'enviados' => $users->count(),
+        ]);
     }
 }

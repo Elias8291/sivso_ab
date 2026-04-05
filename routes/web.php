@@ -109,6 +109,9 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/delegaciones/{delegacion}', [DelegacionController::class, 'destroy'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
         ->name('delegaciones.destroy');
+    Route::post('/delegaciones/{delegacion}/alertar', [DelegacionController::class, 'alertar'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
+        ->name('delegaciones.alertar');
 
     Route::get('/delegados', [DelegadoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_DELEGADOS)

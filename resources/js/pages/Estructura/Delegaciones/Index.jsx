@@ -8,8 +8,9 @@ import TablePagination from '@/components/admin/TablePagination';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { CheckCircle2, Clock, LayoutList, Plus, Search, Users } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import axios from 'axios';
+import { BellRing, CheckCircle2, Clock, LayoutList, Plus, RotateCcw, Search, Users } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { route } from 'ziggy-js';
 
 /* ──────────────────────────────────────────────
@@ -88,6 +89,96 @@ function StatusBadge({ pendientes, total }) {
 }
 
 /* ──────────────────────────────────────────────
+   Modal de alerta al delegado
+────────────────────────────────────────────── */
+function AlertaModal({ delegacion, onClose, onSent }) {
+    const [sending, setSending] = useState(false);
+    const [flash, setFlash]     = useState('');
+    const [error, setError]     = useState('');
+
+    const enviar = useCallback(async () => {
+        setSending(true);
+        setError('');
+        try {
+            const { data } = await axios.post(route('delegaciones.alertar', delegacion.codigo));
+            setFlash(data.message ?? 'Alerta enviada.');
+            onSent?.();
+            setTimeout(onClose, 2000);
+        } catch (e) {
+            setError(e?.response?.data?.message ?? 'No se pudo enviar la alerta.');
+        } finally {
+            setSending(false);
+        }
+    }, [delegacion, onClose, onSent]);
+
+    return (
+        <Modal open={Boolean(delegacion)} onClose={onClose} title="Enviar alerta">
+            {delegacion && (
+                <div className="space-y-4 text-[13px]">
+                    {/* cabecera icono + delegación */}
+                    <div className="flex items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                            <BellRing className="size-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.75} />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                Delegación{' '}
+                                <span className="font-mono">{delegacion.codigo}</span>
+                            </p>
+                            {delegacion.pendientes > 0 && (
+                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    {delegacion.pendientes} talla(s) pendiente(s)
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* aviso */}
+                    <div className="rounded-lg border border-zinc-200/80 bg-zinc-50 px-4 py-3 text-[12px] leading-relaxed text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-900/40 dark:text-zinc-400">
+                        Se enviará una notificación a los delegados de esta delegación pidiéndoles que actualicen las tallas pendientes a la brevedad.
+                    </div>
+
+                    {flash && (
+                        <p className="flex items-center gap-2 text-[12px] font-medium text-zinc-700 dark:text-zinc-200">
+                            <CheckCircle2 className="size-4 shrink-0 text-brand-gold/80 dark:text-brand-gold-soft/70" strokeWidth={2} />
+                            {flash}
+                        </p>
+                    )}
+
+                    {error && (
+                        <p className="rounded-lg border border-red-200/60 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                            {error}
+                        </p>
+                    )}
+
+                    <div className="flex items-center justify-end gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800/60">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg px-4 py-2 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={enviar}
+                            disabled={sending || Boolean(flash)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-zinc-900 bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                        >
+                            {sending
+                                ? <RotateCcw className="size-4 animate-spin" />
+                                : <BellRing className="size-4" strokeWidth={1.75} />
+                            }
+                            {sending ? 'Enviando…' : 'Enviar alerta'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
+}
+
+/* ──────────────────────────────────────────────
    Página principal
 ────────────────────────────────────────────── */
 function DelegacionesIndex({
@@ -105,6 +196,7 @@ function DelegacionesIndex({
     const [showEdit, setShowEdit] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [alertTarget, setAlertTarget] = useState(null);
     const [search, setSearch] = useState(filters.search || '');
     const isFirstRender = useRef(true);
 
@@ -214,15 +306,28 @@ function DelegacionesIndex({
             {
                 key: 'acciones',
                 header: 'Acciones',
-                className: 'w-[10%]',
+                className: 'w-[14%]',
+                cellClassName: 'flex items-center gap-1',
                 render: (row) => (
-                    <CrudRowActions
-                        onView={() => setShowView(row)}
-                        onEdit={() => setShowEdit(row)}
-                        onDelete={() => setDeleteTarget(row)}
-                        showEdit={puedeGestionar}
-                        showDelete={puedeGestionar}
-                    />
+                    <>
+                        {puedeGestionar && (
+                            <button
+                                type="button"
+                                title="Enviar alerta al delegado"
+                                onClick={() => setAlertTarget(row)}
+                                className="inline-flex size-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                            >
+                                <BellRing className="size-3.5" strokeWidth={1.75} />
+                            </button>
+                        )}
+                        <CrudRowActions
+                            onView={() => setShowView(row)}
+                            onEdit={() => setShowEdit(row)}
+                            onDelete={() => setDeleteTarget(row)}
+                            showEdit={puedeGestionar}
+                            showDelete={puedeGestionar}
+                        />
+                    </>
                 ),
             },
         ],
@@ -509,6 +614,11 @@ function DelegacionesIndex({
                     </form>
                 )}
             </Modal>
+
+            <AlertaModal
+                delegacion={alertTarget}
+                onClose={() => setAlertTarget(null)}
+            />
 
             <ConfirmDeleteModal
                 open={Boolean(deleteTarget)}
