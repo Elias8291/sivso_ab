@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'sse_retry_ms' => (int) env('SSE_RETRY_MS', 1500),
+
 ];

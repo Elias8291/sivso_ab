@@ -41,11 +41,11 @@ class NotificacionesController extends Controller
             ->values()
             ->all();
 
-        $payload = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $payload  = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $retryMs  = max(500, (int) config('app.sse_retry_ms', 1500));
 
-        return response()->stream(static function () use ($payload): void {
-            // retry: le dice al navegador "reconecta en 3 000 ms si la conexión cae"
-            echo "retry: 3000\n";
+        return response()->stream(static function () use ($payload, $retryMs): void {
+            echo "retry: {$retryMs}\n";
             echo "data: {$payload}\n\n";
             if (ob_get_level() > 0) {
                 ob_flush();
