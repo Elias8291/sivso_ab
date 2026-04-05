@@ -22,7 +22,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { route } from 'ziggy-js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const FILTROS = [
@@ -466,7 +466,31 @@ function ModalProductos({ empleado, open, onClose }) {
     const fmt$ = (v) =>
         v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : null;
 
-    const lista = data ? (tab === 'licitados' ? data.licitados : data.cotizados) : [];
+    /* resumen de categorías: usa cotizados si existen, si no licitados */
+    const resumenCategorias = useMemo(() => {
+        if (!data) return [];
+        const fuente = data.cotizados?.length ? data.cotizados : data.licitados ?? [];
+        const mapa = new Map();
+        fuente.forEach((p) => {
+            (p.clasificaciones ?? []).forEach((c) => {
+                const entry = mapa.get(c.codigo) ?? { codigo: c.codigo, nombre: c.nombre, total: 0, confirmadas: 0 };
+                entry.total += 1;
+                if (p.estado === 'confirmado') entry.confirmadas += 1;
+                mapa.set(c.codigo, entry);
+            });
+            /* producto sin clasificación */
+            if (!p.clasificaciones?.length) {
+                const entry = mapa.get('__sin__') ?? { codigo: '__sin__', nombre: 'Sin clasificación', total: 0, confirmadas: 0 };
+                entry.total += 1;
+                if (p.estado === 'confirmado') entry.confirmadas += 1;
+                mapa.set('__sin__', entry);
+            }
+        });
+        return [...mapa.values()].sort((a, b) => b.total - a.total);
+    }, [data]);
+
+    const TABS = ['licitados', 'cotizados', 'categorias'];
+    const lista = data ? (tab === 'licitados' ? data.licitados : tab === 'cotizados' ? data.cotizados : []) : [];
 
     return (
         <Modal open={open} onClose={onClose}>
@@ -489,8 +513,11 @@ function ModalProductos({ empleado, open, onClose }) {
 
             {/* ── tabs ── */}
             <div className="flex border-b border-zinc-100 px-5 dark:border-zinc-800">
-                {['licitados', 'cotizados'].map((id) => {
-                    const count = data?.[id]?.length ?? null;
+                {TABS.map((id) => {
+                    const labels = { licitados: 'Licitados', cotizados: 'Cotizados', categorias: 'Categorías' };
+                    const count = id === 'categorias'
+                        ? (data ? resumenCategorias.length : null)
+                        : (data?.[id]?.length ?? null);
                     const active = tab === id;
                     return (
                         <button key={id} type="button" onClick={() => setTab(id)}
@@ -500,7 +527,7 @@ function ModalProductos({ empleado, open, onClose }) {
                                     : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
                             }`}
                         >
-                            {id.charAt(0).toUpperCase() + id.slice(1)}
+                            {labels[id]}
                             {count != null && (
                                 <span className={`ml-1.5 tabular-nums text-[10px] ${active ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-300 dark:text-zinc-600'}`}>
                                     {count}
@@ -526,7 +553,53 @@ function ModalProductos({ empleado, open, onClose }) {
                         {error}
                     </p>
                 )}
-                {data && lista.length === 0 && (
+                {/* ── tab CATEGORÍAS ── */}
+                {data && tab === 'categorias' && (
+                    resumenCategorias.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 py-16 text-center">
+                            <Tag className="size-7 text-zinc-200 dark:text-zinc-700" strokeWidth={1.25} />
+                            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Sin clasificaciones registradas.</p>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                            {resumenCategorias.map((cat) => {
+                                const pct = cat.total > 0 ? Math.round((cat.confirmadas / cat.total) * 100) : 0;
+                                return (
+                                    <li key={cat.codigo} className="flex items-center gap-4 px-5 py-3.5">
+                                        {/* nombre */}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200">
+                                                {cat.nombre}
+                                            </p>
+                                            {cat.codigo !== '__sin__' && (
+                                                <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{cat.codigo}</p>
+                                            )}
+                                        </div>
+                                        {/* barra + conteo */}
+                                        <div className="flex shrink-0 items-center gap-3">
+                                            <div className="hidden w-20 sm:block">
+                                                <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:to-brand-gold/40 transition-all duration-500"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <span className="min-w-[1.5rem] text-right text-[13px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                                                {cat.total}
+                                            </span>
+                                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                                                {cat.confirmadas}/{cat.total}
+                                            </span>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )
+                )}
+
+                {data && tab !== 'categorias' && lista.length === 0 && (
                     <div className="flex flex-col items-center gap-2 py-16 text-center">
                         <Package className="size-7 text-zinc-200 dark:text-zinc-700" strokeWidth={1.25} />
                         <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
@@ -535,7 +608,7 @@ function ModalProductos({ empleado, open, onClose }) {
                     </div>
                 )}
 
-                {data && lista.length > 0 && (
+                {data && tab !== 'categorias' && lista.length > 0 && (
                     <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
                         {lista.map((p) => {
                             const clasifs = Array.isArray(p.clasificaciones) ? p.clasificaciones : [];
