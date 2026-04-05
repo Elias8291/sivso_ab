@@ -35,61 +35,43 @@ const FILTROS = [
 const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 
 /* ─── PrendaRow ──────────────────────────────────────────────────── */
+/* Ahora es controlado: recibe draft del panel padre y lo notifica */
 
-function PrendaRow({ item, onGuardado }) {
+function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert }) {
     const [editando, setEditando] = useState(false);
-    const [talla, setTalla]       = useState(item.talla  || '');
-    const [medida, setMedida]     = useState(item.medida || '');
-    const [saving, setSaving]     = useState(false);
-    const [flash, setFlash]       = useState(false);
+
+    const talla = draftTalla ?? item.talla ?? '';
+    const medida = draftMedida ?? item.medida ?? '';
+    const dirty = draftTalla !== undefined || draftMedida !== undefined;
+    const confirmado = item.estado === 'confirmado' && !dirty;
 
     const cancelar = () => {
-        setTalla(item.talla || '');
-        setMedida(item.medida || '');
+        onDraftRevert(item.id);
         setEditando(false);
     };
-
-    const guardar = useCallback(async () => {
-        setSaving(true);
-        try {
-            await axios.patch(route('my-delegation.talla.update', item.id), {
-                talla, medida, estado: 'confirmado', observacion: null,
-            });
-            setFlash(true);
-            setTimeout(() => setFlash(false), 2500);
-            onGuardado(item.id, talla, medida);
-            setEditando(false);
-        } catch {
-            setTalla(item.talla || '');
-            setMedida(item.medida || '');
-        } finally {
-            setSaving(false);
-        }
-    }, [talla, medida, item.id, onGuardado]);
-
-    const confirmado = item.estado === 'confirmado';
 
     return (
         <div className={editando ? 'rounded-md bg-zinc-100/60 dark:bg-zinc-900/35' : ''}>
             <div className="flex gap-3 px-0 py-3 sm:gap-3.5">
-                {/* icono estado — alineado con la primera línea del texto */}
-                <div className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
-                    confirmado
-                        ? 'bg-zinc-200/60 dark:bg-zinc-700/50'
-                        : 'bg-zinc-100 dark:bg-zinc-800'
+                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
+                    dirty
+                        ? 'bg-brand-gold/15 dark:bg-brand-gold-soft/10'
+                        : confirmado
+                            ? 'bg-zinc-200/60 dark:bg-zinc-700/50'
+                            : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}>
-                    {confirmado
-                        ? <CheckCircle2 className="size-3.5 text-zinc-600 dark:text-zinc-300" strokeWidth={2} />
-                        : <Clock className="size-3.5 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
+                    {dirty
+                        ? <Pencil className="size-3.5 text-brand-gold/70 dark:text-brand-gold-soft/60" strokeWidth={2} />
+                        : confirmado
+                            ? <CheckCircle2 className="size-3.5 text-zinc-600 dark:text-zinc-300" strokeWidth={2} />
+                            : <Clock className="size-3.5 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
                     }
                 </div>
 
-                <div className="min-w-0 flex-1 space-y-2.5">
-                    <div className="min-w-0 space-y-1">
+                <div className="min-w-0 flex-1 space-y-2">
+                    <div className="min-w-0">
                         {item.clave && (
-                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
-                                {item.clave}
-                            </p>
+                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
                         )}
                         <p className="[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-snug text-zinc-800 dark:text-zinc-200">
                             {item.prenda}
@@ -98,24 +80,15 @@ function PrendaRow({ item, onGuardado }) {
 
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                            <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/90 px-2 py-0.5 dark:border-zinc-700/80 dark:bg-zinc-800/60">
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${dirty ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8' : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'}`}>
                                 <span className="text-[10px] uppercase tracking-wider text-zinc-400">T</span>
-                                {item.talla_anterior && item.talla_anterior !== talla && (
-                                    <span className="font-mono text-zinc-300 line-through dark:text-zinc-600">{item.talla_anterior}</span>
-                                )}
                                 <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{talla || '—'}</span>
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-md border border-zinc-200/80 bg-zinc-100/90 px-2 py-0.5 dark:border-zinc-700/80 dark:bg-zinc-800/60">
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${dirty ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8' : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'}`}>
                                 <span className="text-[10px] uppercase tracking-wider text-zinc-400">M</span>
                                 <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{medida || '—'}</span>
                             </span>
-                            {flash && (
-                                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-brand-gold dark:text-brand-gold-soft">
-                                    <CheckCircle2 className="size-3 text-brand-gold/90 dark:text-brand-gold-soft/90" /> Listo
-                                </span>
-                            )}
                         </div>
-
                         {!editando && (
                             <button type="button" onClick={() => setEditando(true)}
                                 className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/80">
@@ -127,22 +100,25 @@ function PrendaRow({ item, onGuardado }) {
                 </div>
             </div>
 
-            {/* panel edición */}
+            {/* panel edición inline */}
             <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${editando ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
                     <div className="flex flex-col gap-3 border-t border-zinc-200/80 pb-1 pt-3 dark:border-zinc-700/60 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2.5 sm:pb-2 sm:pt-2.5">
-                        <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:max-w-md sm:flex-1 sm:grid-cols-none sm:flex sm:flex-wrap sm:items-end">
+                        <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-1 sm:flex-wrap sm:items-end">
                             {[
-                                { lbl: 'Talla',  val: talla,  set: (v) => setTalla(v.toUpperCase()), ph: item.talla_anterior || 'Ej. M' },
-                                { lbl: 'Medida', val: medida, set: setMedida, ph: 'Ej. 34' },
-                            ].map(({ lbl, val, set, ph }) => (
-                                <div key={lbl} className="min-w-0 flex-1 flex flex-col gap-1 sm:min-w-[7rem]">
-                                    <label htmlFor={`prenda-${item.id}-${lbl}`} className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">{lbl}</label>
+                                { lbl: 'Talla',  val: talla,  field: 'talla',  ph: item.talla_anterior || 'Ej. M' },
+                                { lbl: 'Medida', val: medida, field: 'medida', ph: 'Ej. 34' },
+                            ].map(({ lbl, val, field, ph }) => (
+                                <div key={lbl} className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[7rem]">
+                                    <label htmlFor={`prenda-${item.id}-${lbl}`}
+                                        className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+                                        {lbl}
+                                    </label>
                                     <input
                                         id={`prenda-${item.id}-${lbl}`}
                                         type="text"
                                         value={val}
-                                        onChange={(e) => set(e.target.value)}
+                                        onChange={(e) => onDraftChange(item.id, field, field === 'talla' ? e.target.value.toUpperCase() : e.target.value)}
                                         placeholder={ph}
                                         maxLength={20}
                                         className="min-h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 font-mono text-[14px] font-bold text-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-300 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 sm:min-h-0 sm:py-2 sm:text-[13px] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
@@ -152,17 +128,18 @@ function PrendaRow({ item, onGuardado }) {
                                 </div>
                             ))}
                         </div>
-                        <div className="flex w-full gap-2 max-sm:flex-col max-sm:gap-2.5 sm:w-auto sm:shrink-0 sm:items-center">
-                            <button type="button" onClick={guardar} disabled={saving}
-                                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-zinc-900 bg-zinc-900 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 sm:min-h-0 sm:flex-initial sm:rounded-md sm:py-2 sm:text-[12px]">
-                                {saving ? <RotateCcw className="size-4 shrink-0 animate-spin sm:size-3.5" /> : <CheckCircle2 className="size-4 shrink-0 sm:size-3.5" />}
-                                {saving ? 'Guardando…' : 'Confirmar'}
+                        <div className="flex w-full gap-2 sm:w-auto sm:shrink-0 sm:items-center">
+                            <button type="button" onClick={() => setEditando(false)}
+                                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 sm:min-h-0 sm:flex-initial sm:rounded-md sm:px-3 sm:py-2 sm:text-[12px]">
+                                <CheckCircle2 className="size-4 shrink-0 sm:size-3.5" />
+                                Listo
                             </button>
-                            <button type="button" onClick={cancelar}
-                                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/80 sm:min-h-0 sm:flex-initial sm:rounded-md sm:px-3 sm:py-2 sm:text-[12px]">
-                                <X className="size-4 shrink-0 sm:size-3.5" />
-                                Cancelar
-                            </button>
+                            {dirty && (
+                                <button type="button" onClick={cancelar}
+                                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[13px] text-zinc-500 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 sm:min-h-0 sm:rounded-md sm:py-2 sm:text-[12px]">
+                                    <RotateCcw className="size-3.5" strokeWidth={2} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -173,13 +150,65 @@ function PrendaRow({ item, onGuardado }) {
 
 /* ─── VestuarioPanel ─────────────────────────────────────────────── */
 
-function VestuarioPanel({ vestuario, onPrendaGuardada, anioActual = new Date().getFullYear() }) {
-    const confirmadas = vestuario.filter((v) => v.estado === 'confirmado').length;
-    const total       = vestuario.length;
-    const pct         = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
+function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear() }) {
+    // drafts: { [asignacionId]: { talla?, medida? } }
+    const [drafts, setDrafts]   = useState({});
+    const [saving, setSaving]   = useState(false);
+    const [flashOk, setFlashOk] = useState(false);
+    const [errMsg, setErrMsg]   = useState('');
+
+    const dirtyCount = Object.keys(drafts).length;
+
+    const onDraftChange = useCallback((id, field, value) => {
+        setDrafts((prev) => ({
+            ...prev,
+            [id]: { ...(prev[id] ?? {}), [field]: value },
+        }));
+    }, []);
+
+    const onDraftRevert = useCallback((id) => {
+        setDrafts((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+        });
+    }, []);
+
+    const guardarTodo = async () => {
+        if (dirtyCount === 0) return;
+        setSaving(true);
+        setErrMsg('');
+        try {
+            const items = vestuario
+                .filter((v) => drafts[v.id])
+                .map((v) => ({
+                    id:     v.id,
+                    talla:  drafts[v.id]?.talla  ?? v.talla  ?? null,
+                    medida: drafts[v.id]?.medida ?? v.medida ?? null,
+                }));
+            await axios.patch(route('my-delegation.vestuario.lote', empleadoId), { items });
+            // Aplica drafts al estado padre
+            items.forEach(({ id, talla, medida }) => onPrendasGuardadas(id, talla, medida));
+            setDrafts({});
+            setFlashOk(true);
+            setTimeout(() => setFlashOk(false), 3000);
+        } catch (e) {
+            setErrMsg(e?.response?.data?.message ?? 'Error al guardar. Intenta de nuevo.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const confirmadas = vestuario.filter((v) => {
+        if (drafts[v.id]) return true; // contará como confirmado tras guardar
+        return v.estado === 'confirmado';
+    }).length;
+    const total = vestuario.length;
+    const pct   = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
 
     return (
         <div className="border-t border-zinc-200/90 px-3.5 pb-3.5 pt-3 dark:border-zinc-800 sm:px-4">
+            {/* cabecera */}
             <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <span className="mr-1 inline-block size-1 rounded-full bg-brand-gold/55 align-middle dark:bg-brand-gold-soft/45" aria-hidden />
@@ -194,7 +223,7 @@ function VestuarioPanel({ vestuario, onPrendaGuardada, anioActual = new Date().g
                     {total > 0 && (
                         <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800 sm:w-32">
                             <div
-                                className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40"
+                                className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40 transition-all duration-500"
                                 style={{ width: `${pct}%` }}
                             />
                         </div>
@@ -207,13 +236,47 @@ function VestuarioPanel({ vestuario, onPrendaGuardada, anioActual = new Date().g
                     Sin prendas asignadas en el año de referencia.
                 </p>
             ) : (
-                <ul className="m-0 flex list-none flex-col divide-y divide-zinc-200 p-0 dark:divide-zinc-700">
-                    {vestuario.map((item) => (
-                        <li key={item.id}>
-                            <PrendaRow item={item} onGuardado={onPrendaGuardada} />
-                        </li>
-                    ))}
-                </ul>
+                <>
+                    <ul className="m-0 flex list-none flex-col divide-y divide-zinc-200 p-0 dark:divide-zinc-700">
+                        {vestuario.map((item) => (
+                            <li key={item.id}>
+                                <PrendaRow
+                                    item={item}
+                                    draftTalla={drafts[item.id]?.talla}
+                                    draftMedida={drafts[item.id]?.medida}
+                                    onDraftChange={onDraftChange}
+                                    onDraftRevert={onDraftRevert}
+                                />
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* barra de guardado global */}
+                    {(dirtyCount > 0 || flashOk || errMsg) && (
+                        <div className="mt-3 flex flex-col gap-2">
+                            {errMsg && (
+                                <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-600 dark:bg-red-950/30 dark:text-red-400">
+                                    {errMsg}
+                                </p>
+                            )}
+                            {flashOk && (
+                                <p className="flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-2 text-[11px] font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                                    <CheckCircle2 className="size-3.5 shrink-0 text-brand-gold/80 dark:text-brand-gold-soft/70" />
+                                    Vestuario actualizado correctamente.
+                                </p>
+                            )}
+                            {dirtyCount > 0 && (
+                                <button type="button" onClick={guardarTodo} disabled={saving}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-3 text-[13px] font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 sm:py-2.5 sm:text-[12px]">
+                                    {saving
+                                        ? <><RotateCcw className="size-4 animate-spin" /> Guardando…</>
+                                        : <><CheckCircle2 className="size-4" /> Actualizar todo · <span className="tabular-nums">{dirtyCount} {dirtyCount === 1 ? 'prenda' : 'prendas'}</span></>
+                                    }
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
@@ -730,6 +793,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual }) {
         }
     };
 
+    // Llamado cuando el panel guarda una prenda individual o en lote
     const handlePrendaGuardada = useCallback((id, nuevaTalla, nuevaMedida) => {
         setVestuario((prev) => prev.map((v) =>
             v.id === id ? { ...v, talla: nuevaTalla, medida: nuevaMedida, estado: 'confirmado' } : v
@@ -938,7 +1002,12 @@ function EmpleadoRow({ empleado, delegaciones, anioActual }) {
             {/* ── vestuario accordion ── */}
             <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${vestuarioAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <VestuarioPanel vestuario={vestuario} onPrendaGuardada={handlePrendaGuardada} anioActual={anioActual} />
+                    <VestuarioPanel
+                        empleadoId={empleado.id}
+                        vestuario={vestuario}
+                        onPrendasGuardadas={handlePrendaGuardada}
+                        anioActual={anioActual}
+                    />
                 </div>
             </div>
 

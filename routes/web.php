@@ -44,6 +44,9 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/mi-delegacion/asignacion/{asignacion}/talla', [MiDelegacionController::class, 'actualizarTalla'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
         ->name('my-delegation.talla.update');
+    Route::patch('/mi-delegacion/empleado/{empleado}/vestuario-lote', [MiDelegacionController::class, 'actualizarTallasLote'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
+        ->name('my-delegation.vestuario.lote');
     Route::post('/mi-delegacion/empleado/{empleado}/solicitud', [MiDelegacionController::class, 'solicitarMovimiento'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
         ->name('my-delegation.solicitar');

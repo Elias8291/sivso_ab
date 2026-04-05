@@ -256,6 +256,56 @@ class MiDelegacionController extends Controller
     }
 
     /**
+     * Actualiza en bloque las tallas/medidas de todas las asignaciones de un empleado.
+     * Recibe: { items: [{ id, talla, medida }] }
+     */
+    public function actualizarTallasLote(Request $request, int $empleadoId): JsonResponse
+    {
+        $validated = $request->validate([
+            'items'            => ['required', 'array', 'min:1'],
+            'items.*.id'       => ['required', 'integer'],
+            'items.*.talla'    => ['nullable', 'string', 'max:20'],
+            'items.*.medida'   => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $empleado = Empleado::findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+
+        $ids = array_column($validated['items'], 'id');
+
+        // Verificar que todas las asignaciones pertenecen al empleado
+        $asignaciones = AsignacionEmpleadoProducto::query()
+            ->where('empleado_id', $empleadoId)
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+
+        if ($asignaciones->count() !== count($ids)) {
+            return response()->json([
+                'data'    => null,
+                'message' => 'Una o más asignaciones no pertenecen a este empleado.',
+                'errors'  => null,
+            ], 422);
+        }
+
+        $now = now();
+        foreach ($validated['items'] as $item) {
+            $asignaciones[$item['id']]->update([
+                'talla_anio_actual'    => $item['talla']  ?? null,
+                'medida_anio_actual'   => $item['medida'] ?? null,
+                'estado_anio_actual'   => 'confirmado',
+                'talla_actualizada_at' => $now,
+            ]);
+        }
+
+        return response()->json([
+            'data'    => ['actualizadas' => count($validated['items'])],
+            'message' => 'Vestuario actualizado correctamente.',
+            'errors'  => null,
+        ]);
+    }
+
+    /**
      * El delegado envía una solicitud de baja o cambio.
      * S.Administración la revisará y ejecutará el movimiento real.
      */
