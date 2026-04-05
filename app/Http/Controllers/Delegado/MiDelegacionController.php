@@ -357,6 +357,19 @@ class MiDelegacionController extends Controller
         $empleado = Empleado::findOrFail($empleadoId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
+        $parseClasifs = static function (string|null $raw): array {
+            if (! $raw) {
+                return [];
+            }
+            return collect(explode(';;', $raw))
+                ->map(function ($item) {
+                    [$codigo, $nombre] = array_pad(explode('|', $item, 2), 2, '');
+                    return ['codigo' => $codigo, 'nombre' => $nombre];
+                })
+                ->values()
+                ->all();
+        };
+
         // Licitados — producto base de la licitación
         $licitados = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
@@ -376,15 +389,27 @@ class MiDelegacionController extends Controller
                 'pl.precio_unitario',
                 'pl.proveedor',
                 'pl.medida',
+                'cb.codigo                      as categoria_codigo',
                 'cb.nombre                      as categoria',
                 'aep.clave_partida_presupuestal as clave_rubro',
                 'aep.cantidad                   as cantidad_asignada',
                 'aep.talla',
                 'aep.estado_anio_actual         as estado',
             ])
+            ->selectRaw(
+                '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
+                ' FROM producto_licitado_clasificacion plc2 '.
+                ' JOIN clasificacion_bien cb2 ON cb2.id = plc2.clasificacion_id '.
+                ' WHERE plc2.producto_licitado_id = pl.id) AS clasificaciones_raw'
+            )
             ->orderBy('pl.numero_partida')
             ->get()
-            ->map(fn ($r) => (array) $r)
+            ->map(function ($r) use ($parseClasifs) {
+                $arr = (array) $r;
+                $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
+                unset($arr['clasificaciones_raw']);
+                return $arr;
+            })
             ->values()
             ->all();
 
@@ -406,6 +431,7 @@ class MiDelegacionController extends Controller
                 'pc.importe',
                 'pc.total',
                 'pc.referencia_codigo           as referencia',
+                'cb.codigo                      as categoria_codigo',
                 'cb.nombre                      as categoria',
                 'aep.clave_partida_presupuestal as clave_rubro',
                 'aep.cantidad                   as cantidad_asignada',
@@ -413,9 +439,20 @@ class MiDelegacionController extends Controller
                 'aep.medida_anio_actual         as medida',
                 'aep.estado_anio_actual         as estado',
             ])
+            ->selectRaw(
+                '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
+                ' FROM producto_cotizado_clasificacion pcc2 '.
+                ' JOIN clasificacion_bien cb2 ON cb2.id = pcc2.clasificacion_id '.
+                ' WHERE pcc2.producto_cotizado_id = pc.id) AS clasificaciones_raw'
+            )
             ->orderBy('pc.numero_partida')
             ->get()
-            ->map(fn ($r) => (array) $r)
+            ->map(function ($r) use ($parseClasifs) {
+                $arr = (array) $r;
+                $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
+                unset($arr['clasificaciones_raw']);
+                return $arr;
+            })
             ->values()
             ->all();
 

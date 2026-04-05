@@ -504,56 +504,72 @@ function ModalProductos({ empleado, open, onClose }) {
             ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
             : 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400';
 
+        const clasifs = Array.isArray(p.clasificaciones) ? p.clasificaciones : [];
+
         return (
             <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700/80 dark:bg-zinc-900">
                 {/* cabecera de la tarjeta */}
-                <div className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
-                    <div className="min-w-0">
-                        <p className="text-[13px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50 [overflow-wrap:anywhere]">
-                            {p.descripcion}
-                        </p>
-                        {p.codigo && (
-                            <p className="mt-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{p.codigo}</p>
-                        )}
+                <div className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                            <p className="text-[13px] font-semibold leading-snug text-zinc-900 dark:text-zinc-50 [overflow-wrap:anywhere]">
+                                {p.descripcion}
+                            </p>
+                            {p.codigo && (
+                                <p className="mt-0.5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{p.codigo}</p>
+                            )}
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                            {tipo === 'cotizados' && p.estado && (
+                                <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${estadoClass}`}>
+                                    {p.estado}
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                        {tipo === 'cotizados' && p.estado && (
-                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${estadoClass}`}>
-                                {p.estado}
-                            </span>
-                        )}
-                        {p.categoria && (
-                            <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                                {p.categoria}
-                            </span>
-                        )}
-                    </div>
+
+                    {/* clasificaciones como chips */}
+                    {clasifs.length > 0 && (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                            {clasifs.map((c) => (
+                                <span key={c.codigo}
+                                    className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                    title={c.nombre}
+                                >
+                                    <Tag className="size-2.5 text-zinc-400 dark:text-zinc-500" strokeWidth={2} />
+                                    <span className="font-mono tracking-wide">{c.codigo}</span>
+                                    <span className="text-zinc-400 dark:text-zinc-500">·</span>
+                                    {c.nombre}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* ficha técnica */}
                 <dl className="px-4 py-1">
                     {tipo === 'licitados' ? (
                         <>
-                            <FilaDato label="Partida"      value={p.numero_partida} />
-                            <FilaDato label="Marca"        value={p.marca} />
-                            <FilaDato label="Unidad"       value={p.unidad} />
-                            <FilaDato label="Medida"       value={p.medida} />
-                            <FilaDato label="Proveedor"    value={p.proveedor} />
-                            <FilaDato label="Precio unit." value={fmt$(p.precio_unitario)} />
-                            <FilaDato label="Rubro presup." value={p.clave_rubro} mono />
+                            <FilaDato label="Partida"        value={p.numero_partida} />
+                            <FilaDato label="Marca"          value={p.marca} />
+                            <FilaDato label="Unidad"         value={p.unidad} />
+                            <FilaDato label="Medida"         value={p.medida} />
+                            <FilaDato label="Proveedor"      value={p.proveedor} />
+                            <FilaDato label="Precio unit."   value={fmt$(p.precio_unitario)} />
+                            <FilaDato label="Rubro presup."  value={p.clave_rubro} mono />
                             <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
-                            <FilaDato label="Talla"        value={p.talla} mono />
+                            <FilaDato label="Talla"          value={p.talla} mono />
                         </>
                     ) : (
                         <>
-                            <FilaDato label="Partida"      value={p.numero_partida} />
-                            <FilaDato label="Referencia"   value={p.referencia} mono />
-                            <FilaDato label="Precio unit." value={fmt$(p.precio_unitario)} />
-                            <FilaDato label="Total"        value={fmt$(p.total)} />
-                            <FilaDato label="Rubro presup." value={p.clave_rubro} mono />
+                            <FilaDato label="Partida"        value={p.numero_partida} />
+                            <FilaDato label="Referencia"     value={p.referencia} mono />
+                            <FilaDato label="Precio unit."   value={fmt$(p.precio_unitario)} />
+                            <FilaDato label="Total"          value={fmt$(p.total)} />
+                            <FilaDato label="Rubro presup."  value={p.clave_rubro} mono />
                             <FilaDato label="Cant. asignada" value={p.cantidad_asignada} />
-                            <FilaDato label="Talla"        value={p.talla} mono />
-                            <FilaDato label="Medida"       value={p.medida} />
+                            <FilaDato label="Talla"          value={p.talla} mono />
+                            <FilaDato label="Medida"         value={p.medida} />
                         </>
                     )}
                 </dl>
