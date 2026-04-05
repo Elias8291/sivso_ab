@@ -14,6 +14,7 @@ import {
     LogOut,
     MapPin,
     Package,
+    PieChart,
     ShieldCheck,
     User,
     Users,
@@ -172,10 +173,22 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                     {(can('Ver empleados') ||
                         can('Ver productos') ||
                         can('Ver partidas') ||
-                        can('Ver líneas presupuestales')) && (
+                        can('Ver líneas presupuestales') ||
+                        can('Ver mi delegación')) && (
                         <>
                             <SectionHeader title="Vestuario" />
                             <nav className="flex flex-col gap-0.5">
+                                {can('Ver mi delegación') && (
+                                    <Link
+                                        href={route('vestuario.resumen')}
+                                        onClick={handleNav}
+                                        className={navLink(route().current('vestuario.*'))}
+                                        title="Resumen por categoría"
+                                    >
+                                        <PieChart className={iconClass(route().current('vestuario.*'))} strokeWidth={1.75} aria-hidden />
+                                        <span className={collapsed ? 'lg:hidden' : ''}>Resumen</span>
+                                    </Link>
+                                )}
                                 {can('Ver empleados') && (
                                     <Link
                                         href={route('empleados.index')}

@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\SolicitudMovimientoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Delegado\MiDelegacionController;
+use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Http\Controllers\Estructura\DelegacionController;
 use App\Http\Controllers\Estructura\DelegadoController;
 use App\Http\Controllers\Estructura\DependenciaController;
@@ -32,6 +33,10 @@ Route::middleware('auth')->group(function (): void {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/vestuario/resumen', [ResumenVestuarioController::class, 'index'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('vestuario.resumen');
 
     Route::get('/mi-delegacion', [MiDelegacionController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
