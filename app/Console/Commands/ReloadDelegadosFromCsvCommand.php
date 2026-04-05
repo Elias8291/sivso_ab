@@ -13,6 +13,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * Vuelve a cargar delegado + delegado_delegacion desde excel_datos.
@@ -53,6 +54,11 @@ final class ReloadDelegadosFromCsvCommand extends Command
 
         $useExcel = (bool) $this->option('excel');
         if ($useExcel) {
+            if (! class_exists(IOFactory::class)) {
+                $this->error('PhpSpreadsheet no está instalado. En el servidor: composer install');
+
+                return self::FAILURE;
+            }
             $xlsx = database_path('seeders/excel_datos/sivso_delegados.xlsx');
             if (! is_readable($xlsx)) {
                 $this->error('No existe o no se puede leer: '.$xlsx.' (usa sivso:export-delegados-excel o quita --excel).');

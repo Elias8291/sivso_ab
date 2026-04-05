@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -21,6 +22,12 @@ final class ExportSivsoDelegadosExcelCommand extends Command
 
     public function handle(): int
     {
+        if (! class_exists(IOFactory::class)) {
+            $this->error('Falta phpoffice/phpspreadsheet. Ejecuta en este proyecto: composer install');
+
+            return self::FAILURE;
+        }
+
         if (! Schema::hasTable('delegacion') || ! Schema::hasTable('delegado') || ! Schema::hasTable('delegado_delegacion')) {
             $this->error('Faltan tablas delegacion, delegado o delegado_delegacion.');
 
