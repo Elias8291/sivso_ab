@@ -148,33 +148,33 @@ function EmpleadosIndex({ empleados, dependenciasList = [], delegacionesList = [
             <AdminPageShell
                 title="Empleados"
                 description="Catálogo de empleados vinculados a dependencias y delegaciones del sistema SIVSO."
-                actions={
-                    puedeGestionar ? (
-                        <button
-                            type="button"
-                            onClick={() => setShowCreate(true)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                        >
-                            <Plus className="size-4" strokeWidth={2} />
-                            Agregar
-                        </button>
-                    ) : null
-                }
             >
                 {pageErrors?.empleado && (
                     <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:bg-red-950/50 dark:text-red-200">
                         {pageErrors.empleado}
                     </p>
                 )}
-                <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
-                    <Search className="size-4 text-zinc-400 dark:text-zinc-500" />
-                    <input
-                        type="text"
-                        placeholder="Buscar empleado..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full border-0 bg-transparent p-0 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                    />
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+                    <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
+                        <Search className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        <input
+                            type="text"
+                            placeholder="Buscar empleado..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full min-w-0 border-0 bg-transparent p-0 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                        />
+                    </div>
+                    {puedeGestionar ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowCreate(true)}
+                            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-2xl bg-zinc-900 px-4 py-3 text-[13px] font-medium text-white shadow-sm ring-1 ring-zinc-900/10 transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-white/10 dark:hover:bg-zinc-200 sm:py-3"
+                        >
+                            <Plus className="size-4" strokeWidth={2} />
+                            Agregar empleado
+                        </button>
+                    ) : null}
                 </div>
                 <DataTable
                     columns={columns}
@@ -186,8 +186,31 @@ function EmpleadosIndex({ empleados, dependenciasList = [], delegacionesList = [
                 />
             </AdminPageShell>
 
-            <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo empleado">
-                <form onSubmit={handleSubmit} className="space-y-4">
+            <Modal
+                open={showCreate}
+                onClose={() => setShowCreate(false)}
+                title="Nuevo empleado"
+                footer={
+                    <div className="flex items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowCreate(false)}
+                            className="rounded-lg px-4 py-2 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            form="form-empleado-create"
+                            disabled={form.processing}
+                            className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                        >
+                            {form.processing ? 'Guardando…' : 'Crear empleado'}
+                        </button>
+                    </div>
+                }
+            >
+                <form id="form-empleado-create" onSubmit={handleSubmit} className="space-y-4">
                     <FormField
                         label="Nombre"
                         id="emp-nombre"
@@ -258,22 +281,6 @@ function EmpleadosIndex({ empleados, dependenciasList = [], delegacionesList = [
                             </select>
                         </FormField>
                     </div>
-                    <div className="flex items-center justify-end gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800/60">
-                        <button
-                            type="button"
-                            onClick={() => setShowCreate(false)}
-                            className="rounded-lg px-4 py-2 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={form.processing}
-                            className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                        >
-                            {form.processing ? 'Guardando…' : 'Crear empleado'}
-                        </button>
-                    </div>
                 </form>
             </Modal>
 
@@ -297,9 +304,34 @@ function EmpleadosIndex({ empleados, dependenciasList = [], delegacionesList = [
                 )}
             </Modal>
 
-            <Modal open={Boolean(showEdit)} onClose={() => setShowEdit(null)} title="Editar empleado">
+            <Modal
+                open={Boolean(showEdit)}
+                onClose={() => setShowEdit(null)}
+                title="Editar empleado"
+                footer={
+                    showEdit ? (
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowEdit(null)}
+                                className="rounded-lg px-4 py-2 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                form="form-empleado-edit"
+                                disabled={editForm.processing}
+                                className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                            >
+                                {editForm.processing ? 'Guardando…' : 'Guardar'}
+                            </button>
+                        </div>
+                    ) : null
+                }
+            >
                 {showEdit && (
-                    <form onSubmit={handleEditSubmit} className="space-y-4">
+                    <form id="form-empleado-edit" onSubmit={handleEditSubmit} className="space-y-4">
                         <FormField
                             label="Nombre"
                             id="edit-emp-nombre"
@@ -367,22 +399,6 @@ function EmpleadosIndex({ empleados, dependenciasList = [], delegacionesList = [
                                     ))}
                                 </select>
                             </FormField>
-                        </div>
-                        <div className="flex justify-end gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800/60">
-                            <button
-                                type="button"
-                                onClick={() => setShowEdit(null)}
-                                className="rounded-lg px-4 py-2 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={editForm.processing}
-                                className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-                            >
-                                {editForm.processing ? 'Guardando…' : 'Guardar'}
-                            </button>
                         </div>
                     </form>
                 )}

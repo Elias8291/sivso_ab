@@ -4,13 +4,14 @@ import { X } from 'lucide-react';
 /**
  * Modal reutilizable para formularios CRUD.
  *
- * @param {{ open: boolean, onClose: () => void, title: string, children: React.ReactNode, maxWidth?: string }} props
+ * @param {{ open: boolean, onClose: () => void, title: string, children: React.ReactNode, footer?: React.ReactNode, maxWidth?: string }} props
  */
 export default function Modal({
     open,
     onClose,
     title,
     children,
+    footer = null,
     maxWidth = 'max-w-lg md:max-w-3xl lg:max-w-5xl xl:max-w-6xl',
 }) {
     const dialogRef = useRef(null);
@@ -73,10 +74,17 @@ export default function Modal({
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-6">
+                {/* Body (scroll); footer opcional fijo abajo (p. ej. enviar con form=...) */}
+                <div
+                    className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-5 py-5 sm:px-6 ${footer ? 'pb-4' : 'pb-[max(1.25rem,env(safe-area-inset-bottom))]'}`}
+                >
                     {children}
                 </div>
+                {footer ? (
+                    <div className="shrink-0 border-t border-zinc-100 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-800/60 sm:px-6">
+                        {footer}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

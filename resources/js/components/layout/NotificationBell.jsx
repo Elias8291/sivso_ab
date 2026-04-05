@@ -151,29 +151,44 @@ export default function NotificationBell() {
 
     const count = items.length;
 
-    return (
-        <div className="relative" ref={panelRef}>
+    const bellBtnClasses = (isActive) =>
+        `relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border transition ${
+            isActive
+                ? 'border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100'
+                : 'border-zinc-200/90 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900'
+        }`;
 
-            {/* ── botón campana ─────────────────────────────────── */}
-            <button
-                type="button"
-                onClick={() => setOpen((o) => !o)}
-                className={`relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border transition ${
-                    open
-                        ? 'border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100'
-                        : 'border-zinc-200/90 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900'
-                }`}
-                aria-label="Notificaciones"
+    const badge =
+        count > 0 ? (
+            <span
+                className={`absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-zinc-950 ${isNew ? 'animate-ping-once' : ''}`}
+            >
+                {count > 9 ? '9+' : count}
+            </span>
+        ) : null;
+
+    return (
+        <>
+            <Link
+                href={route('notificaciones.index')}
+                className={`${bellBtnClasses(false)} lg:hidden`}
+                aria-label="Ir a notificaciones"
             >
                 <Bell className={`size-5 transition-transform duration-200 ${isNew ? 'animate-[wiggle_0.4s_ease-in-out_2]' : ''}`} />
+                {badge}
+            </Link>
 
-                {/* badge contador */}
-                {count > 0 && (
-                    <span className={`absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-zinc-950 ${isNew ? 'animate-ping-once' : ''}`}>
-                        {count > 9 ? '9+' : count}
-                    </span>
-                )}
-            </button>
+            <div className="relative hidden lg:block" ref={panelRef}>
+                <button
+                    type="button"
+                    onClick={() => setOpen((o) => !o)}
+                    className={bellBtnClasses(open)}
+                    aria-label="Notificaciones"
+                    aria-expanded={open}
+                >
+                    <Bell className={`size-5 transition-transform duration-200 ${isNew ? 'animate-[wiggle_0.4s_ease-in-out_2]' : ''}`} />
+                    {badge}
+                </button>
 
             <style>{`
                 @keyframes wiggle {
@@ -256,6 +271,7 @@ export default function NotificationBell() {
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </>
     );
 }
