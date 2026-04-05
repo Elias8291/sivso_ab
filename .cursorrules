@@ -1,0 +1,12 @@
+# Cursor — proyectoFinal-sivso
+
+Las reglas activas están en **`.cursor/rules/*.mdc`** (formato Cursor recomendado):
+
+| Archivo | Cuándo aplica |
+|--------|----------------|
+| `project-core.mdc` | Siempre (`alwaysApply: true`) |
+| `laravel-php.mdc` | Al trabajar con PHP del proyecto (`app/`, `routes/`, etc.) |
+| `react-js.mdc` | Al trabajar con `resources/js/**` |
+| `tailwind-ui.mdc` | JS/JSX/TS/CSS Blade y `vite.config.js` para estilos |
+
+No dupliques políticas aquí: edita los `.mdc` para cambiar convenciones.

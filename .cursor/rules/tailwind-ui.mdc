@@ -1,0 +1,29 @@
+---
+description: TailwindCSS v4, tema claro/oscuro y UI accesible
+globs:
+  - resources/js/**/*.jsx
+  - resources/js/**/*.js
+  - resources/js/**/*.tsx
+  - resources/js/**/*.ts
+  - resources/css/**/*.css
+  - resources/views/**/*.blade.php
+  - vite.config.js
+alwaysApply: false
+---
+
+# Tailwind y UI
+
+- Estilar con utilidades Tailwind; **sin** `style={{ }}` salvo casos excepcionales justificados.
+- Evitar CSS suelto; en este proyecto el pipeline es `@import 'tailwindcss'` en `resources/css/app.css` y plugin Vite.
+
+## Tema claro / oscuro
+
+- Siempre contemplar `dark:` en pares coherentes de fondo y texto, por ejemplo:
+  - `bg-white dark:bg-gray-900`
+  - `text-gray-900 dark:text-gray-100`
+- No introducir colores sueltos sin variante oscura.
+
+## UX
+
+- UI minimal y consistente; responsive por defecto.
+- Contraste y legibilidad (accesibilidad básica).

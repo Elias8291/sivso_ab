@@ -1,0 +1,44 @@
+---
+description: PHP 8.3+ y Laravel 13 — capas, API, seguridad
+globs:
+  - app/**/*.php
+  - bootstrap/**/*.php
+  - config/**/*.php
+  - database/**/*.php
+  - routes/**/*.php
+  - tests/**/*.php
+alwaysApply: false
+---
+
+# Laravel / PHP
+
+- `declare(strict_types=1);` en todo archivo PHP. PSR-12; Laravel Pint.
+- PHP moderno: `readonly`, tipos explícitos, enums, `match`.
+
+## Capas
+
+- **Controllers:** `final`; inyección por **método** (no constructor); solo JSON; sin validación inline.
+- **Models:** `final`; relaciones y scopes; sin reglas de negocio.
+- **Services:** `final`, `readonly` si aplica; negocio aquí; `DB::transaction()` cuando corresponda.
+- **Repositories:** acceso a datos; Eloquent interno; retornos tipados.
+- **DTOs:** transferencia estructurada entre capas.
+- **Validación:** solo Form Request.
+
+## API
+
+- Prefijo `/api/v1/`. API Resources para salida.
+- Envelope estándar:
+
+```json
+{ "data": {}, "message": "", "errors": null }
+```
+
+## Estructura app (extender según necesidad)
+
+`Actions/`, `DTOs/`, `Exceptions/`, `Http/`, `Models/`, `Repositories/`, `Services/`
+
+## Errores y ops
+
+- Handler de excepciones; excepciones de dominio cuando ayuden; log en fallos críticos.
+- Caché (Redis si está disponible), colas/Horizon, eager loading, índices.
+- Validar entrada, rate limiting, consciencia XSS/SQLi.

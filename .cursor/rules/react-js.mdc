@@ -1,0 +1,35 @@
+---
+description: React 18, JS/TS y Vite — hooks, datos remotos, estructura
+globs:
+  - resources/js/**/*.jsx
+  - resources/js/**/*.js
+  - resources/js/**/*.tsx
+  - resources/js/**/*.ts
+alwaysApply: false
+---
+
+# React / JavaScript
+
+- Solo componentes funcionales y hooks.
+- Componentes pequeños y reutilizables; lógica en **hooks** o **servicios**, no en UI gorda.
+- No llamar APIs directamente desde componentes: cliente HTTP central (p. ej. axios) con `import.meta.env.VITE_API_URL` y manejo global de errores.
+- **React Query** para estado del servidor; hooks propios para lógica repetida.
+- Formularios: inputs controlados; validación cliente con **Zod** o **Yup**.
+- Rendimiento: lazy loading de rutas cuando tenga sentido; `useMemo` / `useCallback` con criterio.
+
+## Estructura recomendada bajo `resources/js/`
+
+```
+components/
+pages/
+hooks/
+services/
+types/
+utils/
+```
+
+(Ajustar imports en Vite si se crean estas carpetas; mantener coherencia con el proyecto.)
+
+## TypeScript
+
+- Preferir `.tsx`/`.ts` en código nuevo si el equipo migra desde JSX.

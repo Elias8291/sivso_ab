@@ -1,0 +1,32 @@
+---
+description: Stack, principios y flujo de trabajo (siempre activo)
+alwaysApply: true
+---
+
+# proyectoFinal-sivso — núcleo
+
+## Stack
+
+- Laravel 13, PHP 8.3+, API REST JSON bajo `/api/v1/`, Sanctum.
+- React 18 + Vite; entrada actual `resources/js/app.jsx` (JS; preferir TS en código nuevo si se migra).
+- Tailwind v4 vía `@tailwindcss/vite` y `resources/css/app.css`.
+- Estado cliente: React Query; Zustand solo si hace falta estado global real.
+
+## Principios
+
+- SOLID, capas claras: Laravel y React desacoplados por API.
+- Sin lógica de negocio en controllers ni en componentes de UI.
+- Código modular, nombres claros, listo para tests; comentarios mínimos.
+
+## Flujo al implementar
+
+1. **Laravel:** Form Request → Service (→ Repository si aplica) → API Resource → controller fino (JSON).
+2. **React:** servicio HTTP + hook (React Query) → componente presentacional.
+3. Respuestas API con envelope: `{ "data": {}, "message": "", "errors": null }`.
+
+## Testing
+
+- Backend: PHPUnit o Pest (feature + unit).
+- Frontend: Vitest + React Testing Library cuando aplique.
+
+Reglas detalladas: `.cursor/rules/laravel-php.mdc`, `react-js.mdc`, `tailwind-ui.mdc`.

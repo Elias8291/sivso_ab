@@ -1,0 +1,214 @@
+@import 'tailwindcss';
+
+/* Modo oscuro manual: clase .dark en <html> (ThemeContext) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.jsx';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-brand-gold: #d4af37;
+    --color-brand-gold-soft: #e8d48a;
+}
+
+@layer base {
+    #app {
+        @apply flex min-h-dvh flex-col;
+    }
+
+    /* WebKit autofill: override Chrome's default autofill styling */
+    .auth-field:-webkit-autofill,
+    .auth-field:-webkit-autofill:hover,
+    .auth-field:-webkit-autofill:focus,
+    .auth-field:-webkit-autofill:active {
+        -webkit-text-fill-color: #18181b !important;
+        -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+        box-shadow: 0 0 0 1000px #ffffff inset !important;
+        background-color: transparent !important;
+        transition: background-color 99999s ease-out 0s !important;
+    }
+
+    html.dark .auth-field:-webkit-autofill,
+    html.dark .auth-field:-webkit-autofill:hover,
+    html.dark .auth-field:-webkit-autofill:focus,
+    html.dark .auth-field:-webkit-autofill:active,
+    :is(.dark) .auth-field:-webkit-autofill,
+    :is(.dark) .auth-field:-webkit-autofill:hover,
+    :is(.dark) .auth-field:-webkit-autofill:focus,
+    :is(.dark) .auth-field:-webkit-autofill:active {
+        -webkit-text-fill-color: #f4f4f5 !important;
+        -webkit-box-shadow: 0 0 0 1000px #18181b inset !important;
+        box-shadow: 0 0 0 1000px #18181b inset !important;
+        background-color: transparent !important;
+        transition: background-color 99999s ease-out 0s !important;
+    }
+}
+
+@keyframes auth-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes auth-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes auth-ken-burns {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.07);
+    }
+}
+
+@keyframes auth-orb-float {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(2%, -3%) scale(1.04);
+    }
+}
+
+@keyframes auth-orb-float-reverse {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(-3%, 2%) scale(1.03);
+    }
+}
+
+@keyframes auth-shimmer-line {
+    0% {
+        background-position: 200% center;
+    }
+    100% {
+        background-position: -200% center;
+    }
+}
+
+@keyframes auth-vertical-glow {
+    0%,
+    100% {
+        opacity: 0.85;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@utility scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@utility animate-auth-card-in {
+    animation: auth-card-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-fade-up {
+    animation: auth-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-loading-overlay {
+    animation: auth-fade-up 0.35s ease-out both;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-hero-ken {
+    animation: auth-ken-burns 24s ease-in-out infinite alternate;
+    transform-origin: center 32%;
+    will-change: transform;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        transform: none;
+        will-change: auto;
+    }
+}
+
+@utility animate-auth-orb-1 {
+    animation: auth-orb-float 20s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-orb-2 {
+    animation: auth-orb-float-reverse 26s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-orb-3 {
+    animation: auth-orb-float 16s ease-in-out infinite 2s;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-vertical-sivso {
+    animation: auth-vertical-glow 6s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+@utility animate-auth-shimmer-bar {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgb(212 175 55 / 0.15) 40%,
+        rgb(212 175 55 / 0.55) 50%,
+        rgb(212 175 55 / 0.15) 60%,
+        transparent 100%
+    );
+    background-size: 220% 100%;
+    animation: auth-shimmer-line 5s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
