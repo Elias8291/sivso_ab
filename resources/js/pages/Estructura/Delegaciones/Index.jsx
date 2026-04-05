@@ -277,7 +277,7 @@ function DelegacionesIndex({
                 </div>
 
                 {/* ── Barra global ── */}
-                <div className="mb-4 rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <div className="mb-4">
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                             <span
