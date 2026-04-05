@@ -51,19 +51,25 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
     };
 
     return (
-        <div className={editando ? 'rounded-md bg-zinc-100/60 dark:bg-zinc-900/35' : ''}>
+        <div className={`transition-colors ${
+            editando
+                ? 'rounded-md bg-zinc-100/60 dark:bg-zinc-900/35'
+                : confirmado
+                    ? 'rounded-md bg-emerald-50/60 dark:bg-emerald-950/20'
+                    : ''
+        }`}>
             <div className="flex gap-3 px-0 py-3 sm:gap-3.5">
                 <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
                     dirty
                         ? 'bg-brand-gold/15 dark:bg-brand-gold-soft/10'
                         : confirmado
-                            ? 'bg-zinc-200/60 dark:bg-zinc-700/50'
+                            ? 'bg-emerald-100 dark:bg-emerald-900/40'
                             : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}>
                     {dirty
                         ? <Pencil className="size-3.5 text-brand-gold/70 dark:text-brand-gold-soft/60" strokeWidth={2} />
                         : confirmado
-                            ? <CheckCircle2 className="size-3.5 text-zinc-600 dark:text-zinc-300" strokeWidth={2} />
+                            ? <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
                             : <Clock className="size-3.5 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
                     }
                 </div>
@@ -73,25 +79,43 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                         {item.clave && (
                             <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
                         )}
-                        <p className="[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-snug text-zinc-800 dark:text-zinc-200">
+                        <p className={`[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-snug ${
+                            confirmado ? 'text-emerald-900 dark:text-emerald-200' : 'text-zinc-800 dark:text-zinc-200'
+                        }`}>
                             {item.prenda}
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${dirty ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8' : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'}`}>
-                                <span className="text-[10px] uppercase tracking-wider text-zinc-400">T</span>
-                                <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{talla || '—'}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
+                                dirty
+                                    ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8'
+                                    : confirmado
+                                        ? 'border-emerald-200/80 bg-emerald-100/70 dark:border-emerald-800/50 dark:bg-emerald-900/30'
+                                        : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'
+                            }`}>
+                                <span className={`text-[10px] uppercase tracking-wider ${confirmado ? 'text-emerald-500 dark:text-emerald-500' : 'text-zinc-400'}`}>T</span>
+                                <span className={`font-mono font-semibold ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
                             </span>
-                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${dirty ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8' : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'}`}>
-                                <span className="text-[10px] uppercase tracking-wider text-zinc-400">M</span>
-                                <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{medida || '—'}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
+                                dirty
+                                    ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8'
+                                    : confirmado
+                                        ? 'border-emerald-200/80 bg-emerald-100/70 dark:border-emerald-800/50 dark:bg-emerald-900/30'
+                                        : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'
+                            }`}>
+                                <span className={`text-[10px] uppercase tracking-wider ${confirmado ? 'text-emerald-500 dark:text-emerald-500' : 'text-zinc-400'}`}>M</span>
+                                <span className={`font-mono font-semibold ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
                             </span>
                         </div>
                         {!editando && (
                             <button type="button" onClick={() => setEditando(true)}
-                                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 shadow-sm hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/80">
+                                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium shadow-sm ${
+                                    confirmado
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40'
+                                        : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/80'
+                                }`}>
                                 <Pencil className="size-3" strokeWidth={2} />
                                 Editar
                             </button>
