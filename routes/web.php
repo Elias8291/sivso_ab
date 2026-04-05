@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function (): void {
         ->name('solicitudes-movimiento.resolver');
 
     Route::get('/notificaciones', [NotificacionesController::class, 'index'])->name('notificaciones.index');
-    Route::get('/notificaciones/poll/no-leidas', [NotificacionesController::class, 'unreadPoll'])->name('notificaciones.unread-poll');
+    Route::get('/notificaciones/stream', [NotificacionesController::class, 'stream'])->name('notificaciones.stream');
     Route::post('/notificaciones/{id}/leer', [NotificacionesController::class, 'leer'])->name('notificaciones.leer');
     Route::post('/notificaciones/leer-todas', [NotificacionesController::class, 'leerTodas'])->name('notificaciones.leer-todas');
 

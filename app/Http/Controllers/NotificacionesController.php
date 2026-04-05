@@ -10,6 +10,7 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NotificacionesController extends Controller
 {
@@ -18,12 +19,19 @@ class NotificacionesController extends Controller
     private const BELL_UNREAD_LIMIT = 15;
 
     /**
-     * JSON para campana / polling (misma forma que comparte HandleInertiaRequests).
+     * SSE (Server-Sent Events): el navegador abre la URL y espera datos.
+     * Este endpoint responde de inmediato con las notificaciones no leídas
+     * y cierra la conexión. El header `retry:` indica al navegador cuánto
+     * esperar antes de reconectar (por defecto 3 s).
+     *
+     * Ventajas en hosting compartido (Hostinger):
+     *  - Cada request dura < 100 ms (solo una query, sin sleep).
+     *  - No mantiene procesos PHP abiertos.
+     *  - El navegador maneja la reconexión automáticamente.
      */
-    public function unreadPoll(): JsonResponse
+    public function stream(): StreamedResponse
     {
-        $user = Auth::user();
-
+        $user  = Auth::user();
         $items = $user
             ->unreadNotifications()
             ->latest()
@@ -33,17 +41,27 @@ class NotificacionesController extends Controller
             ->values()
             ->all();
 
-        return response()->json([
-            'data' => $items,
-            'message' => '',
-            'errors' => null,
+        $payload = json_encode(['items' => $items], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        return response()->stream(static function () use ($payload): void {
+            // retry: le dice al navegador "reconecta en 3 000 ms si la conexión cae"
+            echo "retry: 3000\n";
+            echo "data: {$payload}\n\n";
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
+            flush();
+        }, 200, [
+            'Content-Type'      => 'text/event-stream; charset=utf-8',
+            'Cache-Control'     => 'no-cache, no-store, must-revalidate',
+            'X-Accel-Buffering' => 'no', // desactiva buffer de Nginx/Hostinger
         ]);
     }
 
     public function index(Request $request): Response
     {
-        $filtro = $request->input('filtro', 'no_leidas'); // no_leidas | todas
-        $user = Auth::user();
+        $filtro = $request->input('filtro', 'no_leidas');
+        $user   = Auth::user();
 
         $query = $filtro === 'todas'
             ? $user->notifications()
@@ -54,23 +72,23 @@ class NotificacionesController extends Controller
             ->paginate(self::PER_PAGE)
             ->withQueryString()
             ->through(fn ($n) => [
-                'id' => $n->id,
-                'tipo' => $n->data['tipo'] ?? null,
-                'titulo' => $n->data['titulo'] ?? '',
-                'cuerpo' => $n->data['cuerpo'] ?? '',
-                'url' => $n->data['url'] ?? null,
-                'decision' => $n->data['decision'] ?? null,
-                'tipo_sol' => $n->data['tipo_sol'] ?? null,
-                'leida' => $n->read_at !== null,
-                'created_at' => $n->created_at->diffForHumans(),
+                'id'              => $n->id,
+                'tipo'            => $n->data['tipo']     ?? null,
+                'titulo'          => $n->data['titulo']   ?? '',
+                'cuerpo'          => $n->data['cuerpo']   ?? '',
+                'url'             => $n->data['url']      ?? null,
+                'decision'        => $n->data['decision'] ?? null,
+                'tipo_sol'        => $n->data['tipo_sol'] ?? null,
+                'leida'           => $n->read_at !== null,
+                'created_at'      => $n->created_at->diffForHumans(),
                 'created_at_full' => $n->created_at->format('d/m/Y H:i'),
             ]);
 
         return Inertia::render('Notificaciones/Index', [
             'notificaciones' => $notificaciones,
-            'totales' => [
+            'totales'        => [
                 'no_leidas' => $user->unreadNotifications()->count(),
-                'todas' => $user->notifications()->count(),
+                'todas'     => $user->notifications()->count(),
             ],
             'filters' => $request->only(['filtro']),
         ]);
@@ -97,14 +115,14 @@ class NotificacionesController extends Controller
     private function mapBellItem(DatabaseNotification $n): array
     {
         return [
-            'id' => $n->id,
-            'tipo' => $n->data['tipo'] ?? null,
-            'titulo' => $n->data['titulo'] ?? '',
-            'cuerpo' => $n->data['cuerpo'] ?? '',
-            'url' => $n->data['url'] ?? null,
-            'decision' => $n->data['decision'] ?? null,
-            'tipo_sol' => $n->data['tipo_sol'] ?? null,
-            'created_at' => $n->created_at->diffForHumans(),
+            'id'        => $n->id,
+            'tipo'      => $n->data['tipo']     ?? null,
+            'titulo'    => $n->data['titulo']   ?? '',
+            'cuerpo'    => $n->data['cuerpo']   ?? '',
+            'url'       => $n->data['url']      ?? null,
+            'decision'  => $n->data['decision'] ?? null,
+            'tipo_sol'  => $n->data['tipo_sol'] ?? null,
+            'created_at'=> $n->created_at->diffForHumans(),
         ];
     }
 }
