@@ -8,63 +8,55 @@ import TablePagination from '@/components/admin/TablePagination';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
-import { Plus, Search, CheckCircle2, Clock, Users, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Clock, LayoutList, Plus, Search, Users } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { route } from 'ziggy-js';
 
 /* ──────────────────────────────────────────────
-   Tarjeta de resumen global
+   Tarjeta de estadística — mismo estilo que MiDelegacion
 ────────────────────────────────────────────── */
-function ResumenCard({ icon: Icon, label, value, subValue, colorClass }) {
+function ResumenStatCard({ icon: Icon, label, value, hint }) {
     return (
-        <div className="flex items-center gap-3.5 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
-            <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${colorClass}`}>
-                <Icon className="size-5" strokeWidth={1.75} />
-            </div>
-            <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{label}</p>
-                <p className="mt-0.5 text-xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</p>
-                {subValue && (
-                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{subValue}</p>
-                )}
+        <div className="rounded-xl border border-zinc-200/80 border-l-2 border-l-brand-gold/35 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:border-l-brand-gold-soft/30 dark:bg-zinc-900/30">
+            <div className="flex items-center justify-between gap-2.5">
+                <div className="min-w-0">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{label}</p>
+                    <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                        {value}
+                    </p>
+                    {hint && (
+                        <p className="mt-0.5 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">{hint}</p>
+                    )}
+                </div>
+                <Icon
+                    className="size-[18px] shrink-0 text-brand-gold/50 dark:text-brand-gold-soft/45"
+                    strokeWidth={1.5}
+                    aria-hidden
+                />
             </div>
         </div>
     );
 }
 
 /* ──────────────────────────────────────────────
-   Barra de progreso
+   Barra de progreso — gold gradient igual que VestuarioPanel
 ────────────────────────────────────────────── */
 function ProgressBar({ porcentaje, confirmadas, total }) {
     const pct = Math.min(100, Math.max(0, porcentaje));
-    const color =
-        pct === 100
-            ? 'bg-emerald-500'
-            : pct >= 50
-              ? 'bg-amber-400'
-              : 'bg-rose-400';
 
     return (
-        <div className="min-w-[140px]">
+        <div className="min-w-[120px]">
             <div className="mb-1 flex items-center justify-between gap-2">
                 <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                     {confirmadas}/{total}
                 </span>
-                <span
-                    className={`text-[11px] font-semibold tabular-nums ${
-                        pct === 100
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : pct >= 50
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-rose-600 dark:text-rose-400'
-                    }`}
-                >
+                <span className="text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
                     {pct}%
                 </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                 <div
-                    className={`h-full rounded-full transition-all duration-500 ${color}`}
+                    className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40 transition-all duration-500"
                     style={{ width: `${pct}%` }}
                 />
             </div>
@@ -73,20 +65,23 @@ function ProgressBar({ porcentaje, confirmadas, total }) {
 }
 
 /* ──────────────────────────────────────────────
-   Chip de estado
+   Badge de estado — igual al estilo de EmpleadoRow
 ────────────────────────────────────────────── */
-function StatusChip({ pendientes }) {
+function StatusBadge({ pendientes, total }) {
+    if (total === 0) return null;
+
     if (pendientes === 0) {
         return (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200">
                 <CheckCircle2 className="size-3" strokeWidth={2.5} />
                 Completa
             </span>
         );
     }
+
     return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-            <Clock className="size-3" strokeWidth={2.5} />
+        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-transparent bg-zinc-100/80 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400">
+            <Clock className="size-3" strokeWidth={1.8} />
             {pendientes} pend.
         </span>
     );
@@ -114,10 +109,7 @@ function DelegacionesIndex({
     const isFirstRender = useRef(true);
 
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
+        if (isFirstRender.current) { isFirstRender.current = false; return; }
         const timeout = setTimeout(() => {
             router.get(
                 route('delegaciones.index'),
@@ -175,7 +167,7 @@ function DelegacionesIndex({
                 key: 'codigo',
                 header: 'Código',
                 className: 'w-[12%] text-left',
-                cellClassName: 'text-left font-mono text-xs',
+                cellClassName: 'text-left font-mono text-[12px]',
             },
             {
                 key: 'referencia_nombre',
@@ -189,15 +181,15 @@ function DelegacionesIndex({
             },
             {
                 key: 'empleados',
-                header: 'Empleados',
-                className: 'w-[8%] text-center',
-                cellClassName: 'text-center tabular-nums text-zinc-600 dark:text-zinc-400',
+                header: 'Emp.',
+                className: 'w-[6%] text-center',
+                cellClassName: 'text-center tabular-nums text-[12px] text-zinc-500 dark:text-zinc-400',
                 render: (row) => row.total_empleados,
             },
             {
                 key: 'progreso',
                 header: `Progreso ${anio ?? ''}`,
-                className: 'w-[28%] text-left',
+                className: 'w-[26%] text-left',
                 cellClassName: 'text-left',
                 render: (row) =>
                     row.total_asignaciones > 0 ? (
@@ -212,13 +204,12 @@ function DelegacionesIndex({
             },
             {
                 key: 'estado',
-                header: 'Estado',
-                className: 'w-[10%] text-center',
-                cellClassName: 'text-center',
-                render: (row) =>
-                    row.total_asignaciones > 0 ? (
-                        <StatusChip pendientes={row.pendientes} />
-                    ) : null,
+                header: '',
+                className: 'w-[10%]',
+                cellClassName: '',
+                render: (row) => (
+                    <StatusBadge pendientes={row.pendientes} total={row.total_asignaciones} />
+                ),
             },
             {
                 key: 'acciones',
@@ -238,12 +229,18 @@ function DelegacionesIndex({
         [puedeGestionar, anio],
     );
 
+    const pct = resumen.porcentaje ?? 0;
+
     return (
         <>
             <Head title="Delegaciones" />
             <AdminPageShell
                 title="Delegaciones"
-                description={`Progreso de actualización de tallas por delegación — ejercicio ${anio ?? ''}.`}
+                description={
+                    <span className="tabular-nums">
+                        Progreso de actualización de tallas · ejercicio {anio ?? ''}
+                    </span>
+                }
                 actions={
                     puedeGestionar ? (
                         <button
@@ -257,78 +254,78 @@ function DelegacionesIndex({
                     ) : null
                 }
             >
-                {/* ── Tarjetas de resumen global ── */}
-                <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <ResumenCard
-                        icon={TrendingUp}
-                        label="Progreso global"
-                        value={`${resumen.porcentaje}%`}
-                        subValue={`Ejercicio ${anio ?? ''}`}
-                        colorClass="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                {/* ── Tarjetas resumen ── */}
+                <div className="mb-3 grid gap-2 sm:grid-cols-3">
+                    <ResumenStatCard
+                        icon={LayoutList}
+                        label="Total asignaciones"
+                        value={resumen.total.toLocaleString()}
+                        hint={`Ejercicio ${anio ?? ''}`}
                     />
-                    <ResumenCard
+                    <ResumenStatCard
                         icon={CheckCircle2}
                         label="Confirmadas"
                         value={resumen.confirmadas.toLocaleString()}
-                        subValue={`de ${resumen.total.toLocaleString()} asignaciones`}
-                        colorClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        hint={`${pct}% del total`}
                     />
-                    <ResumenCard
-                        icon={Clock}
+                    <ResumenStatCard
+                        icon={Users}
                         label="Pendientes"
                         value={resumen.pendientes.toLocaleString()}
-                        subValue="aún sin confirmar"
-                        colorClass="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-                    />
-                    <ResumenCard
-                        icon={Users}
-                        label="Total asignaciones"
-                        value={resumen.total.toLocaleString()}
-                        subValue="empleados activos"
-                        colorClass="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                        hint="aún sin confirmar"
                     />
                 </div>
 
-                {/* ── Barra de progreso global ── */}
-                <div className="mb-5 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
-                    <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">
-                            Avance general de todas las delegaciones
+                {/* ── Barra global ── */}
+                <div className="mb-4 rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                            <span
+                                className="inline-block size-1 rounded-full bg-brand-gold/55 align-middle dark:bg-brand-gold-soft/45"
+                                aria-hidden
+                            />
+                            Avance global · todas las delegaciones
                         </span>
-                        <span className="text-[12px] font-bold tabular-nums text-zinc-800 dark:text-zinc-200">
-                            {resumen.confirmadas.toLocaleString()} / {resumen.total.toLocaleString()}
+                        <span className="text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                            <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                                {resumen.confirmadas.toLocaleString()}
+                            </span>
+                            {' '}/ {resumen.total.toLocaleString()}
                         </span>
                     </div>
-                    <div className="h-3 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                         <div
-                            className={`h-full rounded-full transition-all duration-700 ${
-                                resumen.porcentaje === 100
-                                    ? 'bg-emerald-500'
-                                    : resumen.porcentaje >= 50
-                                      ? 'bg-amber-400'
-                                      : 'bg-rose-400'
-                            }`}
-                            style={{ width: `${resumen.porcentaje}%` }}
+                            className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40 transition-all duration-700"
+                            style={{ width: `${pct}%` }}
                         />
                     </div>
                 </div>
 
                 {pageErrors?.delegacion && (
-                    <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:bg-red-950/50 dark:text-red-200">
+                    <p className="mb-3 rounded-lg border border-red-200/60 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
                         {pageErrors.delegacion}
                     </p>
                 )}
 
                 {/* ── Buscador ── */}
-                <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
-                    <Search className="size-4 text-zinc-400 dark:text-zinc-500" />
+                <div className="mb-3 flex min-h-[40px] items-center gap-2 rounded-lg border border-zinc-200/90 bg-zinc-50 px-3 py-2 transition-[border-color,box-shadow] focus-within:border-brand-gold/40 focus-within:ring-1 focus-within:ring-brand-gold/15 dark:border-zinc-800 dark:bg-zinc-900/30 dark:focus-within:border-brand-gold-soft/35 dark:focus-within:ring-brand-gold-soft/12">
+                    <Search className="size-4 shrink-0 text-brand-gold/65 dark:text-brand-gold-soft/55" aria-hidden />
                     <input
                         type="text"
-                        placeholder="Buscar delegación..."
+                        placeholder="Buscar delegación…"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full border-0 bg-transparent p-0 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                     />
+                    {search && (
+                        <button
+                            type="button"
+                            onClick={() => setSearch('')}
+                            className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                        >
+                            Limpiar
+                        </button>
+                    )}
                 </div>
 
                 <DataTable
@@ -336,7 +333,7 @@ function DelegacionesIndex({
                     rows={delegaciones.data}
                     keyExtractor={(row) => row.codigo}
                     emptyTitle="Sin delegaciones"
-                    emptyDescription="No hay registros en delegación. Ejecuta migraciones y seeders correspondientes."
+                    emptyDescription="No hay registros. Ejecuta migraciones y seeders correspondientes."
                     footer={
                         delegaciones.last_page > 1 ? (
                             <TablePagination pagination={delegaciones} />
@@ -397,11 +394,17 @@ function DelegacionesIndex({
                     <div className="space-y-4 text-[13px]">
                         <dl className="grid gap-3">
                             <div>
-                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Código</dt>
-                                <dd className="mt-0.5 font-mono text-zinc-900 dark:text-zinc-100">{showView.codigo}</dd>
+                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                    Código
+                                </dt>
+                                <dd className="mt-0.5 font-mono text-zinc-900 dark:text-zinc-100">
+                                    {showView.codigo}
+                                </dd>
                             </div>
                             <div>
-                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Dependencia</dt>
+                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                    Dependencia
+                                </dt>
                                 <dd className="mt-0.5 text-zinc-900 dark:text-zinc-100">
                                     {showView.referencia_nombre ?? '—'}
                                     {showView.ur_referencia != null && (
@@ -410,39 +413,43 @@ function DelegacionesIndex({
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Empleados activos</dt>
-                                <dd className="mt-0.5 tabular-nums text-zinc-900 dark:text-zinc-100">{showView.total_empleados}</dd>
+                                <dt className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                    Empleados activos
+                                </dt>
+                                <dd className="mt-0.5 tabular-nums text-zinc-900 dark:text-zinc-100">
+                                    {showView.total_empleados}
+                                </dd>
                             </div>
                         </dl>
 
                         {showView.total_asignaciones > 0 && (
-                            <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
-                                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                                    Progreso {anio}
+                            <div className="rounded-xl border border-zinc-200/80 border-l-2 border-l-brand-gold/35 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:border-l-brand-gold-soft/30 dark:bg-zinc-900/30">
+                                <p className="mb-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                    Progreso vestuario {anio}
                                 </p>
                                 <ProgressBar
                                     porcentaje={showView.porcentaje}
                                     confirmadas={showView.confirmadas}
                                     total={showView.total_asignaciones}
                                 />
-                                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-zinc-200/60 pt-3 text-center dark:border-zinc-800/60">
                                     <div>
-                                        <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
                                             {showView.confirmadas}
                                         </p>
-                                        <p className="text-[10px] text-zinc-500">Confirmadas</p>
+                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Confirmadas</p>
                                     </div>
                                     <div>
-                                        <p className="text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
                                             {showView.pendientes}
                                         </p>
-                                        <p className="text-[10px] text-zinc-500">Pendientes</p>
+                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Pendientes</p>
                                     </div>
                                     <div>
-                                        <p className="text-lg font-bold tabular-nums text-zinc-700 dark:text-zinc-200">
+                                        <p className="text-lg font-semibold tabular-nums tracking-tight text-zinc-800 dark:text-zinc-100">
                                             {showView.total_asignaciones}
                                         </p>
-                                        <p className="text-[10px] text-zinc-500">Total</p>
+                                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Total</p>
                                     </div>
                                 </div>
                             </div>
@@ -457,7 +464,9 @@ function DelegacionesIndex({
                     <form onSubmit={handleEditSubmit} className="space-y-4">
                         <p className="text-[12px] text-zinc-500 dark:text-zinc-400">
                             Código{' '}
-                            <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{showEdit.codigo}</span>{' '}
+                            <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">
+                                {showEdit.codigo}
+                            </span>{' '}
                             (no editable; solo UR de referencia)
                         </p>
                         <FormField label="UR de referencia" id="edit-del-ur" error={editForm.errors.ur_referencia}>
