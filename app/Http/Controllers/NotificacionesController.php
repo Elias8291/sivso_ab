@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,10 +15,34 @@ class NotificacionesController extends Controller
 {
     private const PER_PAGE = 20;
 
+    private const BELL_UNREAD_LIMIT = 15;
+
+    /**
+     * JSON para campana / polling (misma forma que comparte HandleInertiaRequests).
+     */
+    public function unreadPoll(): JsonResponse
+    {
+        $user = Auth::user();
+
+        $items = $user
+            ->unreadNotifications()
+            ->latest()
+            ->limit(self::BELL_UNREAD_LIMIT)
+            ->get()
+            ->map(fn (DatabaseNotification $n): array => $this->mapBellItem($n))
+            ->values();
+
+        return response()->json([
+            'data' => $items,
+            'message' => '',
+            'errors' => null,
+        ]);
+    }
+
     public function index(Request $request): Response
     {
         $filtro = $request->input('filtro', 'no_leidas'); // no_leidas | todas
-        $user   = Auth::user();
+        $user = Auth::user();
 
         $query = $filtro === 'todas'
             ? $user->notifications()
@@ -28,14 +53,14 @@ class NotificacionesController extends Controller
             ->paginate(self::PER_PAGE)
             ->withQueryString()
             ->through(fn ($n) => [
-                'id'         => $n->id,
-                'tipo'       => $n->data['tipo']     ?? null,
-                'titulo'     => $n->data['titulo']   ?? '',
-                'cuerpo'     => $n->data['cuerpo']   ?? '',
-                'url'        => $n->data['url']       ?? null,
-                'decision'   => $n->data['decision'] ?? null,
-                'tipo_sol'   => $n->data['tipo_sol'] ?? null,
-                'leida'      => $n->read_at !== null,
+                'id' => $n->id,
+                'tipo' => $n->data['tipo'] ?? null,
+                'titulo' => $n->data['titulo'] ?? '',
+                'cuerpo' => $n->data['cuerpo'] ?? '',
+                'url' => $n->data['url'] ?? null,
+                'decision' => $n->data['decision'] ?? null,
+                'tipo_sol' => $n->data['tipo_sol'] ?? null,
+                'leida' => $n->read_at !== null,
                 'created_at' => $n->created_at->diffForHumans(),
                 'created_at_full' => $n->created_at->format('d/m/Y H:i'),
             ]);
@@ -44,7 +69,7 @@ class NotificacionesController extends Controller
             'notificaciones' => $notificaciones,
             'totales' => [
                 'no_leidas' => $user->unreadNotifications()->count(),
-                'todas'     => $user->notifications()->count(),
+                'todas' => $user->notifications()->count(),
             ],
             'filters' => $request->only(['filtro']),
         ]);
@@ -63,5 +88,22 @@ class NotificacionesController extends Controller
         Auth::user()->unreadNotifications->markAsRead();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapBellItem(DatabaseNotification $n): array
+    {
+        return [
+            'id' => $n->id,
+            'tipo' => $n->data['tipo'] ?? null,
+            'titulo' => $n->data['titulo'] ?? '',
+            'cuerpo' => $n->data['cuerpo'] ?? '',
+            'url' => $n->data['url'] ?? null,
+            'decision' => $n->data['decision'] ?? null,
+            'tipo_sol' => $n->data['tipo_sol'] ?? null,
+            'created_at' => $n->created_at->diffForHumans(),
+        ];
     }
 }

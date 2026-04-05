@@ -2,8 +2,10 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
 /** Solo conecta si VITE_REVERB_ENABLED=true y hay clave (requiere `php artisan reverb:start`). */
-const reverbEnabled =
+export const isReverbRealtimeEnabled =
     import.meta.env.VITE_REVERB_ENABLED === 'true' && Boolean(import.meta.env.VITE_REVERB_APP_KEY);
+
+const reverbEnabled = isReverbRealtimeEnabled;
 
 let echo = null;
 

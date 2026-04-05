@@ -1,6 +1,7 @@
 import TablePagination from '@/components/admin/TablePagination';
+import { isReverbRealtimeEnabled } from '@/echo';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     ArrowLeftRight,
@@ -12,7 +13,7 @@ import {
     Inbox,
     XCircle,
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { route } from 'ziggy-js';
 
 /* ── configuración visual ────────────────────────────────────────── */
@@ -176,9 +177,30 @@ function EmptyState({ filtro }) {
 
 /* ── página principal ────────────────────────────────────────────── */
 
+const NOTIFICACIONES_INDEX_POLL_MS = 12_000;
+
 function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
+    const { auth } = usePage().props;
     const [filtro, setFiltro] = useState(filters.filtro ?? 'no_leidas');
     const [items, setItems]  = useState(notificaciones.data);
+
+    useEffect(() => {
+        setItems(notificaciones.data);
+    }, [notificaciones]);
+
+    useEffect(() => {
+        if (!auth?.user || isReverbRealtimeEnabled) return;
+
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'hidden') return;
+            router.reload({
+                only: ['notificaciones', 'totales'],
+                preserveScroll: true,
+            });
+        }, NOTIFICACIONES_INDEX_POLL_MS);
+
+        return () => clearInterval(interval);
+    }, [auth?.user?.id]);
 
     const applyFiltro = (f) => {
         setFiltro(f);

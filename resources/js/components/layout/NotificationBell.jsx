@@ -1,4 +1,4 @@
-import echo from '@/echo';
+import echo, { isReverbRealtimeEnabled } from '@/echo';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -88,6 +88,9 @@ function NotifRow({ notif, onRead }) {
 
 /* ── campana principal ───────────────────────────────────────────── */
 
+/** En Hostinger / sin Reverb no hay WebSocket; el sondeo mantiene la campana al día. */
+const NOTIF_POLL_MS = 10_000;
+
 export default function NotificationBell() {
     const { auth, notificaciones = [] } = usePage().props;
     const [open, setOpen]               = useState(false);
@@ -123,6 +126,37 @@ export default function NotificationBell() {
         return () => {
             echo.leave(`App.Models.User.${userId}`);
         };
+    }, [userId]);
+
+    /* ── Polling HTTP si no hay Reverb (p. ej. hosting compartido) ─ */
+    useEffect(() => {
+        if (!userId || isReverbRealtimeEnabled) return;
+
+        const fetchUnread = async () => {
+            if (document.visibilityState === 'hidden') return;
+            try {
+                const { data } = await axios.get(route('notificaciones.unread-poll'));
+                const list = Array.isArray(data?.data) ? data.data : [];
+                setItems((prev) => {
+                    const prevIds = new Set(prev.map((n) => n.id));
+                    const hasNew = list.some((n) => !prevIds.has(n.id));
+                    if (hasNew) {
+                        queueMicrotask(() => {
+                            setIsNew(true);
+                            setTimeout(() => setIsNew(false), 2500);
+                        });
+                    }
+                    return list;
+                });
+            } catch {
+                /* red intermitente: siguiente intervalo */
+            }
+        };
+
+        const interval = setInterval(fetchUnread, NOTIF_POLL_MS);
+        void fetchUnread();
+
+        return () => clearInterval(interval);
     }, [userId]);
 
     /* cerrar al click fuera */
