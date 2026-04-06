@@ -17,6 +17,7 @@ use App\Http\Controllers\Estructura\DependenciaController;
 use App\Http\Controllers\Estructura\EmpleadoController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\Vestuario\ProductoController;
 use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Support\SivsoPermissions;
 use Illuminate\Support\Facades\Route;
@@ -103,7 +104,7 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_EMPLEADOS)
         ->name('empleados.destroy');
 
-    Route::get('/productos', $sidebarPlaceholder)
+    Route::get('/productos', [ProductoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_PRODUCTOS)
         ->name('productos.index');
     Route::get('/partidas', $sidebarPlaceholder)
