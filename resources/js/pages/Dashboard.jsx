@@ -1,21 +1,7 @@
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    Bell,
-    Building2,
-    ClipboardList,
-    Layers,
-    LayoutList,
-    MapPin,
-    Package,
-    Shield,
-    UserCircle,
-    Users,
-    UserSquare2,
-    ChevronRight,
-    Calendar,
-} from 'lucide-react';
+import { Bell, ClipboardList, MapPin, UserCircle, Users, UserSquare2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { route } from 'ziggy-js';
 
@@ -132,53 +118,6 @@ function StatTile({ icon: Icon, label, value, hint }) {
     );
 }
 
-function AdminDashLink({ routeName, label, hint, badge, icon: Icon }) {
-    return (
-        <Link
-            href={route(routeName)}
-            className="group flex min-h-[3rem] items-center justify-between gap-3 rounded-xl border border-zinc-200/80 bg-white px-3.5 py-2.5 shadow-sm transition-colors hover:border-brand-gold/35 hover:bg-zinc-50/90 dark:border-zinc-800 dark:bg-zinc-950/50 dark:hover:border-brand-gold-soft/30 dark:hover:bg-zinc-900/40"
-        >
-            <span className="flex min-w-0 flex-1 items-start gap-2.5">
-                {Icon ? (
-                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-400">
-                        <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
-                    </span>
-                ) : null}
-                <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-2">
-                        <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{label}</span>
-                        {badge != null && badge > 0 ? (
-                            <span className="shrink-0 rounded-md bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white dark:bg-zinc-900 dark:text-zinc-100">
-                                {badge > 9 ? '9+' : badge}
-                            </span>
-                        ) : null}
-                    </span>
-                    {hint ? (
-                        <span className="mt-0.5 block truncate text-[11px] text-zinc-500 dark:text-zinc-400">{hint}</span>
-                    ) : null}
-                </span>
-            </span>
-            <ChevronRight
-                className="size-4 shrink-0 text-zinc-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/70 dark:text-zinc-600 dark:group-hover:text-brand-gold-soft/75"
-                strokeWidth={1.75}
-                aria-hidden
-            />
-        </Link>
-    );
-}
-
-function AdminSection({ title, children }) {
-    if (!children || (Array.isArray(children) && children.length === 0)) {
-        return null;
-    }
-    return (
-        <section className="space-y-3">
-            <SectionLabel>{title}</SectionLabel>
-            <div className="grid gap-2 sm:grid-cols-2">{children}</div>
-        </section>
-    );
-}
-
 function DashboardPage({ periodo = null, resumen_admin = {} }) {
     const { auth, notificaciones = [] } = usePage().props;
     const can = useAuthCan();
@@ -252,119 +191,6 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
         });
         return tiles;
     }, [resumen_admin, notifCount]);
-
-    const principal = useMemo(() => {
-        const rows = [];
-        rows.push(
-            <AdminDashLink
-                key="notif"
-                routeName="notificaciones.index"
-                label="Notificaciones"
-                hint={notifCount > 0 ? `${notifCount} sin leer` : 'Avisos del sistema'}
-                badge={notifCount}
-                icon={Bell}
-            />,
-        );
-        rows.push(
-            <AdminDashLink
-                key="prof"
-                routeName="profile.edit"
-                label="Mi cuenta"
-                hint="Datos personales y contraseña"
-                icon={UserCircle}
-            />,
-        );
-        return rows;
-    }, [notifCount]);
-
-    const vestuario = useMemo(() => {
-        const rows = [];
-        if (can('Ver empleados')) {
-            rows.push(
-                <AdminDashLink key="emp" routeName="empleados.index" label="Empleados" hint="Catálogo y altas" icon={Users} />,
-            );
-        }
-        if (can('Ver productos')) {
-            rows.push(
-                <AdminDashLink
-                    key="prod"
-                    routeName="productos.index"
-                    label="Productos"
-                    hint="Catálogo de vestuario"
-                    icon={Package}
-                />,
-            );
-        }
-        if (can('Ver partidas')) {
-            rows.push(
-                <AdminDashLink key="part" routeName="partidas.index" label="Partidas" hint="Estructura presupuestal" icon={Layers} />,
-            );
-        }
-        if (can('Ver líneas presupuestales')) {
-            rows.push(
-                <AdminDashLink
-                    key="lin"
-                    routeName="partidas-especificas.index"
-                    label="Líneas presupuestales"
-                    hint="Detalle por línea"
-                    icon={LayoutList}
-                />,
-            );
-        }
-        return rows;
-    }, [can]);
-
-    const estructura = useMemo(() => {
-        const rows = [];
-        if (can('Ver dependencias')) {
-            rows.push(
-                <AdminDashLink key="dep" routeName="dependencias.index" label="Dependencias" hint="Unidades responsables" icon={Building2} />,
-            );
-        }
-        if (can('Ver delegaciones')) {
-            rows.push(
-                <AdminDashLink key="delg" routeName="delegaciones.index" label="Delegaciones" hint="Catálogo" icon={MapPin} />,
-            );
-        }
-        if (can('Ver delegados')) {
-            rows.push(
-                <AdminDashLink key="delgo" routeName="delegados.index" label="Delegados" hint="Asignación de perfiles" icon={UserSquare2} />,
-            );
-        }
-        return rows;
-    }, [can]);
-
-    const administracion = useMemo(() => {
-        const rows = [];
-        if (can('Ver periodos')) {
-            rows.push(
-                <AdminDashLink key="per" routeName="periodos.index" label="Periodos" hint="Calendario de captura" icon={Calendar} />,
-            );
-        }
-        if (can('Ver usuarios')) {
-            rows.push(
-                <AdminDashLink key="usr" routeName="users.index" label="Usuarios" hint="Cuentas del sistema" icon={Users} />,
-            );
-        }
-        if (can('Ver roles')) {
-            rows.push(<AdminDashLink key="rol" routeName="roles.index" label="Roles" hint="Spatie" icon={Shield} />);
-        }
-        if (can('Ver permisos')) {
-            rows.push(<AdminDashLink key="perm" routeName="permissions.index" label="Permisos" hint="Listado" icon={Shield} />);
-        }
-        if (can('Ver solicitudes')) {
-            rows.push(
-                <AdminDashLink
-                    key="sol"
-                    routeName="solicitudes-movimiento.index"
-                    label="Solicitudes de movimiento"
-                    hint="Bajas y cambios"
-                    icon={ClipboardList}
-                />,
-            );
-        }
-        return rows;
-    }, [can]);
 
     return (
         <>
@@ -442,13 +268,6 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
                                 </div>
                             </section>
                         ) : null}
-
-                        <div className="space-y-8 border-t border-zinc-200/80 pt-8 dark:border-zinc-800/80">
-                            <AdminSection title="Principal">{principal}</AdminSection>
-                            <AdminSection title="Vestuario">{vestuario}</AdminSection>
-                            <AdminSection title="Estructura">{estructura}</AdminSection>
-                            <AdminSection title="Administración">{administracion}</AdminSection>
-                        </div>
                     </div>
                 </div>
             </div>
