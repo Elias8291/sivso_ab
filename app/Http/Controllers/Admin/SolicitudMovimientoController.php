@@ -30,10 +30,9 @@ class SolicitudMovimientoController extends Controller
             ->with(['empleado:id,nombre,apellido_paterno,apellido_materno,nue,ur,delegacion_codigo', 'resueltaPor:id,name'])
             ->when($estado !== 'todas', fn ($q) => $q->where('estado', $estado))
             ->when($search, function ($q, $s) {
-                $q->whereHas('empleado', fn ($eq) =>
-                    $eq->where('nombre', 'like', "%{$s}%")
-                        ->orWhere('apellido_paterno', 'like', "%{$s}%")
-                        ->orWhere('nue', 'like', "%{$s}%")
+                $q->whereHas('empleado', fn ($eq) => $eq->where('nombre', 'like', "%{$s}%")
+                    ->orWhere('apellido_paterno', 'like', "%{$s}%")
+                    ->orWhere('nue', 'like', "%{$s}%")
                 );
             })
             ->orderByRaw("FIELD(estado, 'pendiente', 'aprobada', 'rechazada')")
@@ -41,47 +40,108 @@ class SolicitudMovimientoController extends Controller
             ->paginate(25)
             ->withQueryString()
             ->through(fn ($s) => [
-                'id'                        => $s->id,
-                'tipo'                      => $s->tipo,
-                'estado'                    => $s->estado,
-                'delegacion_origen'         => $s->delegacion_origen,
-                'delegacion_destino'        => $s->delegacion_destino,
-                'lleva_recurso'             => $s->lleva_recurso,
-                'ajuste_recurso'            => $s->ajuste_recurso,
-                'observacion_solicitante'   => $s->observacion_solicitante,
-                'observacion_administracion'=> $s->observacion_administracion,
-                'resuelta_por'              => $s->resueltaPor?->name,
-                'resuelta_at'               => $s->resuelta_at?->format('d/m/Y H:i'),
-                'created_at'                => $s->created_at->format('d/m/Y H:i'),
+                'id' => $s->id,
+                'tipo' => $s->tipo,
+                'estado' => $s->estado,
+                'delegacion_origen' => $s->delegacion_origen,
+                'delegacion_destino' => $s->delegacion_destino,
+                'lleva_recurso' => $s->lleva_recurso,
+                'ajuste_recurso' => $s->ajuste_recurso,
+                'observacion_solicitante' => $s->observacion_solicitante,
+                'observacion_administracion' => $s->observacion_administracion,
+                'resuelta_por' => $s->resueltaPor?->name,
+                'resuelta_at' => $s->resuelta_at?->format('d/m/Y H:i'),
+                'created_at' => $s->created_at->format('d/m/Y H:i'),
                 'empleado' => [
-                    'id'             => $s->empleado->id,
-                    'nombre_completo'=> strtoupper(trim("{$s->empleado->apellido_paterno} {$s->empleado->apellido_materno} {$s->empleado->nombre}")),
-                    'nue'            => $s->empleado->nue,
-                    'ur'             => $s->empleado->ur,
-                    'delegacion'     => $s->empleado->delegacion_codigo,
+                    'id' => $s->empleado->id,
+                    'nombre_completo' => strtoupper(trim("{$s->empleado->apellido_paterno} {$s->empleado->apellido_materno} {$s->empleado->nombre}")),
+                    'nue' => $s->empleado->nue,
+                    'ur' => $s->empleado->ur,
+                    'delegacion' => $s->empleado->delegacion_codigo,
                 ],
             ]);
 
         $totales = [
             'pendiente' => SolicitudMovimiento::where('estado', 'pendiente')->count(),
-            'aprobada'  => SolicitudMovimiento::where('estado', 'aprobada')->count(),
+            'aprobada' => SolicitudMovimiento::where('estado', 'aprobada')->count(),
             'rechazada' => SolicitudMovimiento::where('estado', 'rechazada')->count(),
         ];
 
         return Inertia::render('Admin/SolicitudesMovimiento/Index', [
             'solicitudes' => $solicitudes,
-            'totales'     => $totales,
-            'filters'     => $request->only(['estado', 'search']),
+            'totales' => $totales,
+            'filters' => $request->only(['estado', 'search']),
+        ]);
+    }
+
+    public function empleadoVestuario(int $solicitudId): JsonResponse
+    {
+        $solicitud = SolicitudMovimiento::query()
+            ->with(['empleado:id,nombre,apellido_paterno,apellido_materno,nue,ur,delegacion_codigo'])
+            ->findOrFail($solicitudId);
+
+        $empleado = $solicitud->empleado;
+        if (! $empleado) {
+            return response()->json([
+                'data' => null,
+                'message' => 'No se encontró el empleado asociado a la solicitud.',
+                'errors' => ['empleado' => 'Sin empleado asociado.'],
+            ], 404);
+        }
+
+        $vestuario = AsignacionEmpleadoProducto::query()
+            ->where('asignacion_empleado_producto.empleado_id', $empleado->id)
+            ->where('asignacion_empleado_producto.anio', self::ANIO_REFERENCIA)
+            ->whereNotNull('asignacion_empleado_producto.producto_cotizado_id')
+            ->join('producto_cotizado', 'producto_cotizado.id', '=', 'asignacion_empleado_producto.producto_cotizado_id')
+            ->select([
+                'asignacion_empleado_producto.id',
+                'asignacion_empleado_producto.cantidad',
+                'asignacion_empleado_producto.talla',
+                'asignacion_empleado_producto.talla_anio_actual',
+                'asignacion_empleado_producto.medida_anio_actual',
+                'asignacion_empleado_producto.estado_anio_actual',
+                'producto_cotizado.descripcion as prenda',
+                'producto_cotizado.clave as clave',
+            ])
+            ->orderBy('producto_cotizado.clave')
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'prenda' => $a->prenda,
+                'clave' => $a->clave,
+                'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
+                'talla' => $a->talla_anio_actual ?? $a->talla,
+                'medida' => $a->medida_anio_actual,
+                'estado' => $a->estado_anio_actual ?? 'pendiente',
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => [
+                'empleado' => [
+                    'id' => $empleado->id,
+                    'nombre_completo' => strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
+                    'nue' => $empleado->nue,
+                    'ur' => $empleado->ur,
+                    'delegacion' => $empleado->delegacion_codigo,
+                ],
+                'anio' => self::ANIO_REFERENCIA,
+                'vestuario' => $vestuario,
+            ],
+            'message' => null,
+            'errors' => null,
         ]);
     }
 
     public function resolver(Request $request, int $solicitudId): JsonResponse
     {
         $validated = $request->validate([
-            'decision'                  => ['required', 'string', 'in:aprobada,rechazada'],
-            'lleva_recurso'             => ['nullable', 'boolean'],
-            'ajuste_recurso'            => ['nullable', 'string', 'max:500'],
-            'observacion_administracion'=> ['nullable', 'string', 'max:500'],
+            'decision' => ['required', 'string', 'in:aprobada,rechazada'],
+            'lleva_recurso' => ['nullable', 'boolean'],
+            'ajuste_recurso' => ['nullable', 'string', 'max:500'],
+            'observacion_administracion' => ['nullable', 'string', 'max:500'],
         ]);
 
         $solicitud = SolicitudMovimiento::where('id', $solicitudId)
@@ -92,12 +152,12 @@ class SolicitudMovimientoController extends Controller
         DB::transaction(function () use ($solicitud, $validated) {
             // Registrar la resolución
             $solicitud->update([
-                'estado'                    => $validated['decision'],
-                'lleva_recurso'             => $validated['lleva_recurso'] ?? null,
-                'ajuste_recurso'            => $validated['ajuste_recurso'] ?? null,
-                'observacion_administracion'=> $validated['observacion_administracion'] ?? null,
-                'resuelta_por'              => Auth::id(),
-                'resuelta_at'               => now(),
+                'estado' => $validated['decision'],
+                'lleva_recurso' => $validated['lleva_recurso'] ?? null,
+                'ajuste_recurso' => $validated['ajuste_recurso'] ?? null,
+                'observacion_administracion' => $validated['observacion_administracion'] ?? null,
+                'resuelta_por' => Auth::id(),
+                'resuelta_at' => now(),
             ]);
 
             if ($validated['decision'] === 'aprobada') {
@@ -110,7 +170,7 @@ class SolicitudMovimientoController extends Controller
                      * en la delegación origen. No se tocan las asignaciones.
                      */
                     $empleado->update([
-                        'estado_delegacion'      => 'baja',
+                        'estado_delegacion' => 'baja',
                         'observacion_delegacion' => $solicitud->observacion_solicitante,
                     ]);
 
@@ -126,9 +186,9 @@ class SolicitudMovimientoController extends Controller
                     $delegacionOrigen = $empleado->delegacion_codigo;
 
                     $empleado->update([
-                        'delegacion_codigo'      => $solicitud->delegacion_destino,
-                        'estado_delegacion'      => 'activo',
-                        'observacion_delegacion' => "Transferido desde {$delegacionOrigen}. " . ($solicitud->observacion_solicitante ?? ''),
+                        'delegacion_codigo' => $solicitud->delegacion_destino,
+                        'estado_delegacion' => 'activo',
+                        'observacion_delegacion' => "Transferido desde {$delegacionOrigen}. ".($solicitud->observacion_solicitante ?? ''),
                     ]);
 
                     if ($validated['lleva_recurso']) {
@@ -136,11 +196,11 @@ class SolicitudMovimientoController extends Controller
                         AsignacionEmpleadoProducto::where('empleado_id', $empleado->id)
                             ->where('anio', self::ANIO_REFERENCIA)
                             ->update([
-                                'talla_anio_actual'      => null,
-                                'medida_anio_actual'     => null,
-                                'estado_anio_actual'     => 'pendiente',
-                                'observacion_anio_actual'=> 'Pendiente de vestuario nuevo (cambio de delegación aprobado).',
-                                'talla_actualizada_at'   => null,
+                                'talla_anio_actual' => null,
+                                'medida_anio_actual' => null,
+                                'estado_anio_actual' => 'pendiente',
+                                'observacion_anio_actual' => 'Pendiente de vestuario nuevo (cambio de delegación aprobado).',
+                                'talla_actualizada_at' => null,
                             ]);
                     }
                     // Si no lleva recurso: las asignaciones quedan asociadas al empleado
@@ -152,8 +212,8 @@ class SolicitudMovimientoController extends Controller
         // Notificar al delegado que envió la solicitud.
         // notify() guarda en DB; SivsoNotificacion emite por WebSocket sin queue.
         if ($solicitud->solicitadaPor instanceof User) {
-            $destinatario   = $solicitud->solicitadaPor;
-            $notification   = new SolicitudResueltaNotification($solicitud);
+            $destinatario = $solicitud->solicitadaPor;
+            $notification = new SolicitudResueltaNotification($solicitud);
             $destinatario->notify($notification);
             $payload = array_merge($notification->toArray($destinatario), [
                 'id' => $destinatario->notifications()->latest()->first()?->id,
@@ -162,11 +222,11 @@ class SolicitudMovimientoController extends Controller
         }
 
         return response()->json([
-            'data'    => ['id' => $solicitud->id, 'estado' => $validated['decision']],
+            'data' => ['id' => $solicitud->id, 'estado' => $validated['decision']],
             'message' => $validated['decision'] === 'aprobada'
                 ? 'Solicitud aprobada y movimiento ejecutado.'
                 : 'Solicitud rechazada.',
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 }

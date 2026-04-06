@@ -102,6 +102,44 @@ class ResumenVestuarioController extends Controller
         $globalConfirm    = (int) $filas->sum('confirmadas');
         $globalPendientes = (int) $filas->sum('pendientes');
 
+        // Empleados con actualización capturada en el año (para cotejo UR vs Delegación)
+        $empleadosActualizados = DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->select([
+                'e.id',
+                'e.nue',
+                'e.nombre',
+                'e.apellido_paterno',
+                'e.apellido_materno',
+                'e.ur',
+                'e.delegacion_codigo',
+                DB::raw('COUNT(*) as prendas_actualizadas'),
+                DB::raw('MAX(aep.talla_actualizada_at) as ultima_actualizacion'),
+            ])
+            ->where('aep.anio', $anio)
+            ->whereNotNull('aep.talla_actualizada_at')
+            ->when(is_array($codigosPermitidos), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosPermitidos))
+            ->when($delegacion, fn ($q) => $q->where('e.delegacion_codigo', $delegacion))
+            ->groupBy('e.id', 'e.nue', 'e.nombre', 'e.apellido_paterno', 'e.apellido_materno', 'e.ur', 'e.delegacion_codigo')
+            ->orderByDesc('ultima_actualizacion')
+            ->limit(600)
+            ->get()
+            ->map(static fn ($row) => [
+                'id' => (int) $row->id,
+                'nue' => $row->nue,
+                'nombre_completo' => trim(implode(' ', array_filter([
+                    (string) $row->apellido_paterno,
+                    (string) $row->apellido_materno,
+                    (string) $row->nombre,
+                ]))),
+                'ur' => $row->ur,
+                'delegacion_codigo' => $row->delegacion_codigo,
+                'prendas_actualizadas' => (int) $row->prendas_actualizadas,
+                'ultima_actualizacion' => $row->ultima_actualizacion,
+            ])
+            ->values()
+            ->all();
+
         // Delegaciones para el filtro (según acceso)
         $delegacionesOpciones = Delegacion::query()
             ->when(
@@ -125,6 +163,7 @@ class ResumenVestuarioController extends Controller
             'anios_disponibles'    => self::ANIOS_DISPONIBLES,
             'delegacion_activa'    => $delegacion,
             'delegaciones_opciones'=> $delegacionesOpciones,
+            'empleados_actualizados'=> $empleadosActualizados,
             'filters'              => $request->only(['anio', 'delegacion']),
         ]);
     }

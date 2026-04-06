@@ -16,7 +16,7 @@ final class CrearUsuarioDelegadoService
             'rfc' => $rfc !== null && trim($rfc) !== '' ? trim($rfc) : null,
             'nue' => $nue !== null && trim((string) $nue) !== '' ? trim((string) $nue) : null,
             'password' => $password,
-            'must_change_password' => true,
+            'must_change_password' => false,
             'activo' => true,
             'is_super_admin' => false,
         ]);

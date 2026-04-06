@@ -192,6 +192,7 @@ function ResumenVestuario({
     anios_disponibles = [],
     delegacion_activa,
     delegaciones_opciones = [],
+    empleados_actualizados = [],
     filters = {},
 }) {
     const navegar = useCallback((overrides) => {
@@ -265,6 +266,60 @@ function ResumenVestuario({
                     <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
                         {categorias.length} categoría{categorias.length !== 1 ? 's' : ''}
                     </span>
+                </div>
+
+                {/* ── Cotejo general: empleados actualizados ── */}
+                <div className="mb-4 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30">
+                    <div className="flex items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-800">
+                        <div>
+                            <p className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100">
+                                Cotejo general de actualización
+                            </p>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                Empleados que ya actualizaron · verificar UR y Delegación
+                            </p>
+                        </div>
+                        <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                            {empleados_actualizados.length} registros
+                        </span>
+                    </div>
+
+                    {empleados_actualizados.length === 0 ? (
+                        <p className="px-4 py-6 text-[12px] text-zinc-500 dark:text-zinc-400">
+                            Aún no hay empleados con actualización registrada para los filtros seleccionados.
+                        </p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-[12px]">
+                                <thead>
+                                    <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
+                                        <th className="px-4 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">NUE</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">Empleado</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">UR</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">Delegación</th>
+                                        <th className="px-4 py-2 text-center font-semibold text-zinc-500 dark:text-zinc-400">Prendas</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-zinc-500 dark:text-zinc-400">Última actualización</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {empleados_actualizados.map((emp) => (
+                                        <tr key={emp.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
+                                            <td className="px-4 py-2 font-mono text-zinc-700 dark:text-zinc-300">{emp.nue || '—'}</td>
+                                            <td className="px-4 py-2 text-zinc-800 dark:text-zinc-100">{emp.nombre_completo || '—'}</td>
+                                            <td className="px-4 py-2 font-mono text-zinc-700 dark:text-zinc-300">{emp.ur || '—'}</td>
+                                            <td className="px-4 py-2 font-mono text-zinc-700 dark:text-zinc-300">{emp.delegacion_codigo || '—'}</td>
+                                            <td className="px-4 py-2 text-center tabular-nums text-zinc-700 dark:text-zinc-300">{emp.prendas_actualizadas}</td>
+                                            <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                                                {emp.ultima_actualizacion
+                                                    ? new Date(emp.ultima_actualizacion).toLocaleString('es-MX')
+                                                    : '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Lista de categorías ── */}

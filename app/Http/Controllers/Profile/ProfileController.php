@@ -33,6 +33,7 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $mustChangePassword = ! (bool) $user->must_change_password;
         $validated = $request->validated();
 
         unset($validated['password_confirmation']);
@@ -40,10 +41,16 @@ class ProfileController extends Controller
         if (($validated['password'] ?? null) === null || $validated['password'] === '') {
             unset($validated['password']);
         } else {
-            $validated['must_change_password'] = false;
+            $validated['must_change_password'] = true;
         }
 
         $user->update($validated);
+
+        if ($mustChangePassword && array_key_exists('must_change_password', $validated) && $validated['must_change_password'] === true) {
+            return redirect()
+                ->route('dashboard')
+                ->with('status', 'Contraseña actualizada correctamente.');
+        }
 
         return redirect()
             ->route('profile.edit')

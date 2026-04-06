@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\InitialPasswordUpdateRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,10 @@ final class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if (! (bool) $user->must_change_password) {
+            return redirect()->route('auth.password.change');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -55,5 +60,38 @@ final class AuthenticatedSessionController extends Controller
         request()->session()->regenerateToken();
 
         return redirect()->route('home');
+    }
+
+    public function forcePasswordChange(): Response|RedirectResponse
+    {
+        /** @var User $user */
+        $user = request()->user();
+
+        if ((bool) $user->must_change_password) {
+            return redirect()->route('dashboard');
+        }
+
+        return Inertia::render('Auth/ForcePasswordChange');
+    }
+
+    public function updateInitialPassword(InitialPasswordUpdateRequest $request): RedirectResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        if ((bool) $user->must_change_password) {
+            return redirect()->route('dashboard');
+        }
+
+        $validated = $request->validated();
+
+        $user->update([
+            'password' => (string) $validated['password'],
+            'must_change_password' => true,
+        ]);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Contraseña actualizada correctamente.');
     }
 }

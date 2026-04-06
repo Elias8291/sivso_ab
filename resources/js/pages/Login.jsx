@@ -23,7 +23,7 @@ export default function Login() {
     return (
         <AuthLayout title="Inicio de Sesion" imageSrc="/images/login-hero.png">
             {(loading || processing) && (
-                <div className="animate-auth-loading-overlay fixed inset-0 z-[200] flex items-center justify-center bg-gradient-to-br from-white/92 to-[#faf8f3]/92 backdrop-blur-md dark:from-[#0a0805]/92 dark:to-[#1a1410]/92">
+                <div className="animate-auth-loading-overlay fixed inset-0 z-[200] flex items-center justify-center bg-gradient-to-br from-white/92 to-[#faf8f3]/92 backdrop-blur-md dark:from-black/92 dark:to-zinc-950/92">
                     <div className="flex flex-col items-center gap-5">
                         <span
                             className="size-14 animate-spin rounded-full border-[3px] border-brand-gold/20 border-t-brand-gold shadow-[0_0_28px_rgba(212,175,55,0.45)] dark:border-brand-gold/15 dark:border-t-brand-gold"
@@ -98,7 +98,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={loading || processing}
-                        className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-gold/90 to-brand-gold/75 py-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_28px_rgba(212,175,55,0.32)] transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_14px_36px_rgba(212,175,55,0.42),0_0_0_1px_rgba(212,175,55,0.2)] enabled:active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none dark:shadow-[0_10px_28px_rgba(212,175,55,0.22)]"
+                        className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-gold/90 to-brand-gold/75 py-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_28px_rgba(212,175,55,0.32)] transition-[transform,box-shadow,background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_14px_36px_rgba(212,175,55,0.42),0_0_0_1px_rgba(212,175,55,0.2)] enabled:active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none dark:border dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)] dark:enabled:hover:bg-zinc-800 dark:enabled:hover:shadow-[0_12px_28px_rgba(0,0,0,0.45),0_0_0_1px_rgba(82,82,91,0.85)]"
                     >
                         Iniciar Sesión
                     </button>

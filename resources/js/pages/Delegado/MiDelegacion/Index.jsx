@@ -33,6 +33,7 @@ const FILTROS = [
     { key: 'listos',      label: 'Listos'      },
     { key: 'sin_empezar', label: 'Sin empezar' },
     { key: 'bajas',       label: 'Bajas'       },
+    { key: 'sin_nue',     label: 'Sin NUE'     },
 ];
 
 const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
@@ -313,7 +314,7 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
 
 /* ─── Modal base ─────────────────────────────────────────────────── */
 
-function Modal({ open, onClose, children }) {
+function Modal({ open, onClose, children, maxWidthClass = 'max-w-md' }) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === 'Escape' && onClose();
@@ -331,7 +332,7 @@ function Modal({ open, onClose, children }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]" onClick={onClose} />
             <div
-                className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-50 shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-2xl border border-zinc-200/80 bg-zinc-50 shadow-lg dark:border-zinc-800 dark:bg-zinc-900`}
                 style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}
             >
                 {children}
@@ -540,6 +541,7 @@ function ModalProductos({ empleado, open, onClose }) {
     const [data, setData]       = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError]     = useState('');
+    const [anioSeleccionado, setAnioSeleccionado] = useState('');
 
     useEffect(() => {
         if (!open || !empleado) return;
@@ -547,13 +549,26 @@ function ModalProductos({ empleado, open, onClose }) {
         setError('');
         setData(null);
         axios
-            .get(route('my-delegation.empleado.productos', empleado.id))
-            .then((r) => setData(r.data?.data ?? null))
+            .get(route('my-delegation.empleado.productos', empleado.id), {
+                params: anioSeleccionado ? { anio: Number(anioSeleccionado) } : {},
+            })
+            .then((r) => {
+                const payload = r.data?.data ?? null;
+                setData(payload);
+                if (payload?.anio != null && !anioSeleccionado) {
+                    setAnioSeleccionado(String(payload.anio));
+                }
+            })
             .catch(() => setError('No se pudieron cargar los productos.'))
             .finally(() => setLoading(false));
-    }, [open, empleado?.id]);
+    }, [open, empleado?.id, anioSeleccionado]);
 
-    useEffect(() => { if (open) setTab('licitados'); }, [open]);
+    useEffect(() => {
+        if (open) {
+            setTab('licitados');
+            setAnioSeleccionado('');
+        }
+    }, [open, empleado?.id]);
 
     const fmt$ = (v) =>
         v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : null;
@@ -585,7 +600,7 @@ function ModalProductos({ empleado, open, onClose }) {
     const lista = data ? (tab === 'licitados' ? data.licitados : tab === 'cotizados' ? data.cotizados : []) : [];
 
     return (
-        <Modal open={open} onClose={onClose}>
+        <Modal open={open} onClose={onClose} maxWidthClass="max-w-6xl">
             {/* ── encabezado ── */}
             <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
                 <div className="min-w-0">
@@ -602,6 +617,28 @@ function ModalProductos({ empleado, open, onClose }) {
                     <X className="size-3.5" />
                 </button>
             </div>
+
+            {data?.anios_disponibles?.length > 0 && (
+                <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-3 dark:border-zinc-800">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        Mostrando productos del a\u00f1o <span className="font-semibold text-zinc-800 dark:text-zinc-200">{data.anio}</span>
+                    </p>
+                    <label className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                        <span>A\u00f1o</span>
+                        <select
+                            value={anioSeleccionado}
+                            onChange={(e) => setAnioSeleccionado(e.target.value)}
+                            className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[12px] font-medium text-zinc-800 outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
+                        >
+                            {data.anios_disponibles.map((anio) => (
+                                <option key={anio} value={String(anio)}>
+                                    {anio}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            )}
 
             {/* ── tabs: ancho natural, alineados a la izquierda; scroll si no caben ── */}
             <div className="border-b border-zinc-100 px-5 dark:border-zinc-800">

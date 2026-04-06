@@ -33,7 +33,7 @@ class MiDelegacionController extends Controller
     private const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 
     /** @var list<string> */
-    private const FILTROS_VISTA = ['todos', 'listos', 'sin_empezar', 'bajas'];
+    private const FILTROS_VISTA = ['todos', 'listos', 'sin_empezar', 'bajas', 'sin_nue'];
 
     public function panel(Request $request): InertiaResponse
     {
@@ -158,6 +158,8 @@ class MiDelegacionController extends Controller
 
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
+        } elseif ($filtro === 'sin_nue') {
+            $empleadosQuery->whereNull('nue');
         } elseif ($filtro === 'listos') {
             $this->restringirEmpleadosPorIds(
                 $empleadosQuery,
@@ -548,6 +550,19 @@ class MiDelegacionController extends Controller
     {
         $empleado = Empleado::findOrFail($empleadoId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        $anioSolicitado = $request->integer('anio');
+        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleadoId)
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('anio')
+            ->map(static fn ($anio) => (int) $anio)
+            ->values()
+            ->all();
+
+        $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
+            ? $anioSolicitado
+            : ($aniosDisponibles[0] ?? self::ANIO_REFERENCIA);
 
         $parseClasifs = static function (?string $raw): array {
             if (! $raw) {
@@ -569,7 +584,7 @@ class MiDelegacionController extends Controller
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
             ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pl.clasificacion_principal_id')
             ->where('aep.empleado_id', $empleadoId)
-            ->where('aep.anio', self::ANIO_REFERENCIA)
+            ->where('aep.anio', $anioConsulta)
             ->select([
                 'aep.id                        as asignacion_id',
                 'pl.id                         as id',
@@ -613,7 +628,7 @@ class MiDelegacionController extends Controller
             ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
             ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pc.clasificacion_principal_id')
             ->where('aep.empleado_id', $empleadoId)
-            ->where('aep.anio', self::ANIO_REFERENCIA)
+            ->where('aep.anio', $anioConsulta)
             ->whereNotNull('aep.producto_cotizado_id')
             ->select([
                 'aep.id                        as asignacion_id',
@@ -659,7 +674,8 @@ class MiDelegacionController extends Controller
                     'nombre_completo' => strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
                     'nue' => $empleado->nue,
                 ],
-                'anio' => self::ANIO_REFERENCIA,
+                'anio' => $anioConsulta,
+                'anios_disponibles' => $aniosDisponibles,
                 'licitados' => $licitados,
                 'cotizados' => $cotizados,
             ],

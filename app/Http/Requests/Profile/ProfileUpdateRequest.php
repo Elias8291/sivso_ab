@@ -22,11 +22,16 @@ class ProfileUpdateRequest extends FormRequest
     {
         /** @var User $user */
         $user = $this->user();
+        $passwordRules = ['nullable', 'string', 'min:8', 'confirmed'];
+
+        if (! (bool) $user->must_change_password) {
+            $passwordRules[0] = 'required';
+        }
 
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'password' => $passwordRules,
         ];
     }
 }

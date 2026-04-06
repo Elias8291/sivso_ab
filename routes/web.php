@@ -31,9 +31,13 @@ Route::get('/acuse-vestuario/r/{token}', [AcuseReciboPublicController::class, 's
     ->middleware(['signed', 'throttle:45,1'])
     ->name('acuse-vestuario.recibo');
 
-Route::middleware('auth')->group(function (): void {
+Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/cambiar-contrasena-inicial', [AuthenticatedSessionController::class, 'forcePasswordChange'])
+        ->name('auth.password.change');
+    Route::patch('/cambiar-contrasena-inicial', [AuthenticatedSessionController::class, 'updateInitialPassword'])
+        ->name('auth.password.update');
 
     $sidebarPlaceholder = static fn () => Inertia::render('Dashboard');
 
@@ -74,6 +78,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/solicitudes-movimiento', [SolicitudMovimientoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)
         ->name('solicitudes-movimiento.index');
+    Route::get('/solicitudes-movimiento/{solicitud}/empleado-vestuario', [SolicitudMovimientoController::class, 'empleadoVestuario'])
+        ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)
+        ->name('solicitudes-movimiento.empleado-vestuario');
     Route::patch('/solicitudes-movimiento/{solicitud}/resolver', [SolicitudMovimientoController::class, 'resolver'])
         ->middleware('permission:'.SivsoPermissions::RESOLVER_SOLICITUDES)
         ->name('solicitudes-movimiento.resolver');

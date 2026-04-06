@@ -42,6 +42,7 @@ function SectionTitle({ children }) {
 export default function ProfileEdit({ profile }) {
     const { flash, auth } = usePage().props;
     const delegado = auth?.delegado ?? null;
+    const mustChangePassword = !Boolean(profile.must_change_password);
 
     const { data, setData, patch, processing, errors, reset, recentlySuccessful } = useForm({
         name: profile.name ?? '',
@@ -62,8 +63,12 @@ export default function ProfileEdit({ profile }) {
         <>
             <Head title="Mi cuenta" />
             <AdminPageShell
-                title="Mi cuenta"
-                description="Datos de acceso. Los identificadores institucionales solo los modifica administración."
+                title={mustChangePassword ? 'Cambiar contraseña' : 'Mi cuenta'}
+                description={
+                    mustChangePassword
+                        ? 'Por seguridad, primero actualiza tu contraseña para continuar.'
+                        : 'Datos de acceso. Los identificadores institucionales solo los modifica administración.'
+                }
             >
                 <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
                     <div className="px-5 py-5 sm:px-6 sm:py-6">
@@ -76,13 +81,14 @@ export default function ProfileEdit({ profile }) {
                             </output>
                         )}
 
-                        {profile.must_change_password && (
+                        {mustChangePassword && (
                             <output className="mb-5 block border-l-2 border-amber-500/60 bg-amber-50/90 py-2 pl-3 pr-3 text-[13px] leading-snug text-amber-950 dark:border-amber-500/45 dark:bg-amber-950/35 dark:text-amber-100/95">
                                 Establezca una contraseña nueva abajo para continuar.
                             </output>
                         )}
 
-                        <div className="mb-6 space-y-2 border-b border-zinc-100 pb-5 dark:border-zinc-800/80">
+                        {!mustChangePassword && (
+                            <div className="mb-6 space-y-2 border-b border-zinc-100 pb-5 dark:border-zinc-800/80">
                             <p className="text-base font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
                                 {profile.name}
                             </p>
@@ -104,10 +110,12 @@ export default function ProfileEdit({ profile }) {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
+                            </div>
+                        )}
 
                         <form className="space-y-7" onSubmit={submit}>
-                            <section aria-labelledby="section-datos">
+                            {!mustChangePassword && (
+                                <section aria-labelledby="section-datos">
                                 <SectionTitle>
                                     <span id="section-datos">Datos generales</span>
                                 </SectionTitle>
@@ -159,9 +167,10 @@ export default function ProfileEdit({ profile }) {
                                         </div>
                                     )}
                                 </div>
-                            </section>
+                                </section>
+                            )}
 
-                            {delegado && (
+                            {!mustChangePassword && delegado && (
                                 <section aria-labelledby="section-delegado">
                                     <SectionTitle>
                                         <span id="section-delegado">Vinculación institucional</span>
@@ -192,7 +201,13 @@ export default function ProfileEdit({ profile }) {
                                     <span id="section-clave">Contraseña</span>
                                 </SectionTitle>
                                 <p className="mb-3 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
-                                    Opcional. Mín. <span className="tabular-nums">8</span> caracteres si la cambia.
+                                    {mustChangePassword
+                                        ? 'Requerida. Debe tener mínimo 8 caracteres.'
+                                        : (
+                                            <>
+                                                Opcional. Mín. <span className="tabular-nums">8</span> caracteres si la cambia.
+                                            </>
+                                        )}
                                 </p>
                                 <div className="space-y-4">
                                     <div className="space-y-1.5">
@@ -209,7 +224,7 @@ export default function ProfileEdit({ profile }) {
                                             onChange={(e) => setData('password', e.target.value)}
                                             error={errors.password}
                                             autoComplete="new-password"
-                                            placeholder="Opcional"
+                                            placeholder={mustChangePassword ? 'Nueva contraseña' : 'Opcional'}
                                             className="bg-white text-[14px] shadow-sm dark:bg-zinc-950"
                                         />
                                     </div>
@@ -240,16 +255,18 @@ export default function ProfileEdit({ profile }) {
                                     disabled={processing}
                                     className="inline-flex min-h-10 min-w-[11rem] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 px-6 text-[13px] font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-45 dark:border-zinc-200 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                                 >
-                                    {processing ? 'Guardando…' : 'Guardar cambios'}
+                                    {processing ? 'Guardando…' : mustChangePassword ? 'Actualizar contraseña' : 'Guardar cambios'}
                                 </button>
-                                <Link
-                                    href={route('logout')}
-                                    method="post"
-                                    as="button"
-                                    className="text-left text-[12px] font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-200"
-                                >
-                                    Cerrar sesión
-                                </Link>
+                                {!mustChangePassword && (
+                                    <Link
+                                        href={route('logout')}
+                                        method="post"
+                                        as="button"
+                                        className="text-left text-[12px] font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-200"
+                                    >
+                                        Cerrar sesión
+                                    </Link>
+                                )}
                             </footer>
                         </form>
                     </div>
