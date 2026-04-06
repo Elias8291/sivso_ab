@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\AcuseVestuarioVerificacionController;
+use App\Http\Controllers\AcuseReciboPublicController;
 use App\Http\Controllers\Admin\PeriodoController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -27,9 +27,9 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
 });
 
-Route::get('/acuse-vestuario/verificar', AcuseVestuarioVerificacionController::class)
-    ->middleware('signed')
-    ->name('acuse-vestuario.verificar');
+Route::get('/acuse-vestuario/r/{token}', [AcuseReciboPublicController::class, 'show'])
+    ->middleware(['signed', 'throttle:45,1'])
+    ->name('acuse-vestuario.recibo');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Delegado;
 
+use App\Models\AcuseReciboToken;
 use App\Models\Empleado;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Endroid\QrCode\Builder\Builder;
@@ -13,6 +14,7 @@ use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 final class AcuseReciboVestuarioPdfService
 {
@@ -26,49 +28,79 @@ final class AcuseReciboVestuarioPdfService
         int $anioTitulo,
         int $anioEjercicioDatos,
     ): Response {
-        $folio = $this->generarFolio($empleado);
-        $licitacion = (string) config('services.sivso.acuse_licitacion', 'LPN-SA-SA-0036-08/'.$anioTitulo);
+        $data = $this->buildDocumentData($empleado, $delegadoNombre, $fila, $anioTitulo, $anioEjercicioDatos);
 
-        $verifyUrl = URL::temporarySignedRoute(
-            'acuse-vestuario.verificar',
-            now()->addYears(3),
-            ['empleado' => $empleado->id, 'folio' => $folio],
+        $monthsTtl = (int) config('services.sivso.acuse_url_ttl_months', 18);
+        $monthsTtl = max(1, min($monthsTtl, 60));
+        $expiresAt = now()->addMonths($monthsTtl);
+
+        $publicToken = (string) Str::uuid();
+        $signedUrl = URL::temporarySignedRoute(
+            'acuse-vestuario.recibo',
+            $expiresAt,
+            ['token' => $publicToken],
         );
 
-        $qrDataUri = $this->qrDataUri($verifyUrl);
+        $qrDataUri = $this->qrDataUri($signedUrl);
+
+        $snapshot = array_merge($data, [
+            'schema_version' => 1,
+            'qrDataUri' => $qrDataUri,
+        ]);
+
+        AcuseReciboToken::query()->create([
+            'public_token' => $publicToken,
+            'empleado_id' => $empleado->id,
+            'folio' => $data['folio'],
+            'snapshot' => $snapshot,
+            'expires_at' => $expiresAt,
+        ]);
+
         $logoDataUri = $this->logoDataUri();
 
-        $lineas = $this->lineasParaTabla($fila);
-        $totalPiezas = array_sum(array_column($lineas, 'cantidad'));
-
-        $dependenciaNombre = strtoupper((string) ($fila['dependencia_nombre'] ?? '—'));
-        $nombreEmpleado = strtoupper((string) ($fila['nombre_completo'] ?? '—'));
-        $nue = (string) ($empleado->nue ?? '—');
-        $codigoDelegacion = strtoupper((string) ($empleado->delegacion_codigo ?? ''));
-
-        $pdf = Pdf::loadView('pdf.acuse-recibo-vestuario', [
-            'folio' => $folio,
-            'licitacion' => $licitacion,
-            'codigoDelegacion' => $codigoDelegacion,
-            'anioTitulo' => $anioTitulo,
-            'anioEjercicioDatos' => $anioEjercicioDatos,
-            'nombreEmpleado' => $nombreEmpleado,
-            'nue' => $nue,
-            'dependenciaNombre' => $dependenciaNombre,
-            'delegadoNombre' => strtoupper($delegadoNombre),
-            'lineas' => $lineas,
-            'totalPiezas' => $totalPiezas,
+        $pdf = Pdf::loadView('pdf.acuse-recibo-vestuario', array_merge($data, [
             'qrDataUri' => $qrDataUri,
             'logoDataUri' => $logoDataUri,
-            'generadoEn' => now()->timezone(config('app.timezone', 'America/Mexico_City'))->format('d/m/Y H:i'),
-        ]);
+        ]));
 
         $pdf->setPaper('letter', 'portrait');
         $pdf->setOption('defaultFont', 'DejaVu Sans');
 
-        $filename = 'acuse-vestuario-'.$empleado->id.'-'.preg_replace('/[^A-Za-z0-9_-]+/', '_', $folio).'.pdf';
+        $filename = 'acuse-vestuario-'.$empleado->id.'-'.preg_replace('/[^A-Za-z0-9_-]+/', '_', $data['folio']).'.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    /**
+     * @param  array<string, mixed>  $fila
+     * @return array<string, mixed>
+     */
+    public function buildDocumentData(
+        Empleado $empleado,
+        string $delegadoNombre,
+        array $fila,
+        int $anioTitulo,
+        int $anioEjercicioDatos,
+    ): array {
+        $folio = $this->generarFolio($empleado);
+        $licitacion = (string) config('services.sivso.acuse_licitacion', 'LPN-SA-SA-0036-08/'.$anioTitulo);
+        $lineas = $this->lineasParaTabla($fila);
+        $totalPiezas = array_sum(array_column($lineas, 'cantidad'));
+
+        return [
+            'folio' => $folio,
+            'licitacion' => $licitacion,
+            'codigoDelegacion' => strtoupper((string) ($empleado->delegacion_codigo ?? '')),
+            'anioTitulo' => $anioTitulo,
+            'anioEjercicioDatos' => $anioEjercicioDatos,
+            'nombreEmpleado' => strtoupper((string) ($fila['nombre_completo'] ?? '—')),
+            'nue' => (string) ($empleado->nue ?? '—'),
+            'dependenciaNombre' => strtoupper((string) ($fila['dependencia_nombre'] ?? '—')),
+            'delegadoNombre' => strtoupper($delegadoNombre),
+            'lineas' => $lineas,
+            'totalPiezas' => $totalPiezas,
+            'generadoEn' => now()->timezone(config('app.timezone', 'America/Mexico_City'))->format('d/m/Y H:i'),
+        ];
     }
 
     private function generarFolio(Empleado $empleado): string

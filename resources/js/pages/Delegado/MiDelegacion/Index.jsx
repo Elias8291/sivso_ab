@@ -1262,14 +1262,6 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
         <>
             <Head title="Mi Delegación" />
             <AdminPageShell
-                leading={(
-                    <img
-                        src="/images/stpeidceo-logo.png"
-                        alt="STPEIDCEO — Comité Ejecutivo"
-                        className="h-10 w-auto max-h-[44px] max-w-[48px] object-contain object-top [image-rendering:auto] sm:h-11 sm:max-h-[48px] sm:max-w-[52px]"
-                        decoding="async"
-                    />
-                )}
                 title="Mi delegación"
                 description={
                     contexto.modo === 'super_admin' ? (

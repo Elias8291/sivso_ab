@@ -37,6 +37,8 @@ return [
 
     'sivso' => [
         'acuse_licitacion' => env('SIVSO_ACUSE_LICITACION', 'LPN-SA-SA-0036-08/2025'),
+        /** Meses de vigencia del enlace firmado + token QR (1–60). */
+        'acuse_url_ttl_months' => (int) env('SIVSO_ACUSE_URL_TTL_MONTHS', 18),
     ],
 
 ];
