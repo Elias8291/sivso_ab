@@ -935,22 +935,26 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
 
                     {!esBaja && (
                         <button type="button" onClick={() => setVestuarioAbierto((p) => !p)}
-                            title={pendienteVestuario ? `Actualizar vestuario ${anioActual}` : `Vestuario ${anioActual}`}
+                            title={periodoAbierto
+                                ? (pendienteVestuario ? `Actualizar vestuario ${anioActual}` : `Vestuario ${anioActual}`)
+                                : `Ver vestuario ${anioActual}`}
                             aria-label={
-                                (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario')
+                                (periodoAbierto
+                                    ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario')
+                                    : 'Ver vestuario')
                                 + ` ${anioActual}`
                                 + (total > 0 ? `, ${listos} de ${total} prendas` : '')
                             }
                             className={`inline-flex min-h-[42px] max-w-full flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-medium sm:min-h-0 sm:flex-initial sm:justify-start sm:px-3 sm:py-1.5 sm:text-[12px] ${
                                 vestuarioAbierto
                                     ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                    : pendienteVestuario
+                                    : periodoAbierto && pendienteVestuario
                                         ? 'border-zinc-300/90 bg-zinc-50 text-zinc-800 hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-100 dark:hover:border-zinc-500'
                                         : 'border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800'
                             }`}>
                             <span className="relative inline-flex shrink-0">
                                 <Shirt className="size-4 shrink-0" strokeWidth={1.75} />
-                                {pendienteVestuario && (
+                                {periodoAbierto && pendienteVestuario && (
                                     <span
                                         className={`absolute -right-1.5 -top-1.5 flex size-[15px] items-center justify-center rounded-full border shadow-sm sm:hidden ${
                                             vestuarioAbierto
@@ -964,10 +968,10 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                 )}
                             </span>
                             <span className="hidden sm:inline md:hidden">
-                                {pendienteVestuario ? 'Actualizar' : 'Vestuario'}
+                                {periodoAbierto ? (pendienteVestuario ? 'Actualizar' : 'Vestuario') : 'Ver'}
                             </span>
                             <span className="hidden md:inline">
-                                {pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario'}
+                                {periodoAbierto ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario') : 'Ver vestuario'}
                             </span>
                             {total > 0 && (
                                 <span className={`tabular-nums ${
