@@ -72,9 +72,9 @@ function Modal({ open, onClose, children }) {
     if (!open) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-900/10 dark:bg-zinc-900 dark:ring-white/10"
+            <div className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-900/10 dark:bg-zinc-900 dark:ring-white/10 sm:max-h-[88vh]"
                 style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}>
                 {children}
             </div>
@@ -150,7 +150,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
     return (
         <Modal open={open} onClose={onCerrar}>
             {/* Cabecera */}
-            <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3.5">
+            <div className="flex items-start justify-between gap-3 px-4 pb-3.5 pt-4 sm:px-5 sm:pt-5">
                 <div>
                     <div className="mb-1 flex items-center gap-2">
                         <BadgeTipo tipo={solicitud.tipo} />
@@ -170,9 +170,9 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                 </button>
             </div>
 
-            <div className="mx-5 h-px bg-zinc-100 dark:bg-zinc-800" />
+            <div className="mx-4 h-px bg-zinc-100 dark:bg-zinc-800 sm:mx-5" />
 
-            <div className="space-y-4 px-5 py-4">
+            <div className="space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
                 {/* Detalle de la solicitud */}
                 <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3.5 text-[12px] dark:border-zinc-700 dark:bg-zinc-800/30">
                     <div className="flex justify-between">
@@ -218,7 +218,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                 <span>Delegación: <strong className="font-mono">{vestuarioData?.empleado?.delegacion ?? '—'}</strong></span>
                             </div>
                             <div className="max-h-48 overflow-auto rounded-xl border border-zinc-200/80 dark:border-zinc-700/70">
-                                <table className="w-full text-[11px]">
+                                <table className="w-full min-w-[420px] text-[11px]">
                                     <thead className="bg-zinc-50 dark:bg-zinc-800/70">
                                         <tr className="text-zinc-500 dark:text-zinc-400">
                                             <th className="px-2 py-1 text-left font-semibold">Prenda</th>
@@ -338,7 +338,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                 )}
 
                 {/* Botones finales */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
                     <button type="button" onClick={resolver} disabled={saving || !decision}
                         className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-medium text-white transition disabled:opacity-40 ${
                             decision === 'rechazada' ? 'bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300' : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
@@ -347,7 +347,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                         {saving ? 'Guardando…' : 'Confirmar resolución'}
                     </button>
                     <button type="button" onClick={onCerrar}
-                        className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-[12px] font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/60">
+                        className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-[12px] font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/60 sm:w-auto">
                         Cancelar
                     </button>
                 </div>
@@ -364,7 +364,7 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
 
     return (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all dark:border-zinc-800 dark:bg-zinc-900/50">
-            <div className="flex items-start gap-3 px-4 py-3.5">
+            <div className="flex items-start gap-3 px-3.5 py-3 sm:px-4 sm:py-3.5">
                 {/* Avatar */}
                 <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-[14px] font-bold ${
                     esCambio ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
@@ -432,7 +432,7 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                 {/* Botón resolver */}
                 {esPendiente && puedeResolver && (
                     <button type="button" onClick={() => onResolver(solicitud)}
-                        className="shrink-0 rounded-lg border border-zinc-900 bg-zinc-900 px-3.5 py-2 text-[11px] font-medium text-white transition hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
+                        className="shrink-0 rounded-lg border border-zinc-900 bg-zinc-900 px-2.5 py-1.5 text-[10px] font-medium text-white transition hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 sm:px-3.5 sm:py-2 sm:text-[11px]">
                         Resolver
                     </button>
                 )}
