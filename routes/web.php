@@ -146,6 +146,15 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/periodos', [PeriodoController::class, 'store'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_PERIODOS)
         ->name('periodos.store');
+    Route::put('/periodos/{periodo}', [PeriodoController::class, 'update'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_PERIODOS)
+        ->name('periodos.update');
+    Route::delete('/periodos/{periodo}', [PeriodoController::class, 'destroy'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_PERIODOS)
+        ->name('periodos.destroy');
+    Route::post('/periodos/{periodo}/toggle', [PeriodoController::class, 'toggle'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_PERIODOS)
+        ->name('periodos.toggle');
 
     Route::get('/users', [UserController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_USUARIOS)

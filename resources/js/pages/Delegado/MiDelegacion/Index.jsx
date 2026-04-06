@@ -1,7 +1,7 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, Link } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertTriangle,
@@ -11,8 +11,10 @@ import {
     Clock,
     Info,
     LayoutList,
+    Lock,
     Package,
     Pencil,
+    PieChart,
     RotateCcw,
     Search,
     Shirt,
@@ -37,7 +39,7 @@ const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 /* ─── PrendaRow ──────────────────────────────────────────────────── */
 /* Ahora es controlado: recibe draft del panel padre y lo notifica */
 
-function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert }) {
+function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert, periodoAbierto = true }) {
     const [editando, setEditando] = useState(false);
 
     const talla = draftTalla ?? item.talla ?? '';
@@ -109,7 +111,7 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                                 <span className={`font-mono font-semibold ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
                             </span>
                         </div>
-                        {!editando && (
+                        {!editando && periodoAbierto && (
                             <button type="button" onClick={() => setEditando(true)}
                                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium shadow-sm ${
                                     confirmado
@@ -174,7 +176,7 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
 
 /* ─── VestuarioPanel ─────────────────────────────────────────────── */
 
-function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear() }) {
+function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear(), periodoAbierto = true }) {
     // drafts: { [asignacionId]: { talla?, medida? } }
     const [drafts, setDrafts]   = useState({});
     const [saving, setSaving]   = useState(false);
@@ -211,11 +213,12 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
                     medida: drafts[v.id]?.medida ?? v.medida ?? null,
                 }));
             await axios.patch(route('my-delegation.vestuario.lote', empleadoId), { items });
-            // Aplica drafts al estado padre
             items.forEach(({ id, talla, medida }) => onPrendasGuardadas(id, talla, medida));
             setDrafts({});
             setFlashOk(true);
             setTimeout(() => setFlashOk(false), 3000);
+            // Recarga solo las stats sin mover scroll ni estado de filtros
+            router.reload({ only: ['resumen'], preserveScroll: true });
         } catch (e) {
             setErrMsg(e?.response?.data?.message ?? 'Error al guardar. Intenta de nuevo.');
         } finally {
@@ -270,6 +273,7 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
                                     draftMedida={drafts[item.id]?.medida}
                                     onDraftChange={onDraftChange}
                                     onDraftRevert={onDraftRevert}
+                                    periodoAbierto={periodoAbierto}
                                 />
                             </li>
                         ))}
@@ -794,7 +798,7 @@ function ModalProductos({ empleado, open, onClose }) {
 
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
-function EmpleadoRow({ empleado, delegaciones, anioActual }) {
+function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
@@ -1031,6 +1035,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual }) {
                         vestuario={vestuario}
                         onPrendasGuardadas={handlePrendaGuardada}
                         anioActual={anioActual}
+                        periodoAbierto={periodoAbierto}
                     />
                 </div>
             </div>
@@ -1178,7 +1183,7 @@ function ResumenCategorias({ prendas = [] }) {
 
 /* ─── página principal ───────────────────────────────────────────── */
 
-function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, resumen_prendas = [], filters = {} }) {
+function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, resumen_prendas = [], periodo = null, filters = {} }) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
     const isFirstRender       = useRef(true);
@@ -1273,11 +1278,51 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                     Actualiza tallas, solicita cambio de delegación o baja desde cada fila.
                 </p>
 
+                {/* ── Banner período ── */}
+                {periodo && periodo.estado !== 'abierto' && (
+                    <div className="mb-3 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+                        <Lock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
+                        <div>
+                            <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
+                                {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
+                                {' · '}<span className="font-normal">{periodo.nombre}</span>
+                            </p>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                                La actualización de tallas no está disponible en este momento.
+                            </p>
+                        </div>
+                    </div>
+                )}
+                {periodo?.estado === 'abierto' && (
+                    <div className="mb-3 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-800/40 dark:bg-emerald-950/20">
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
+                        <p className="text-[12px] text-emerald-800 dark:text-emerald-300">
+                            <span className="font-medium">Período abierto</span>
+                            {' · '}{periodo.nombre}
+                            {periodo.fecha_fin && (
+                                <span className="ml-1 font-normal text-emerald-700 dark:text-emerald-400">
+                                    — hasta el {new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                            )}
+                        </p>
+                    </div>
+                )}
+
                 <div className="mb-3 grid gap-2 sm:grid-cols-3">
                     <ResumenStatCard icon={Users} label="Total" value={resumen.total ?? empleados.total} />
                     <ResumenStatCard icon={CheckCircle2} label="Listos" value={resumen.listos ?? 0} />
                     <ResumenStatCard icon={LayoutList} label="Sin empezar" value={resumen.sin_empezar ?? 0} />
                 </div>
+
+                {/* link al resumen general */}
+                <Link href={route('vestuario.resumen')}
+                    className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50 px-4 py-3 text-[12px] text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50">
+                    <span className="flex items-center gap-2">
+                        <PieChart className="size-4 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
+                        Ver resumen general por categorías y productos
+                    </span>
+                    <ChevronDown className="-rotate-90 size-4 text-zinc-300 dark:text-zinc-600" strokeWidth={2} />
+                </Link>
 
                 <ResumenCategorias prendas={resumen_prendas} />
 
@@ -1349,7 +1394,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                 ) : (
                     <div className="space-y-2">
                         {empleados.data.map((emp) => (
-                            <EmpleadoRow key={emp.id} empleado={emp} delegaciones={delegaciones} anioActual={anioVestuario} />
+                            <EmpleadoRow key={emp.id} empleado={emp} delegaciones={delegaciones} anioActual={anioVestuario} periodoAbierto={periodo?.estado === 'abierto'} />
                         ))}
                     </div>
                 )}

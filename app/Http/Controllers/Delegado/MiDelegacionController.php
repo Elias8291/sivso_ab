@@ -9,6 +9,7 @@ use App\Events\SivsoNotificacion;
 use App\Models\AsignacionEmpleadoProducto;
 use App\Models\Delegacion;
 use App\Models\Empleado;
+use App\Models\PeriodoVestuario;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\NuevaSolicitudNotification;
@@ -119,6 +120,7 @@ class MiDelegacionController extends Controller
                 'anio_actual' => self::ANIO_ACTUAL,
             ],
             'resumen_prendas'  => $this->resumenPorCategoria($codigosDelegacion),
+            'periodo'          => $this->periodoActual(),
             'filters' => array_merge(
                 $request->only(['search']),
                 ['filtro' => $filtro, 'per_page' => $perPage],
@@ -261,6 +263,15 @@ class MiDelegacionController extends Controller
      */
     public function actualizarTallasLote(Request $request, int $empleadoId): JsonResponse
     {
+        // Verificar periodo activo
+        $periodo = PeriodoVestuario::activo();
+        if (! $periodo) {
+            return response()->json([
+                'data'    => null,
+                'message' => 'No hay un período de vestuario activo. Las actualizaciones están cerradas.',
+                'errors'  => null,
+            ], 422);
+        }
         $validated = $request->validate([
             'items'            => ['required', 'array', 'min:1'],
             'items.*.id'       => ['required', 'integer'],
@@ -653,6 +664,27 @@ class MiDelegacionController extends Controller
             'modo'             => 'delegado',
             'delegaciones'     => $codigos,
             'delegado_nombre'  => $delegado->nombre_completo,
+        ];
+    }
+
+    private function periodoActual(): ?array
+    {
+        $p = PeriodoVestuario::orderByRaw("FIELD(estado,'abierto','proximo','cerrado')")
+            ->orderByDesc('anio')
+            ->first();
+
+        if (! $p) {
+            return null;
+        }
+
+        return [
+            'id'           => $p->id,
+            'nombre'       => $p->nombre,
+            'anio'         => $p->anio,
+            'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
+            'fecha_fin'    => $p->fecha_fin?->format('Y-m-d'),
+            'estado'       => $p->estado,
+            'descripcion'  => $p->descripcion,
         ];
     }
 }
