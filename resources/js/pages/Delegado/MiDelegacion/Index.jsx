@@ -82,7 +82,7 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                         {item.clave && (
                             <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
                         )}
-                        <p className={`[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-snug ${
+                        <p className={`[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-tight ${
                             confirmado ? 'text-emerald-900 dark:text-emerald-200' : 'text-zinc-800 dark:text-zinc-200'
                         }`}>
                             {item.prenda}
@@ -462,7 +462,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                 {/* Aviso */}
                 <div className={`mb-5 flex items-start gap-3 rounded-lg px-4 py-3 ring-1 ${cfg.warnBg} ${cfg.warnRing}`}>
                     <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${cfg.iconClr}`} />
-                    <p className={`text-[12px] leading-relaxed ${cfg.warnTxt}`}>{cfg.warn}</p>
+                    <p className={`text-[12px] leading-snug ${cfg.warnTxt}`}>{cfg.warn}</p>
                 </div>
 
                 {/* Selector de delegación destino — solo para cambio */}
@@ -748,7 +748,7 @@ function ModalProductos({ empleado, open, onClose }) {
                                     {/* nombre + estado */}
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-semibold leading-snug text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
+                                            <p className="text-[12px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
                                                 {p.descripcion}
                                             </p>
                                             {p.codigo && (
@@ -931,7 +931,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{empleado.nue}</p>
                         )}
                         {obsDelegacion && (
-                            <p className="break-words text-[11px] italic leading-relaxed text-zinc-500 dark:text-zinc-400">
+                            <p className="break-words text-[11px] italic leading-snug text-zinc-500 dark:text-zinc-400">
                                 «{obsDelegacion}»
                             </p>
                         )}
@@ -1044,7 +1044,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
             {/* ── solicitud pendiente ── */}
             {solicitudPendiente && (
                 <div className="flex flex-col gap-2 border-t border-zinc-200 bg-zinc-50/80 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                    <div className="flex min-w-0 items-start gap-2 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400 sm:items-center sm:text-[12px]">
+                    <div className="flex min-w-0 items-start gap-2 text-[11px] leading-snug text-zinc-600 dark:text-zinc-400 sm:items-center sm:text-[12px]">
                         <Clock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500 sm:mt-0" strokeWidth={1.8} />
                         <span className="min-w-0 break-words">
                             Solicitud de <span className="font-medium text-zinc-800 dark:text-zinc-200">{solicitudPendiente.tipo}</span> en revisión
@@ -1093,7 +1093,7 @@ function ResumenStatCard({ icon: Icon, label, value, hint }) {
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{label}</p>
                     <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{value}</p>
                     {hint ? (
-                        <p className="mt-0.5 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">{hint}</p>
+                        <p className="mt-0.5 text-[11px] leading-tight text-zinc-400 dark:text-zinc-500">{hint}</p>
                     ) : null}
                 </div>
                 <Icon
@@ -1128,9 +1128,9 @@ function ResumenCategorias({ prendas = [] }) {
             <button
                 type="button"
                 onClick={() => setOpen((p) => !p)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left sm:px-5"
+                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left sm:px-4"
             >
-                <span className="flex items-center gap-2 text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="flex items-center gap-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                     <Tag className="size-3.5 shrink-0 text-brand-gold/65 dark:text-brand-gold-soft/55" strokeWidth={1.75} />
                     Resumen por categoría de prenda
                 </span>
@@ -1143,36 +1143,36 @@ function ResumenCategorias({ prendas = [] }) {
             {/* panel acordeón */}
             <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
-                    <div className="border-t border-zinc-200/80 px-4 pb-4 pt-3 dark:border-zinc-800 sm:px-5">
+                    <div className="border-t border-zinc-200/80 px-3 pb-3 pt-2 dark:border-zinc-800 sm:px-4">
                         {anios.map((anio) => (
-                            <div key={anio} className="mb-4 last:mb-0">
+                            <div key={anio} className="mb-3 last:mb-0">
                                 {/* año */}
-                                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                                <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                                     <span className="inline-block size-1 rounded-full bg-brand-gold/55 dark:bg-brand-gold-soft/45" aria-hidden />
                                     Año {anio}
                                 </p>
 
                                 {/* tabla de prendas */}
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[400px] text-[12px]">
+                                    <table className="w-full min-w-[360px] text-[10px] leading-tight">
                                         <thead>
                                             <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                                <th className="pb-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="pb-1 pt-0.5 text-left text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     Prenda
                                                 </th>
-                                                <th className="pb-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     Total
                                                 </th>
-                                                <th className="pb-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     Conf.
                                                 </th>
-                                                <th className="pb-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     Pend.
                                                 </th>
-                                                <th className="pb-1.5 pr-1 text-right text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="pb-1 pt-0.5 pr-0.5 text-right text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     %
                                                 </th>
-                                                <th className="w-[30%] pb-1.5 pl-3 text-left text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                                <th className="w-[28%] pb-1 pt-0.5 pl-2 text-left text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                                                     Progreso
                                                 </th>
                                             </tr>
@@ -1180,20 +1180,20 @@ function ResumenCategorias({ prendas = [] }) {
                                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                                             {porAnio[anio].map((p) => (
                                                 <tr key={`${anio}-${p.clave}`} className="align-middle">
-                                                    <td className="py-2 pr-3">
+                                                    <td className="py-1 pr-2">
                                                         <p className="font-medium text-zinc-800 dark:text-zinc-200 [overflow-wrap:anywhere]">
                                                             {p.descripcion}
                                                         </p>
                                                         {p.clave && (
-                                                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{p.clave}</p>
+                                                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">{p.clave}</p>
                                                         )}
                                                     </td>
-                                                    <td className="py-2 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.total}</td>
-                                                    <td className="py-2 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.confirmadas}</td>
-                                                    <td className="py-2 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.pendientes}</td>
-                                                    <td className="py-2 pr-1 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{p.porcentaje}%</td>
-                                                    <td className="py-2 pl-3">
-                                                        <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.total}</td>
+                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.confirmadas}</td>
+                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.pendientes}</td>
+                                                    <td className="py-1 pr-0.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{p.porcentaje}%</td>
+                                                    <td className="py-1 pl-2">
+                                                        <div className="h-0.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800 sm:h-1">
                                                             <div
                                                                 className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40 transition-all duration-500"
                                                                 style={{ width: `${p.porcentaje}%` }}
@@ -1262,6 +1262,14 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
         <>
             <Head title="Mi Delegación" />
             <AdminPageShell
+                leading={(
+                    <img
+                        src="/images/stpeidceo-logo.png"
+                        alt="STPEIDCEO — Comité Ejecutivo"
+                        className="h-10 w-auto max-h-[44px] max-w-[48px] object-contain object-top [image-rendering:auto] sm:h-11 sm:max-h-[48px] sm:max-w-[52px]"
+                        decoding="async"
+                    />
+                )}
                 title="Mi delegación"
                 description={
                     contexto.modo === 'super_admin' ? (
@@ -1277,7 +1285,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                             <span className="block font-medium [overflow-wrap:anywhere] break-words text-zinc-800 dark:text-zinc-100">
                                 {contexto.delegado_nombre ?? 'Delegado'}
                             </span>
-                            <p className="mt-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
+                            <p className="mt-1 text-[12px] leading-tight text-zinc-500 dark:text-zinc-400">
                                 <span className="font-mono text-[11px] [overflow-wrap:anywhere] break-all text-zinc-600 dark:text-zinc-300 sm:break-normal sm:text-[12px]">
                                     {contexto.delegaciones.join(' · ')}
                                 </span>
@@ -1300,14 +1308,14 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                 {contexto.modo === 'sin_perfil' && (
                     <div className="mb-5 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
                         <Info className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
-                        <p className="text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        <p className="text-[12px] leading-tight text-zinc-600 dark:text-zinc-400">
                             Tu cuenta no está vinculada a un registro de <strong className="font-medium text-zinc-800 dark:text-zinc-200">delegado</strong>.
                             Un administrador debe asociarte en <strong className="font-medium text-zinc-800 dark:text-zinc-200">Estructura → Delegados</strong>.
                         </p>
                     </div>
                 )}
 
-                <p className="mb-3 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                <p className="mb-3 text-[11px] leading-tight text-zinc-500 dark:text-zinc-400">
                     Actualiza tallas, solicita cambio de delegación o baja desde cada fila.
                 </p>
 
@@ -1316,11 +1324,11 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                     <div className="mb-3 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
                         <Lock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
                         <div>
-                            <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
+                            <p className="text-[12px] font-medium leading-tight text-zinc-700 dark:text-zinc-300">
                                 {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
                                 {' · '}<span className="font-normal">{periodo.nombre}</span>
                             </p>
-                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            <p className="text-[11px] leading-tight text-zinc-500 dark:text-zinc-400">
                                 La actualización de tallas no está disponible en este momento.
                             </p>
                         </div>

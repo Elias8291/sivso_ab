@@ -36,6 +36,7 @@ final class AcuseReciboVestuarioPdfService
         );
 
         $qrDataUri = $this->qrDataUri($verifyUrl);
+        $logoDataUri = $this->logoDataUri();
 
         $lineas = $this->lineasParaTabla($fila);
         $totalPiezas = array_sum(array_column($lineas, 'cantidad'));
@@ -58,6 +59,7 @@ final class AcuseReciboVestuarioPdfService
             'lineas' => $lineas,
             'totalPiezas' => $totalPiezas,
             'qrDataUri' => $qrDataUri,
+            'logoDataUri' => $logoDataUri,
             'generadoEn' => now()->timezone(config('app.timezone', 'America/Mexico_City'))->format('d/m/Y H:i'),
         ]);
 
@@ -128,6 +130,24 @@ final class AcuseReciboVestuarioPdfService
         }
 
         return $out;
+    }
+
+    /**
+     * PNG en alta resolución en disco; el PDF lo muestra pequeño para caber en cabecera y conserva nitidez al ampliar/zoom.
+     */
+    private function logoDataUri(): ?string
+    {
+        $path = public_path('images/stpeidceo-logo.png');
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $raw = @file_get_contents($path);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode($raw);
     }
 
     private function qrDataUri(string $data): string

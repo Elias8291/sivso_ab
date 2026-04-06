@@ -4,111 +4,142 @@
     <meta charset="UTF-8">
     <title>Acuse de recibo — {{ $folio }}</title>
     <style>
-        @page { margin: 14mm 16mm; }
+        @page { margin: 11mm 12mm; }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 9pt;
+            font-size: 8pt;
             color: #111;
-            line-height: 1.25;
+            line-height: 1.08;
         }
         .aviso {
             text-align: center;
-            font-size: 7.5pt;
+            font-size: 6.5pt;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             letter-spacing: 0.02em;
+            line-height: 1.1;
         }
         .header-row {
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
+            border-collapse: collapse;
         }
-        .header-row td { vertical-align: top; }
+        .header-row td { vertical-align: top; padding: 0; }
+        .logo-cell {
+            width: 16%;
+            text-align: left;
+            padding-right: 4px !important;
+        }
+        /* Logo pequeño en pantalla; imagen fuente alta resolución para buen zoom en visor PDF */
+        .logo-inst {
+            display: block;
+            width: 44px;
+            height: auto;
+            max-height: 96px;
+        }
         .titulo-inst {
             text-align: center;
-            font-size: 8pt;
+            font-size: 7pt;
             font-weight: bold;
+            line-height: 1.05;
         }
         .titulo-doc {
             text-align: center;
-            font-size: 11pt;
+            font-size: 9.5pt;
             font-weight: bold;
-            margin-top: 4px;
+            margin-top: 2px;
+            line-height: 1.08;
         }
         .subtitulo {
             text-align: center;
-            font-size: 8.5pt;
-            margin-top: 3px;
+            font-size: 7pt;
+            margin-top: 2px;
+            line-height: 1.06;
         }
         .folio-line {
             text-align: center;
-            font-size: 9pt;
+            font-size: 7.5pt;
             font-weight: bold;
-            margin-top: 8px;
+            margin-top: 5px;
+            line-height: 1.08;
         }
         .qr {
             text-align: right;
+            width: 17%;
         }
-        .qr img { width: 92px; height: 92px; }
-        .datos { margin: 12px 0 10px; }
+        .qr img {
+            width: 76px;
+            height: 76px;
+        }
+        .center-col { width: 67%; }
+        .datos { margin: 8px 0 5px; }
         .datos table { width: 100%; border-collapse: collapse; }
-        .datos td { padding: 4px 0; vertical-align: top; }
-        .lbl { font-weight: bold; width: 28%; font-size: 8.5pt; }
-        .val { font-size: 9pt; }
+        .datos td { padding: 2px 0; vertical-align: top; line-height: 1.08; }
+        .lbl { font-weight: bold; width: 30%; font-size: 7pt; line-height: 1.08; }
+        .val { font-size: 7.5pt; line-height: 1.08; }
         table.grid {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 6px;
+            margin-top: 4px;
         }
         table.grid th, table.grid td {
             border: 1px solid #000;
-            padding: 4px 5px;
-            font-size: 8pt;
+            padding: 2px 3px;
+            font-size: 6.5pt;
+            line-height: 1.05;
         }
         table.grid th {
             background: #f3f3f3;
             font-weight: bold;
             text-align: center;
+            padding: 2px 3px;
         }
-        .c-no { width: 6%; text-align: center; }
-        .c-desc { width: 62%; text-align: left; }
-        .c-talla { width: 14%; text-align: center; }
-        .c-cant { width: 10%; text-align: center; }
+        .c-no { width: 5%; text-align: center; }
+        .c-desc { width: 64%; text-align: left; }
+        .c-talla { width: 13%; text-align: center; }
+        .c-cant { width: 9%; text-align: center; }
         .total-row td {
             border: 1px solid #000;
             font-weight: bold;
             text-align: right;
-            padding: 5px 8px;
+            font-size: 6.5pt;
+            padding: 2px 4px;
+            line-height: 1.05;
         }
         .footer-meta {
-            margin-top: 14px;
-            font-size: 8pt;
+            margin-top: 8px;
+            font-size: 7pt;
+            line-height: 1.1;
         }
         .firmas {
-            margin-top: 36px;
+            margin-top: 28px;
             width: 100%;
         }
         .firmas td {
             width: 50%;
             text-align: center;
             vertical-align: top;
-            padding: 0 12px;
+            padding: 0 8px;
         }
         .linea-firma {
             border-top: 1px solid #000;
-            margin: 0 8px 6px;
-            padding-top: 4px;
-            font-size: 8.5pt;
+            margin: 0 6px 4px;
+            padding-top: 3px;
+            font-size: 7pt;
             font-weight: bold;
+            line-height: 1.08;
         }
         .rol-firma {
-            font-size: 7.5pt;
-            margin-top: 2px;
+            font-size: 6.5pt;
+            margin-top: 1px;
+            line-height: 1.08;
         }
         .pie-gen {
-            margin-top: 10px;
-            font-size: 7pt;
+            margin-top: 6px;
+            font-size: 6pt;
             color: #555;
             text-align: right;
+            line-height: 1.1;
         }
     </style>
 </head>
@@ -117,8 +148,12 @@
 
     <table class="header-row">
         <tr>
-            <td style="width:22%;"></td>
-            <td style="width:56%;">
+            <td class="logo-cell">
+                @if(!empty($logoDataUri))
+                    <img src="{{ $logoDataUri }}" alt="STPEIDCEO" class="logo-inst">
+                @endif
+            </td>
+            <td class="center-col">
                 <div class="titulo-inst">SECRETARÍA DE PREVISIÓN SOCIAL</div>
                 <div class="titulo-doc">ACUSE DE RECIBO DE VESTUARIO, CALZADO Y ACCESORIOS DE VESTUARIO {{ $anioTitulo }}</div>
                 <div class="subtitulo">LICITACIÓN: {{ $licitacion }}</div>
@@ -127,7 +162,7 @@
                 @endif
                 <div class="folio-line">Folio {{ $folio }}</div>
             </td>
-            <td class="qr" style="width:22%;">
+            <td class="qr">
                 <img src="{{ $qrDataUri }}" alt="QR verificación">
             </td>
         </tr>
@@ -169,7 +204,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" style="text-align:center;">Sin partidas confirmadas.</td>
+                    <td colspan="4" style="text-align:center; font-size:6.5pt;">Sin partidas confirmadas.</td>
                 </tr>
             @endforelse
         </tbody>
