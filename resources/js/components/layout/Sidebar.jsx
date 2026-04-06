@@ -174,11 +174,12 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                         can('Ver productos') ||
                         can('Ver partidas') ||
                         can('Ver líneas presupuestales') ||
-                        can('Ver mi delegación')) && (
+                        can('Ver mi delegación') ||
+                        can('Ver cotejo vestuario')) && (
                         <>
                             <SectionHeader title="Vestuario" />
                             <nav className="flex flex-col gap-0.5">
-                                {can('Ver mi delegación') && (
+                                {can('Ver cotejo vestuario') && (
                                     <Link
                                         href={route('vestuario.resumen')}
                                         onClick={handleNav}

@@ -45,7 +45,7 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/vestuario/resumen', [ResumenVestuarioController::class, 'index'])
-        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->middleware('permission:'.SivsoPermissions::VER_COTEJO_VESTUARIO)
         ->name('vestuario.resumen');
 
     Route::redirect('/delegado/panel', '/dashboard')->name('delegado.panel');

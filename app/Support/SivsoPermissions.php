@@ -12,6 +12,8 @@ final class SivsoPermissions
 {
     public const VER_MI_DELEGACION = 'Ver mi delegación';
 
+    public const VER_COTEJO_VESTUARIO = 'Ver cotejo vestuario';
+
     public const GESTIONAR_MI_DELEGACION = 'Gestionar mi delegación';
 
     public const VER_EMPLEADOS = 'Ver empleados';
@@ -73,6 +75,7 @@ final class SivsoPermissions
     {
         return [
             ['name' => self::VER_MI_DELEGACION, 'descripcion' => 'Ver Mi delegación y asignaciones.'],
+            ['name' => self::VER_COTEJO_VESTUARIO, 'descripcion' => 'Ver resumen y cotejo general de vestuario por UR/delegación.'],
             ['name' => self::GESTIONAR_MI_DELEGACION, 'descripcion' => 'Cambiar tallas y gestionar solicitudes propias.'],
             ['name' => self::VER_EMPLEADOS, 'descripcion' => 'Listar y consultar empleados.'],
             ['name' => self::GESTIONAR_EMPLEADOS, 'descripcion' => 'Alta, edición y baja de empleados.'],
