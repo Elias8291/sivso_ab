@@ -72,8 +72,8 @@ export default function PartidasIndex({
             >
                 <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Registros</p>
-                        <p className="mt-0.5 text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{integer(resumen.registros)}</p>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">UR con gasto</p>
+                        <p className="mt-0.5 text-xl font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{integer(resumen.urs)}</p>
                     </div>
                     <div className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
                         <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Subtotal sin IVA</p>
@@ -107,25 +107,27 @@ export default function PartidasIndex({
                         <table className="min-w-full text-[12px]">
                             <thead>
                                 <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                    <th className="px-3 py-2 text-left">Partida específica</th>
                                     <th className="px-3 py-2 text-left">UR</th>
-                                    <th className="px-3 py-2 text-right">Asignaciones</th>
-                                    <th className="px-3 py-2 text-right">Piezas</th>
-                                    <th className="px-3 py-2 text-right">Subtotal</th>
-                                    <th className="px-3 py-2 text-right">IVA</th>
-                                    <th className="px-3 py-2 text-right">Total</th>
+                                    <th className="px-3 py-2 text-right">244 Subtotal</th>
+                                    <th className="px-3 py-2 text-right">244 IVA</th>
+                                    <th className="px-3 py-2 text-right">244 Total</th>
+                                    <th className="px-3 py-2 text-right">246 Subtotal</th>
+                                    <th className="px-3 py-2 text-right">246 IVA</th>
+                                    <th className="px-3 py-2 text-right">246 Total</th>
+                                    <th className="px-3 py-2 text-right">Total UR</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, idx) => (
-                                    <tr key={`${row.partida_especifica}-${row.ur}-${idx}`} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                        <td className="px-3 py-2 tabular-nums">{row.partida_especifica}</td>
+                                    <tr key={`${row.ur}-${idx}`} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
                                         <td className="px-3 py-2 font-mono">{row.ur}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{integer(row.asignaciones)}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{integer(row.piezas)}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.subtotal_sin_iva)}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.iva)}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.total_con_iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_244.subtotal_sin_iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_244.iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_244.total_con_iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_246.subtotal_sin_iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_246.iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{money(row.partida_246.total_con_iva)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(row.total_ur.total_con_iva)}</td>
                                     </tr>
                                 ))}
                             </tbody>

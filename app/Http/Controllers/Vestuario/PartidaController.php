@@ -50,9 +50,9 @@ final class PartidaController extends Controller
                 'pl.partida_especifica',
                 'e.ur',
                 DB::raw('COUNT(*) as asignaciones'),
-                DB::raw('SUM(COALESCE(aep.cantidad, 1)) as piezas'),
-                DB::raw('SUM(COALESCE(aep.cantidad, 1) * pl.precio_unitario) as subtotal_sin_iva'),
-                DB::raw('SUM(COALESCE(aep.cantidad, 1) * pl.precio_unitario * 1.16) as total_con_iva'),
+                DB::raw('COUNT(*) as piezas'),
+                DB::raw('SUM(pl.precio_unitario) as subtotal_sin_iva'),
+                DB::raw('SUM(pl.precio_unitario * 1.16) as total_con_iva'),
             ])
             ->where('aep.anio', $anio)
             ->where('pl.anio', $anio)
@@ -65,7 +65,7 @@ final class PartidaController extends Controller
             ->orderBy('pl.partida_especifica')
             ->orderBy('e.ur');
 
-        $rows = $query->get()->map(static fn ($row): array => [
+        $rowsRaw = $query->get()->map(static fn ($row): array => [
             'partida_especifica' => (int) $row->partida_especifica,
             'ur' => (int) $row->ur,
             'asignaciones' => (int) $row->asignaciones,
@@ -75,12 +75,51 @@ final class PartidaController extends Controller
             'total_con_iva' => (float) $row->total_con_iva,
         ])->values();
 
+        $rows = $rowsRaw
+            ->groupBy('ur')
+            ->map(static function ($items, $ur): array {
+                $row244 = $items->firstWhere('partida_especifica', 244);
+                $row246 = $items->firstWhere('partida_especifica', 246);
+
+                $safe = static function (?array $row, string $key) {
+                    return $row[$key] ?? 0;
+                };
+
+                return [
+                    'ur' => (int) $ur,
+                    'partida_244' => [
+                        'asignaciones' => (int) $safe($row244, 'asignaciones'),
+                        'piezas' => (int) $safe($row244, 'piezas'),
+                        'subtotal_sin_iva' => (float) $safe($row244, 'subtotal_sin_iva'),
+                        'iva' => (float) $safe($row244, 'iva'),
+                        'total_con_iva' => (float) $safe($row244, 'total_con_iva'),
+                    ],
+                    'partida_246' => [
+                        'asignaciones' => (int) $safe($row246, 'asignaciones'),
+                        'piezas' => (int) $safe($row246, 'piezas'),
+                        'subtotal_sin_iva' => (float) $safe($row246, 'subtotal_sin_iva'),
+                        'iva' => (float) $safe($row246, 'iva'),
+                        'total_con_iva' => (float) $safe($row246, 'total_con_iva'),
+                    ],
+                    'total_ur' => [
+                        'asignaciones' => (int) $safe($row244, 'asignaciones') + (int) $safe($row246, 'asignaciones'),
+                        'piezas' => (int) $safe($row244, 'piezas') + (int) $safe($row246, 'piezas'),
+                        'subtotal_sin_iva' => (float) $safe($row244, 'subtotal_sin_iva') + (float) $safe($row246, 'subtotal_sin_iva'),
+                        'iva' => (float) $safe($row244, 'iva') + (float) $safe($row246, 'iva'),
+                        'total_con_iva' => (float) $safe($row244, 'total_con_iva') + (float) $safe($row246, 'total_con_iva'),
+                    ],
+                ];
+            })
+            ->sortBy('ur')
+            ->values();
+
         $resumen = [
-            'registros' => $rows->count(),
-            'piezas' => (int) $rows->sum('piezas'),
-            'subtotal_sin_iva' => (float) $rows->sum('subtotal_sin_iva'),
-            'iva' => (float) $rows->sum('iva'),
-            'total_con_iva' => (float) $rows->sum('total_con_iva'),
+            'registros' => $rowsRaw->count(),
+            'urs' => $rows->count(),
+            'piezas' => (int) $rowsRaw->sum('piezas'),
+            'subtotal_sin_iva' => (float) $rowsRaw->sum('subtotal_sin_iva'),
+            'iva' => (float) $rowsRaw->sum('iva'),
+            'total_con_iva' => (float) $rowsRaw->sum('total_con_iva'),
             'iva_rate' => self::IVA_RATE,
         ];
 
