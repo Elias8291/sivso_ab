@@ -9,6 +9,7 @@ import {
     CheckCircle2,
     ChevronDown,
     Clock,
+    FileDown,
     Info,
     LayoutList,
     Lock,
@@ -852,9 +853,12 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
         } catch { /* sin acción */ }
     };
 
-    const listos   = vestuario.filter((v) => v.estado === 'confirmado').length;
-    const total    = vestuario.length;
-    const completo = total > 0 && listos >= total;
+    const total = vestuario.length;
+    const enBajaCount = vestuario.filter((v) => v.estado === 'baja').length;
+    const confirmadasOCambio = vestuario.filter((v) => v.estado === 'confirmado' || v.estado === 'cambio').length;
+    const requeridas = total - enBajaCount;
+    const listos = confirmadasOCambio;
+    const completo = total > 0 && confirmadasOCambio >= requeridas;
     const pendienteVestuario = total > 0 && !completo;
     const esBaja   = estadoDelegacion === 'baja';
     const esCambio = estadoDelegacion === 'cambio';
@@ -1003,6 +1007,20 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         <Package className="size-3.5 shrink-0" strokeWidth={1.75} />
                         <span className="hidden sm:inline">Productos</span>
                     </button>
+
+                    {completo && !esBaja && !esCambio && (
+                        <a
+                            href={route('my-delegation.empleado.acuse-pdf', empleado.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Descargar acuse de recibo en PDF (con código QR)"
+                            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2 text-[11px] font-medium text-zinc-800 hover:bg-brand-gold/18 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18 sm:min-h-0 sm:py-1.5"
+                        >
+                            <FileDown className="size-3.5 shrink-0 text-brand-gold dark:text-brand-gold-soft" strokeWidth={1.75} />
+                            <span className="hidden sm:inline">Acuse PDF</span>
+                            <span className="sm:hidden">PDF</span>
+                        </a>
+                    )}
 
                     {!esBaja && !solicitudPendiente && (
                         <>

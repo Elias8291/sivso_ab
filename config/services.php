@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'sivso' => [
+        'acuse_licitacion' => env('SIVSO_ACUSE_LICITACION', 'LPN-SA-SA-0036-08/2025'),
+    ],
+
 ];

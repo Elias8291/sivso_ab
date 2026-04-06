@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AcuseVestuarioVerificacionController;
 use App\Http\Controllers\Admin\PeriodoController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -25,6 +26,10 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
 });
+
+Route::get('/acuse-vestuario/verificar', AcuseVestuarioVerificacionController::class)
+    ->middleware('signed')
+    ->name('acuse-vestuario.verificar');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -62,6 +67,9 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/mi-delegacion/empleado/{empleado}/productos', [MiDelegacionController::class, 'productosEmpleado'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('my-delegation.empleado.productos');
+    Route::get('/mi-delegacion/empleado/{empleado}/acuse-recibo', [MiDelegacionController::class, 'acuseReciboPdf'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('my-delegation.empleado.acuse-pdf');
 
     Route::get('/solicitudes-movimiento', [SolicitudMovimientoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)

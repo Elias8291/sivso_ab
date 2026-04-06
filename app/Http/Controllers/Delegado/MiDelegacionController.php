@@ -13,13 +13,15 @@ use App\Models\PeriodoVestuario;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\NuevaSolicitudNotification;
+use App\Services\Delegado\AcuseReciboVestuarioPdfService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 
 class MiDelegacionController extends Controller
 {
@@ -33,7 +35,7 @@ class MiDelegacionController extends Controller
     /** @var list<string> */
     private const FILTROS_VISTA = ['todos', 'listos', 'sin_empezar', 'bajas'];
 
-    public function panel(Request $request): Response
+    public function panel(Request $request): InertiaResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -107,7 +109,7 @@ class MiDelegacionController extends Controller
             ->all();
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): InertiaResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -237,6 +239,7 @@ class MiDelegacionController extends Controller
                 'estado' => $a->estado_anio_actual ?? 'pendiente',
                 'observacion' => $a->observacion_anio_actual,
                 'talla_actualizada_at' => $a->talla_actualizada_at,
+                'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
             ])
             ->values()
             ->all();
@@ -248,7 +251,7 @@ class MiDelegacionController extends Controller
             ->select(['id', 'tipo', 'delegacion_destino'])
             ->first();
 
-        return [
+        $fila = [
             'id' => $e->id,
             'nombre_completo' => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
             'nue' => $e->nue,
@@ -266,6 +269,58 @@ class MiDelegacionController extends Controller
                 'delegacion_destino' => $solicitudPendiente->delegacion_destino,
             ] : null,
         ];
+        $fila['vestuario_listo'] = $this->empleadoVestuarioListo($fila);
+
+        return $fila;
+    }
+
+    /**
+     * PDF tipo acuse de recibo (solo si el vestuario está completo según reglas de negocio).
+     */
+    public function acuseReciboPdf(Request $request, int $empleado): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $empleadoModel = Empleado::query()
+            ->with(['dependencia:ur,nombre_corto,nombre'])
+            ->findOrFail($empleado);
+
+        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleadoModel), 403);
+
+        $fila = $this->mapEmpleadoParaVista($empleadoModel);
+
+        if (! $this->empleadoVestuarioListo($fila)) {
+            return response(
+                'El vestuario de este empleado no está completo. Confirme todas las prendas antes de generar el acuse.',
+                422,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+            );
+        }
+
+        $tieneRenglones = collect($fila['vestuario'] ?? [])
+            ->contains(fn ($v): bool => is_array($v) && in_array($v['estado'] ?? '', ['confirmado', 'cambio'], true));
+
+        if (! $tieneRenglones) {
+            return response(
+                'No hay prendas confirmadas para incluir en el acuse.',
+                422,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+            );
+        }
+
+        $contexto = $this->contextoDelegadoParaVista($user, $this->delegacionCodigosPermitidos($user));
+        $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
+
+        $service = new AcuseReciboVestuarioPdfService;
+
+        return $service->stream(
+            $empleadoModel,
+            $delegadoNombre,
+            $fila,
+            self::ANIO_ACTUAL,
+            self::ANIO_REFERENCIA,
+        );
     }
 
     /**
