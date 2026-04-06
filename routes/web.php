@@ -38,6 +38,10 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('vestuario.resumen');
 
+    Route::get('/delegado/panel', [MiDelegacionController::class, 'panel'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('delegado.panel');
+
     Route::get('/mi-delegacion', [MiDelegacionController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('my-delegation.index');

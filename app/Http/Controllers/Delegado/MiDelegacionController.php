@@ -31,6 +31,41 @@ class MiDelegacionController extends Controller
     /** @var list<string> */
     private const FILTROS_VISTA = ['todos', 'listos', 'sin_empezar', 'bajas'];
 
+    public function panel(Request $request): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $contexto          = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
+
+        $empleadosQuery = Empleado::query()
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', self::ANIO_REFERENCIA))
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion));
+
+        $total        = (clone $empleadosQuery)->count();
+        $filasResumen = (clone $empleadosQuery)->get()->map(fn (Empleado $e) => $this->mapEmpleadoParaVista($e));
+
+        $listos     = $filasResumen->filter(fn (array $f) => $this->empleadoVestuarioListo($f))->count();
+        $sinEmpezar = $filasResumen->filter(fn (array $f) => $f['total_prendas'] > 0 && $f['confirmadas'] === 0)->count();
+        $bajas      = $filasResumen->filter(fn (array $f) => $f['estado_delegacion'] === 'baja')->count();
+
+        return Inertia::render('Delegado/Panel', [
+            'resumen' => [
+                'total'          => $total,
+                'listos'         => $listos,
+                'sin_empezar'    => $sinEmpezar,
+                'bajas'          => $bajas,
+                'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
+                'anio_actual'    => self::ANIO_ACTUAL,
+                'anio_ref'       => self::ANIO_REFERENCIA,
+            ],
+            'contexto'        => $contexto,
+            'periodo'         => $this->periodoActual(),
+            'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
+        ]);
+    }
+
     public function index(Request $request): Response
     {
         /** @var User $user */

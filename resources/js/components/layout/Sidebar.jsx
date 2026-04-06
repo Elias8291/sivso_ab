@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Activity,
     ArrowLeftRight,
     Bell,
     Building2,
@@ -130,6 +131,18 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                             <LayoutDashboard className={iconClass(route().current('dashboard'))} strokeWidth={2} aria-hidden />
                             <span className={collapsed ? 'lg:hidden' : ''}>Dashboard</span>
                         </Link>
+
+                        {(can('Ver mi delegación') || tienePerfilDelegado) && (
+                            <Link
+                                href={route('delegado.panel')}
+                                onClick={handleNav}
+                                className={navLink(route().current('delegado.panel'))}
+                                title="Panel del Delegado"
+                            >
+                                <Activity className={iconClass(route().current('delegado.panel'))} strokeWidth={2} aria-hidden />
+                                <span className={collapsed ? 'lg:hidden' : ''}>Mi Panel</span>
+                            </Link>
+                        )}
 
                         {(can('Ver mi delegación') || tienePerfilDelegado) && (
                             <Link
