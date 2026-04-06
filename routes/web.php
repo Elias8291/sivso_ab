@@ -22,7 +22,6 @@ use App\Http\Controllers\Vestuario\ProductoController;
 use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Support\SivsoPermissions;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
@@ -40,8 +39,6 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
         ->name('auth.password.change');
     Route::patch('/cambiar-contrasena-inicial', [AuthenticatedSessionController::class, 'updateInitialPassword'])
         ->name('auth.password.update');
-
-    $sidebarPlaceholder = static fn () => Inertia::render('Dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -111,9 +108,6 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/partidas', [PartidaController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_PARTIDAS)
         ->name('partidas.index');
-    Route::get('/partidas-especificas', $sidebarPlaceholder)
-        ->middleware('permission:'.SivsoPermissions::VER_LINEAS_PRESUPUESTALES)
-        ->name('partidas-especificas.index');
 
     Route::get('/dependencias', [DependenciaController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_DEPENDENCIAS)

@@ -7,7 +7,6 @@ import {
     ChevronLeft,
     ChevronRight,
     CircleUser,
-    FileText,
     Key,
     LayoutDashboard,
     ListTree,
@@ -173,7 +172,6 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                     {(can('Ver empleados') ||
                         can('Ver productos') ||
                         can('Ver partidas') ||
-                        can('Ver líneas presupuestales') ||
                         can('Ver mi delegación') ||
                         can('Ver cotejo vestuario')) && (
                         <>
@@ -221,17 +219,6 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                                     >
                                         <ListTree className={iconClass(route().current('partidas.*'))} strokeWidth={2} aria-hidden />
                                         <span className={collapsed ? 'lg:hidden' : ''}>Partidas</span>
-                                    </Link>
-                                )}
-                                {can('Ver líneas presupuestales') && (
-                                    <Link
-                                        href={route('partidas-especificas.index')}
-                                        onClick={handleNav}
-                                        className={navLink(route().current('partidas-especificas.*'))}
-                                        title="Líneas Presupuestales"
-                                    >
-                                        <FileText className={iconClass(route().current('partidas-especificas.*'))} strokeWidth={2} aria-hidden />
-                                        <span className={collapsed ? 'lg:hidden' : ''}>Líneas Presupuestales</span>
                                     </Link>
                                 )}
                             </nav>

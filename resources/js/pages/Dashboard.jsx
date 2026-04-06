@@ -5,7 +5,6 @@ import {
     Building2,
     Calendar,
     ClipboardList,
-    FileText,
     ListChecks,
     KeyRound,
     ListTree,
@@ -97,15 +96,6 @@ function DashboardPage({ resumen_admin = {} }) {
                 label: 'Partidas',
                 value: r.partidas,
                 hint: 'Por ejercicio',
-            });
-        }
-        if (r.lineas_presupuestales != null) {
-            tiles.push({
-                key: 'lin',
-                icon: FileText,
-                label: 'Líneas presupuestales',
-                value: r.lineas_presupuestales,
-                hint: 'Detalle por línea',
             });
         }
         if (r.dependencias != null) {

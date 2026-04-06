@@ -28,10 +28,6 @@ final class SivsoPermissions
 
     public const GESTIONAR_PARTIDAS = 'Gestionar partidas';
 
-    public const VER_LINEAS_PRESUPUESTALES = 'Ver líneas presupuestales';
-
-    public const GESTIONAR_LINEAS_PRESUPUESTALES = 'Gestionar líneas presupuestales';
-
     public const VER_DEPENDENCIAS = 'Ver dependencias';
 
     public const GESTIONAR_DEPENDENCIAS = 'Gestionar dependencias';
@@ -83,8 +79,6 @@ final class SivsoPermissions
             ['name' => self::GESTIONAR_PRODUCTOS, 'descripcion' => 'Administrar productos de vestuario.'],
             ['name' => self::VER_PARTIDAS, 'descripcion' => 'Consultar partidas.'],
             ['name' => self::GESTIONAR_PARTIDAS, 'descripcion' => 'Administrar partidas.'],
-            ['name' => self::VER_LINEAS_PRESUPUESTALES, 'descripcion' => 'Consultar líneas presupuestales.'],
-            ['name' => self::GESTIONAR_LINEAS_PRESUPUESTALES, 'descripcion' => 'Administrar líneas presupuestales.'],
             ['name' => self::VER_DEPENDENCIAS, 'descripcion' => 'Listar dependencias.'],
             ['name' => self::GESTIONAR_DEPENDENCIAS, 'descripcion' => 'Alta, edición y baja de dependencias.'],
             ['name' => self::VER_DELEGACIONES, 'descripcion' => 'Listar delegaciones.'],

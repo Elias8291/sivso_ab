@@ -83,9 +83,6 @@ final class DashboardController extends Controller
             'partidas' => $user->can(SivsoPermissions::VER_PARTIDAS)
                 ? $this->countDistinctPartidas()
                 : null,
-            'lineas_presupuestales' => $user->can(SivsoPermissions::VER_LINEAS_PRESUPUESTALES)
-                ? $this->countDistinctLineasPresupuestales()
-                : null,
             'dependencias' => $user->can(SivsoPermissions::VER_DEPENDENCIAS)
                 ? Dependencia::query()->count()
                 : null,
@@ -124,11 +121,4 @@ final class DashboardController extends Controller
         )->count();
     }
 
-    private function countDistinctLineasPresupuestales(): int
-    {
-        return (int) DB::query()->fromSub(
-            DB::table('producto_licitado')->select('anio', 'numero_partida', 'partida_especifica')->distinct(),
-            'l',
-        )->count();
-    }
 }

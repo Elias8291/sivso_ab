@@ -38,6 +38,10 @@ final class PartidaController extends Controller
         }
 
         $delegacion = $request->string('delegacion')->toString() ?: null;
+        $delegacionBuscar = trim($request->string('delegacion_buscar')->toString());
+        if ($delegacionBuscar === '') {
+            $delegacionBuscar = null;
+        }
         $ur = $request->integer('ur') ?: null;
         if (is_array($codigosPermitidos) && $delegacion !== null && ! in_array($delegacion, $codigosPermitidos, true)) {
             $delegacion = null;
@@ -60,6 +64,7 @@ final class PartidaController extends Controller
             ->where('e.estado_delegacion', 'activo')
             ->when(is_array($codigosPermitidos), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosPermitidos))
             ->when($delegacion !== null, fn ($q) => $q->where('e.delegacion_codigo', $delegacion))
+            ->when($delegacionBuscar !== null, fn ($q) => $q->where('e.delegacion_codigo', 'like', '%'.$delegacionBuscar.'%'))
             ->when($ur !== null, fn ($q) => $q->where('e.ur', $ur))
             ->groupBy('pl.partida_especifica', 'e.ur')
             ->orderBy('pl.partida_especifica')
@@ -146,10 +151,11 @@ final class PartidaController extends Controller
             'resumen' => $resumen,
             'ur_activa' => $ur,
             'delegacion_activa' => $delegacion,
+            'delegacion_buscar' => $delegacionBuscar,
             'urs_disponibles' => $ursDisponibles,
             'delegaciones_opciones' => $delegacionesOpciones,
             'partidas_especificas_fijas' => self::PARTIDAS_ESPECIFICAS_OBJETIVO,
-            'filters' => $request->only(['anio', 'ur', 'delegacion']),
+            'filters' => $request->only(['anio', 'ur', 'delegacion', 'delegacion_buscar']),
         ]);
     }
 
