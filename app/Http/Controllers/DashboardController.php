@@ -7,14 +7,19 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Delegado\MiDelegacionController;
 use App\Models\Delegacion;
 use App\Models\Delegado;
+use App\Models\Dependencia;
 use App\Models\Empleado;
 use App\Models\PeriodoVestuario;
+use App\Models\ProductoCotizado;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Support\SivsoPermissions;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 final class DashboardController extends Controller
 {
@@ -28,7 +33,6 @@ final class DashboardController extends Controller
         }
 
         return Inertia::render('Dashboard', [
-            'periodo' => $this->periodoVigente(),
             'resumen_admin' => $this->resumenParaAdmin($user),
         ]);
     }
@@ -58,43 +62,32 @@ final class DashboardController extends Controller
     }
 
     /**
-     * @return array<string, mixed>|null
-     */
-    private function periodoVigente(): ?array
-    {
-        $p = PeriodoVestuario::query()
-            ->orderByRaw("FIELD(estado,'abierto','proximo','cerrado')")
-            ->orderByDesc('anio')
-            ->first();
-
-        if (! $p) {
-            return null;
-        }
-
-        return [
-            'id' => $p->id,
-            'nombre' => $p->nombre,
-            'anio' => $p->anio,
-            'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
-            'fecha_fin' => $p->fecha_fin?->format('Y-m-d'),
-            'estado' => $p->estado,
-            'descripcion' => $p->descripcion,
-        ];
-    }
-
-    /**
-     * Contadores según permisos (null = no mostrar KPI).
+     * Contadores según permisos de ver (null = no mostrar KPI).
      *
-     * @return array{empleados: int|null, solicitudes_pendientes: int|null, delegaciones: int|null, delegados: int|null, usuarios: int|null}
+     * @return array<string, int|null>
      */
     private function resumenParaAdmin(User $user): array
     {
+        $user->loadMissing('delegado');
+
         return [
+            'mi_delegacion' => $user->can(SivsoPermissions::VER_MI_DELEGACION) && $user->delegado !== null
+                ? $user->delegado->delegaciones()->count()
+                : null,
             'empleados' => $user->can(SivsoPermissions::VER_EMPLEADOS)
                 ? Empleado::query()->count()
                 : null,
-            'solicitudes_pendientes' => $user->can(SivsoPermissions::VER_SOLICITUDES)
-                ? SolicitudMovimiento::query()->where('estado', 'pendiente')->count()
+            'productos' => $user->can(SivsoPermissions::VER_PRODUCTOS)
+                ? ProductoCotizado::query()->count()
+                : null,
+            'partidas' => $user->can(SivsoPermissions::VER_PARTIDAS)
+                ? $this->countDistinctPartidas()
+                : null,
+            'lineas_presupuestales' => $user->can(SivsoPermissions::VER_LINEAS_PRESUPUESTALES)
+                ? $this->countDistinctLineasPresupuestales()
+                : null,
+            'dependencias' => $user->can(SivsoPermissions::VER_DEPENDENCIAS)
+                ? Dependencia::query()->count()
                 : null,
             'delegaciones' => $user->can(SivsoPermissions::VER_DELEGACIONES)
                 ? Delegacion::query()->count()
@@ -102,9 +95,40 @@ final class DashboardController extends Controller
             'delegados' => $user->can(SivsoPermissions::VER_DELEGADOS)
                 ? Delegado::query()->count()
                 : null,
+            'periodos' => $user->can(SivsoPermissions::VER_PERIODOS)
+                ? PeriodoVestuario::query()->count()
+                : null,
             'usuarios' => $user->can(SivsoPermissions::VER_USUARIOS)
                 ? User::query()->count()
                 : null,
+            'roles' => $user->can(SivsoPermissions::VER_ROLES)
+                ? Role::query()->count()
+                : null,
+            'permisos' => $user->can(SivsoPermissions::VER_PERMISOS)
+                ? Permission::query()->count()
+                : null,
+            'solicitudes_totales' => $user->can(SivsoPermissions::VER_SOLICITUDES)
+                ? SolicitudMovimiento::query()->count()
+                : null,
+            'solicitudes_pendientes' => $user->can(SivsoPermissions::VER_SOLICITUDES)
+                ? SolicitudMovimiento::query()->where('estado', 'pendiente')->count()
+                : null,
         ];
+    }
+
+    private function countDistinctPartidas(): int
+    {
+        return (int) DB::query()->fromSub(
+            DB::table('producto_licitado')->select('anio', 'numero_partida')->distinct(),
+            'p',
+        )->count();
+    }
+
+    private function countDistinctLineasPresupuestales(): int
+    {
+        return (int) DB::query()->fromSub(
+            DB::table('producto_licitado')->select('anio', 'numero_partida', 'partida_especifica')->distinct(),
+            'l',
+        )->count();
     }
 }

@@ -1,100 +1,32 @@
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { useAuthCan } from '@/hooks/useAuthCan';
-import { Head, Link, usePage } from '@inertiajs/react';
-import { Bell, ClipboardList, MapPin, UserCircle, Users, UserSquare2 } from 'lucide-react';
+import { Head, usePage } from '@inertiajs/react';
+import {
+    Bell,
+    Building2,
+    Calendar,
+    ClipboardList,
+    FileText,
+    ListChecks,
+    KeyRound,
+    ListTree,
+    MapPin,
+    MapPinned,
+    Package,
+    Shield,
+    UserCircle,
+    Users,
+    UserSquare2,
+} from 'lucide-react';
 import { useMemo } from 'react';
-import { route } from 'ziggy-js';
 
-function fmtCorto(d) {
-    if (!d) return null;
-    return new Date(d + 'T12:00:00').toLocaleDateString('es-MX', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
-}
-
-function SectionLabel({ children, compact = false }) {
+function SectionLabel({ children }) {
     return (
-        <div className={compact ? 'flex items-center gap-2' : 'flex items-center gap-2.5'}>
+        <div className="flex items-center gap-2.5">
             <span
-                className={`w-px shrink-0 rounded-full bg-gradient-to-b from-brand-gold/70 to-brand-gold/25 dark:from-brand-gold-soft/65 dark:to-brand-gold-soft/20 ${compact ? 'h-2.5' : 'h-3'}`}
+                className="h-3 w-px shrink-0 rounded-full bg-gradient-to-b from-brand-gold/70 to-brand-gold/25 dark:from-brand-gold-soft/65 dark:to-brand-gold-soft/20"
                 aria-hidden
             />
-            <p
-                className={`font-medium uppercase text-zinc-500 dark:text-zinc-400 ${compact ? 'text-[10px] tracking-[0.12em]' : 'text-[11px] tracking-[0.14em]'}`}
-            >
-                {children}
-            </p>
-        </div>
-    );
-}
-
-function SinPeriodoAdminMensaje({ canPeriodos }) {
-    return (
-        <div className="rounded-xl border border-dashed border-zinc-200/90 bg-zinc-50/30 px-3.5 py-2.5 dark:border-zinc-700/80 dark:bg-zinc-900/20">
-            <p className="text-[12px] font-medium leading-snug text-zinc-900 dark:text-zinc-100">Sin período de vestuario</p>
-            <p className="mt-1.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
-                No hay un período configurado en el sistema.
-                {canPeriodos ? (
-                    <>
-                        {' '}
-                        <Link
-                            href={route('periodos.index')}
-                            className="font-medium text-brand-gold underline-offset-2 hover:underline dark:text-brand-gold-soft"
-                        >
-                            Gestionar periodos
-                        </Link>
-                    </>
-                ) : null}
-            </p>
-        </div>
-    );
-}
-
-function PeriodoBloqueAdmin({ periodo, capturaAbierta }) {
-    const inicio = fmtCorto(periodo.fecha_inicio);
-    const fin = fmtCorto(periodo.fecha_fin);
-    let fechas = null;
-    if (inicio && fin) {
-        fechas = `${inicio} — ${fin}`;
-    } else if (fin) {
-        fechas = `Hasta ${fin}`;
-    } else if (inicio) {
-        fechas = `Desde ${inicio}`;
-    }
-
-    const shell = capturaAbierta
-        ? 'border-brand-gold/35 bg-white shadow-[0_1px_0_0_rgba(212,175,55,0.08)] dark:border-brand-gold-soft/30 dark:bg-zinc-950/60 dark:shadow-none'
-        : 'border-zinc-200/80 bg-white shadow-[0_1px_0_0_rgba(0,0,0,0.04)] dark:border-zinc-800 dark:bg-zinc-950/50 dark:shadow-none';
-
-    return (
-        <div className={`flex gap-4 rounded-2xl border px-5 py-4 ${shell}`}>
-            <span
-                className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                    capturaAbierta
-                        ? 'bg-brand-gold shadow-[0_0_0_3px_rgba(212,175,55,0.2)] dark:bg-brand-gold-soft dark:shadow-[0_0_0_3px_rgba(232,212,138,0.15)]'
-                        : 'bg-zinc-300 dark:bg-zinc-600'
-                }`}
-                aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium leading-snug text-zinc-900 dark:text-zinc-50">
-                    {periodo.nombre}
-                    {fechas ? (
-                        <span className="font-normal text-zinc-500 dark:text-zinc-400"> · {fechas}</span>
-                    ) : null}
-                </p>
-                <p
-                    className={`mt-2 text-[13px] leading-relaxed ${
-                        capturaAbierta ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-500 dark:text-zinc-400'
-                    }`}
-                >
-                    {capturaAbierta
-                        ? 'Las delegaciones pueden registrar y confirmar tallas de vestuario.'
-                        : 'La captura de tallas no está activa. Ajuste el periodo desde Administración si corresponde.'}
-                </p>
-            </div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{children}</p>
         </div>
     );
 }
@@ -118,9 +50,8 @@ function StatTile({ icon: Icon, label, value, hint }) {
     );
 }
 
-function DashboardPage({ periodo = null, resumen_admin = {} }) {
+function DashboardPage({ resumen_admin = {} }) {
     const { auth, notificaciones = [] } = usePage().props;
-    const can = useAuthCan();
     const notifCount = Array.isArray(notificaciones) ? notificaciones.length : 0;
     const user = auth?.user;
     const delegado = auth?.delegado;
@@ -129,14 +60,18 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
 
     const displayId = user?.rfc || user?.email || 'Usuario';
 
-    const hayPeriodo = periodo != null;
-    const capturaAbierta = hayPeriodo && periodo.estado === 'abierto';
-
-    const anioVestuario = periodo?.anio ?? new Date().getFullYear();
-
     const kpiTiles = useMemo(() => {
         const tiles = [];
         const r = resumen_admin || {};
+        if (r.mi_delegacion != null) {
+            tiles.push({
+                key: 'mi_del',
+                icon: MapPinned,
+                label: 'Mi delegación',
+                value: r.mi_delegacion,
+                hint: 'UR asignadas',
+            });
+        }
         if (r.empleados != null) {
             tiles.push({
                 key: 'emp',
@@ -146,13 +81,40 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
                 hint: 'En sistema',
             });
         }
-        if (r.solicitudes_pendientes != null) {
+        if (r.productos != null) {
             tiles.push({
-                key: 'sol',
-                icon: ClipboardList,
-                label: 'Solicitudes',
-                value: r.solicitudes_pendientes,
-                hint: 'Pendientes',
+                key: 'prod',
+                icon: Package,
+                label: 'Productos',
+                value: r.productos,
+                hint: 'Catálogo',
+            });
+        }
+        if (r.partidas != null) {
+            tiles.push({
+                key: 'part',
+                icon: ListTree,
+                label: 'Partidas',
+                value: r.partidas,
+                hint: 'Por ejercicio',
+            });
+        }
+        if (r.lineas_presupuestales != null) {
+            tiles.push({
+                key: 'lin',
+                icon: FileText,
+                label: 'Líneas presupuestales',
+                value: r.lineas_presupuestales,
+                hint: 'Detalle por línea',
+            });
+        }
+        if (r.dependencias != null) {
+            tiles.push({
+                key: 'dep',
+                icon: Building2,
+                label: 'Dependencias',
+                value: r.dependencias,
+                hint: 'Registradas',
             });
         }
         if (r.delegaciones != null) {
@@ -173,6 +135,15 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
                 hint: 'Perfiles',
             });
         }
+        if (r.periodos != null) {
+            tiles.push({
+                key: 'per',
+                icon: Calendar,
+                label: 'Periodos',
+                value: r.periodos,
+                hint: 'Vestuario',
+            });
+        }
         if (r.usuarios != null) {
             tiles.push({
                 key: 'usr',
@@ -180,6 +151,42 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
                 label: 'Usuarios',
                 value: r.usuarios,
                 hint: 'Cuentas',
+            });
+        }
+        if (r.roles != null) {
+            tiles.push({
+                key: 'rol',
+                icon: Shield,
+                label: 'Roles',
+                value: r.roles,
+                hint: 'Spatie',
+            });
+        }
+        if (r.permisos != null) {
+            tiles.push({
+                key: 'perm',
+                icon: KeyRound,
+                label: 'Permisos',
+                value: r.permisos,
+                hint: 'Listado',
+            });
+        }
+        if (r.solicitudes_totales != null) {
+            tiles.push({
+                key: 'sol_tot',
+                icon: ClipboardList,
+                label: 'Solicitudes',
+                value: r.solicitudes_totales,
+                hint: 'Todas',
+            });
+        }
+        if (r.solicitudes_pendientes != null) {
+            tiles.push({
+                key: 'sol_pen',
+                icon: ListChecks,
+                label: 'Solicitudes pendientes',
+                value: r.solicitudes_pendientes,
+                hint: 'Por resolver',
             });
         }
         tiles.push({
@@ -230,45 +237,24 @@ function DashboardPage({ periodo = null, resumen_admin = {} }) {
                             </div>
                         </div>
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/90 to-transparent dark:via-zinc-700/70" aria-hidden />
-                        <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                                <span
-                                    className="mr-1 inline-block size-1 rounded-full bg-brand-gold/70 align-middle dark:bg-brand-gold-soft/60"
-                                    aria-hidden
-                                />
-                                Vestuario{' '}
-                                <span className="tabular-nums text-brand-gold/80 dark:text-brand-gold-soft/75">{anioVestuario}</span>
-                            </p>
-                        </div>
                     </header>
 
-                    <div className="space-y-8">
-                        <section className="space-y-2" aria-label="Periodo de vestuario">
-                            <SectionLabel compact>Periodo de captura</SectionLabel>
-                            {hayPeriodo ? (
-                                <PeriodoBloqueAdmin periodo={periodo} capturaAbierta={capturaAbierta} />
-                            ) : (
-                                <SinPeriodoAdminMensaje canPeriodos={can('Ver periodos')} />
-                            )}
+                    {kpiTiles.length > 0 ? (
+                        <section className="space-y-3" aria-label="Indicadores">
+                            <SectionLabel>Resumen</SectionLabel>
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                                {kpiTiles.map((t) => (
+                                    <StatTile
+                                        key={t.key}
+                                        icon={t.icon}
+                                        label={t.label}
+                                        value={t.value}
+                                        hint={t.hint}
+                                    />
+                                ))}
+                            </div>
                         </section>
-
-                        {kpiTiles.length > 0 ? (
-                            <section className="space-y-3" aria-label="Indicadores">
-                                <SectionLabel>Resumen</SectionLabel>
-                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                                    {kpiTiles.map((t) => (
-                                        <StatTile
-                                            key={t.key}
-                                            icon={t.icon}
-                                            label={t.label}
-                                            value={t.value}
-                                            hint={t.hint}
-                                        />
-                                    ))}
-                                </div>
-                            </section>
-                        ) : null}
-                    </div>
+                    ) : null}
                 </div>
             </div>
         </>
