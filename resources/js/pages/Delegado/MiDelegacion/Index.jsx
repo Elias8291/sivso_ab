@@ -602,34 +602,45 @@ function ModalProductos({ empleado, open, onClose }) {
                 </button>
             </div>
 
-            {/* ── tabs ── */}
-            <div className="flex border-b border-zinc-100 px-5 dark:border-zinc-800">
-                {TABS.map((id) => {
-                    const labels = { licitados: 'Licitados', cotizados: 'Cotizados', categorias: 'Categorías' };
-                    const count = id === 'categorias'
-                        ? (data ? resumenCategorias.length : null)
-                        : (data?.[id]?.length ?? null);
-                    const active = tab === id;
-                    return (
-                        <button key={id} type="button" onClick={() => setTab(id)}
-                            className={`relative mr-5 pb-2.5 pt-1 text-[12px] font-medium transition-colors ${
-                                active
-                                    ? 'text-zinc-900 dark:text-zinc-50'
-                                    : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300'
-                            }`}
-                        >
-                            {labels[id]}
-                            {count != null && (
-                                <span className={`ml-1.5 tabular-nums text-[10px] ${active ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-300 dark:text-zinc-600'}`}>
-                                    {count}
-                                </span>
-                            )}
-                            {active && (
-                                <span className="absolute inset-x-0 bottom-0 h-px bg-zinc-900 dark:bg-zinc-100" />
-                            )}
-                        </button>
-                    );
-                })}
+            {/* ── tabs: ancho natural, alineados a la izquierda; scroll si no caben ── */}
+            <div className="border-b border-zinc-100 px-5 dark:border-zinc-800">
+                <div
+                    role="tablist"
+                    className="-mb-px flex max-w-full gap-1 overflow-x-auto overflow-y-hidden pb-px [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                    {TABS.map((id) => {
+                        const labels = { licitados: 'Licitados', cotizados: 'Cotizados', categorias: 'Categorías' };
+                        const count = id === 'categorias'
+                            ? (data ? resumenCategorias.length : null)
+                            : (data?.[id]?.length ?? null);
+                        const active = tab === id;
+                        return (
+                            <button
+                                key={id}
+                                type="button"
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => setTab(id)}
+                                className={`relative shrink-0 whitespace-nowrap border-b-2 pb-2.5 pl-1 pr-3 pt-1 text-left text-[12px] font-semibold transition-colors ${
+                                    active
+                                        ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50'
+                                        : 'border-transparent text-zinc-400 hover:border-zinc-200 hover:text-zinc-700 dark:text-zinc-500 dark:hover:border-zinc-700 dark:hover:text-zinc-300'
+                                }`}
+                            >
+                                {labels[id]}
+                                {count != null && (
+                                    <span
+                                        className={`ml-1.5 tabular-nums text-[10px] font-medium ${
+                                            active ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-300 dark:text-zinc-600'
+                                        }`}
+                                    >
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* ── lista ── */}
@@ -1330,34 +1341,60 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
 
                 <ResumenCategorias prendas={resumen_prendas} />
 
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-stretch sm:justify-between sm:gap-3">
-                    <div className="flex flex-wrap gap-0.5 rounded-md border border-zinc-200/80 bg-zinc-50/70 p-px dark:border-zinc-800 dark:bg-zinc-900/50">
-                        {FILTROS.map((f) => (
-                            <button key={f.key} type="button" onClick={() => handleFiltro(f.key)}
-                                className={`rounded px-2.5 py-1 text-[10px] font-medium sm:px-3 sm:py-1.5 sm:text-[11px] ${
-                                    filtro === f.key
-                                        ? 'bg-zinc-100 text-zinc-900 shadow-sm ring-1 ring-brand-gold/25 dark:bg-zinc-800 dark:text-zinc-50 dark:ring-brand-gold-soft/22'
-                                        : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                                }`}>
-                                {f.label}
-                            </button>
-                        ))}
+                <div className="mb-3 space-y-3">
+                    <div className="w-full">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+                            Filtrar lista
+                        </p>
+                        <div
+                            role="tablist"
+                            aria-label="Filtrar empleados por estado"
+                            className="flex flex-wrap justify-start gap-2"
+                        >
+                            {FILTROS.map((f) => {
+                                const active = filtro === f.key;
+                                return (
+                                    <button
+                                        key={f.key}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={active}
+                                        onClick={() => handleFiltro(f.key)}
+                                        className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition-all ${
+                                            active
+                                                ? 'border-brand-gold/55 bg-brand-gold/[0.12] text-zinc-900 shadow-[0_1px_0_rgba(0,0,0,0.04)] dark:border-brand-gold-soft/45 dark:bg-brand-gold-soft/[0.12] dark:text-zinc-50'
+                                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60'
+                                        }`}
+                                    >
+                                        {f.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                    <div className="flex min-h-[40px] min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200/90 bg-zinc-50 px-3 py-2 transition-[border-color,box-shadow] focus-within:border-brand-gold/40 focus-within:ring-1 focus-within:ring-brand-gold/15 dark:border-zinc-800 dark:bg-zinc-900/30 dark:focus-within:border-brand-gold-soft/35 dark:focus-within:ring-brand-gold-soft/12 sm:max-w-xs md:max-w-sm">
-                        <Search className="size-4 shrink-0 text-brand-gold/65 dark:text-brand-gold-soft/55" aria-hidden />
-                        <input
-                            type="search"
-                            placeholder="Buscar…"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full min-w-0 border-0 bg-transparent p-0 text-[13px] text-zinc-800 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                        />
-                        {search ? (
-                            <button type="button" onClick={() => setSearch('')}
-                                className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300">
-                                Limpiar
-                            </button>
-                        ) : null}
+                    <div className="w-full max-w-md">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+                            Búsqueda
+                        </p>
+                        <div className="flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-zinc-200/90 bg-white px-3 py-2 shadow-sm transition-[border-color,box-shadow] focus-within:border-brand-gold/45 focus-within:ring-2 focus-within:ring-brand-gold/10 dark:border-zinc-700 dark:bg-zinc-900/40 dark:focus-within:border-brand-gold-soft/40 dark:focus-within:ring-brand-gold-soft/10">
+                            <Search className="size-4 shrink-0 text-brand-gold/70 dark:text-brand-gold-soft/60" aria-hidden />
+                            <input
+                                type="search"
+                                placeholder="Nombre o NUE…"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full min-w-0 border-0 bg-transparent p-0 text-[13px] text-zinc-800 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                            />
+                            {search ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    className="shrink-0 rounded-full px-2 py-1 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                                >
+                                    Limpiar
+                                </button>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 

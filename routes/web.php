@@ -8,14 +8,15 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SolicitudMovimientoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Delegado\MiDelegacionController;
-use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Http\Controllers\Estructura\DelegacionController;
 use App\Http\Controllers\Estructura\DelegadoController;
 use App\Http\Controllers\Estructura\DependenciaController;
 use App\Http\Controllers\Estructura\EmpleadoController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Support\SivsoPermissions;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,7 +27,7 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
     $sidebarPlaceholder = static fn () => Inertia::render('Dashboard');
@@ -38,9 +39,7 @@ Route::middleware('auth')->group(function (): void {
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('vestuario.resumen');
 
-    Route::get('/delegado/panel', [MiDelegacionController::class, 'panel'])
-        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
-        ->name('delegado.panel');
+    Route::redirect('/delegado/panel', '/dashboard')->name('delegado.panel');
 
     Route::get('/mi-delegacion', [MiDelegacionController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)

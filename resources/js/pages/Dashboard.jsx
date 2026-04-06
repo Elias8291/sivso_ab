@@ -145,44 +145,54 @@ function DashboardPage() {
     return (
         <>
             <Head title="Panel" />
-            <div className="mx-auto w-full max-w-3xl space-y-10">
-                <header className="flex gap-4">
-                    <span
-                        className="mt-1 hidden h-14 w-1 shrink-0 rounded-full bg-gradient-to-b from-brand-gold/50 to-brand-gold/15 sm:block dark:from-brand-gold-soft/45 dark:to-brand-gold-soft/12"
-                        aria-hidden
-                    />
-                    <div className="min-w-0 flex-1 space-y-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-gold/90 dark:text-brand-gold-soft/85">
-                            Sistema integral de vestuario
-                        </p>
-                        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl">
-                            Panel principal
-                        </h1>
-                        <div className="flex flex-col gap-1 text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-                            <p>
-                                <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                                    {user?.name ?? 'Usuario'}
-                                </span>
-                                <span className="text-zinc-400 dark:text-zinc-600" aria-hidden>
-                                    {' · '}
-                                </span>
-                                <span className="font-mono text-[13px] text-zinc-500 dark:text-zinc-400">{displayId}</span>
+            <div className="w-full max-w-none space-y-6">
+                <header className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                    <div className="flex min-w-0 flex-1 gap-2.5 sm:gap-3">
+                        <span
+                            className="mt-0.5 h-6 w-0.5 shrink-0 rounded-full bg-gradient-to-b from-brand-gold/45 to-brand-gold/20 sm:h-7 sm:w-1 dark:from-brand-gold-soft/40 dark:to-brand-gold-soft/15"
+                            aria-hidden
+                        />
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-gold/90 dark:text-brand-gold-soft/85">
+                                Sistema integral de vestuario
                             </p>
-                            {delegado?.nombre_completo ? (
-                                <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
-                                    Perfil delegado:{' '}
-                                    <span className="text-zinc-700 dark:text-zinc-300">{delegado.nombre_completo}</span>
-                                    {delegado.delegaciones?.length ? (
-                                        <>
-                                            <span className="text-zinc-400"> — </span>
-                                            <span className="font-mono text-[12px]">{delegado.delegaciones.join(' · ')}</span>
-                                        </>
-                                    ) : null}
+                            <h1 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-xl">
+                                Panel principal
+                            </h1>
+                            <div className="w-full max-w-full whitespace-normal text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400 [overflow-wrap:anywhere] break-words">
+                                <p>
+                                    <span className="font-medium text-zinc-800 dark:text-zinc-100">
+                                        {user?.name ?? 'Usuario'}
+                                    </span>
+                                    <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
+                                        {' · '}
+                                    </span>
+                                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 sm:text-[12px]">
+                                        {displayId}
+                                    </span>
                                 </p>
-                            ) : null}
-                            {isSuperAdmin ? (
-                                <p className="text-[12px] font-medium text-zinc-500 dark:text-zinc-400">Super administrador</p>
-                            ) : null}
+                                {delegado?.nombre_completo ? (
+                                    <p className="mt-1 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                        Perfil delegado:{' '}
+                                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                            {delegado.nombre_completo}
+                                        </span>
+                                        {delegado.delegaciones?.length ? (
+                                            <>
+                                                <span className="text-zinc-300 dark:text-zinc-600"> — </span>
+                                                <span className="font-mono text-[11px] sm:text-[12px]">
+                                                    {delegado.delegaciones.join(' · ')}
+                                                </span>
+                                            </>
+                                        ) : null}
+                                    </p>
+                                ) : null}
+                                {isSuperAdmin ? (
+                                    <p className="mt-1 text-[12px] font-medium text-zinc-500 dark:text-zinc-400">
+                                        Super administrador
+                                    </p>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
                 </header>
