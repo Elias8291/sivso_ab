@@ -74,7 +74,7 @@ function Modal({ open, onClose, children }) {
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]" onClick={onClose} />
-            <div className="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-900/10 dark:bg-zinc-900 dark:ring-white/10 sm:max-h-[88vh]"
+            <div className="relative z-10 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-zinc-900/10 dark:bg-zinc-900 dark:ring-white/10 sm:max-h-[88vh]"
                 style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}>
                 {children}
             </div>
