@@ -141,6 +141,8 @@ class MiDelegacionController extends Controller
                         ->orWhere('nue', 'like', "%{$search}%");
                 });
             })
+            // En vista general, enviar bajas al final del listado.
+            ->orderByRaw("CASE WHEN estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
             ->orderBy('apellido_paterno')
             ->orderBy('apellido_materno')
             ->orderBy('nombre');

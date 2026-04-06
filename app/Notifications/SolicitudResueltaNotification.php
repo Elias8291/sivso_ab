@@ -25,6 +25,7 @@ class SolicitudResueltaNotification extends Notification
         $nombre   = $empleado
             ? strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}"))
             : 'Empleado';
+        $resueltaPor = $this->solicitud->resueltaPor?->name ?? 'S.Administración';
 
         $aprobada = $this->solicitud->estado === 'aprobada';
         $esBaja   = $this->solicitud->tipo   === 'baja';
@@ -35,11 +36,11 @@ class SolicitudResueltaNotification extends Notification
 
         $cuerpo = $aprobada
             ? ($esBaja
-                ? "La baja de {$nombre} fue aprobada por S.Administración."
-                : "El cambio de {$nombre} a delegación {$this->solicitud->delegacion_destino} fue aprobado.")
+                ? "La baja de {$nombre} fue aprobada por {$resueltaPor}."
+                : "El cambio de {$nombre} a delegación {$this->solicitud->delegacion_destino} fue aprobado por {$resueltaPor}.")
             : ($esBaja
-                ? "La solicitud de baja para {$nombre} fue rechazada."
-                : "La solicitud de cambio para {$nombre} fue rechazada.");
+                ? "La solicitud de baja para {$nombre} fue rechazada por {$resueltaPor}."
+                : "La solicitud de cambio para {$nombre} fue rechazada por {$resueltaPor}.");
 
         return [
             'tipo'    => 'solicitud_resuelta',
@@ -48,6 +49,7 @@ class SolicitudResueltaNotification extends Notification
             'url'     => '/mi-delegacion',
             'decision'=> $this->solicitud->estado,
             'tipo_sol'=> $this->solicitud->tipo,
+            'resuelta_por' => $resueltaPor,
         ];
     }
 }

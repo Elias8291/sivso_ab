@@ -212,6 +212,7 @@ class SolicitudMovimientoController extends Controller
         // Notificar al delegado que envió la solicitud.
         // notify() guarda en DB; SivsoNotificacion emite por WebSocket sin queue.
         if ($solicitud->solicitadaPor instanceof User) {
+            $solicitud->loadMissing(['empleado', 'resueltaPor']);
             $destinatario = $solicitud->solicitadaPor;
             $notification = new SolicitudResueltaNotification($solicitud);
             $destinatario->notify($notification);

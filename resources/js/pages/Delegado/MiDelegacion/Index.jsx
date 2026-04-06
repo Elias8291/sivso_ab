@@ -901,7 +901,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
     const esCambio = estadoDelegacion === 'cambio';
 
     const cardCls = esBaja
-        ? 'border-zinc-300 bg-zinc-50/80 dark:border-zinc-700 dark:bg-zinc-900/40'
+        ? 'border-rose-200 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/10'
         : esCambio
             ? 'border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/25'
             : vestuarioAbierto
@@ -914,7 +914,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
             : '';
 
     const avatarCls = esBaja
-        ? 'bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'
+        ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/35 dark:text-rose-400'
         : esCambio
             ? 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
             : completo
@@ -940,12 +940,12 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                     <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <span className={`min-w-0 break-words text-[13px] font-semibold tracking-wide ${
-                                esBaja ? 'text-zinc-400 line-through dark:text-zinc-500' : 'text-zinc-900 dark:text-zinc-100'
+                                esBaja ? 'text-rose-500/80 line-through dark:text-rose-400/80' : 'text-zinc-900 dark:text-zinc-100'
                             }`}>
                                 {empleado.nombre_completo}
                             </span>
                             {esBaja && (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-400">
                                     Baja
                                 </span>
                             )}
