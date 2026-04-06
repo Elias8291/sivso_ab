@@ -17,6 +17,7 @@ use App\Http\Controllers\Estructura\DependenciaController;
 use App\Http\Controllers\Estructura\EmpleadoController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\Vestuario\PartidaController;
 use App\Http\Controllers\Vestuario\ProductoController;
 use App\Http\Controllers\Vestuario\ResumenVestuarioController;
 use App\Support\SivsoPermissions;
@@ -107,7 +108,7 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/productos', [ProductoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_PRODUCTOS)
         ->name('productos.index');
-    Route::get('/partidas', $sidebarPlaceholder)
+    Route::get('/partidas', [PartidaController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_PARTIDAS)
         ->name('partidas.index');
     Route::get('/partidas-especificas', $sidebarPlaceholder)
