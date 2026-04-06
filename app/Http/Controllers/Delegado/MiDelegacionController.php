@@ -43,16 +43,17 @@ class MiDelegacionController extends Controller
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
         $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
 
-        $empleadosQuery = Empleado::query()
-            ->whereHas('asignaciones', fn ($q) => $q->where('anio', self::ANIO_REFERENCIA))
-            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion));
-
-        $total = (clone $empleadosQuery)->count();
-        $filasResumen = (clone $empleadosQuery)->get()->map(fn (Empleado $e) => $this->mapEmpleadoParaVista($e));
-
-        $listos = $filasResumen->filter(fn (array $f) => $this->empleadoVestuarioListo($f))->count();
-        $sinEmpezar = $filasResumen->filter(fn (array $f) => $f['total_prendas'] > 0 && $f['confirmadas'] === 0)->count();
-        $bajas = $filasResumen->filter(fn (array $f) => $f['estado_delegacion'] === 'baja')->count();
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion);
+        $total = $resumenVestuario->count();
+        $listos = $resumenVestuario
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+            ->count();
+        $sinEmpezar = $resumenVestuario
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
+            ->count();
+        $bajas = $resumenVestuario
+            ->filter(static fn (array $fila) => $fila['estado_delegacion'] === 'baja')
+            ->count();
 
         return Inertia::render('Delegado/Panel', [
             'resumen' => [
@@ -115,6 +116,10 @@ class MiDelegacionController extends Controller
         $user = $request->user();
 
         $search = $request->input('search');
+        $search = is_string($search) ? trim($search) : null;
+        if ($search === '') {
+            $search = null;
+        }
         $filtro = $request->input('filtro', 'todos');
         if (! is_string($filtro) || ! in_array($filtro, self::FILTROS_VISTA, true)) {
             $filtro = 'todos';
@@ -133,7 +138,7 @@ class MiDelegacionController extends Controller
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
             ->whereHas('asignaciones', fn ($q) => $q->where('anio', self::ANIO_REFERENCIA))
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion))
-            ->when($search, function ($query, $search) {
+            ->when($search !== null, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('apellido_paterno', 'like', "%{$search}%")
@@ -147,33 +152,36 @@ class MiDelegacionController extends Controller
             ->orderBy('apellido_materno')
             ->orderBy('nombre');
 
-        $total = (clone $empleadosQuery)->count();
-
-        $filasResumen = (clone $empleadosQuery)->get()->map(fn (Empleado $e) => $this->mapEmpleadoParaVista($e));
-
-        $listos = $filasResumen->filter(fn (array $fila) => $this->empleadoVestuarioListo($fila))->count();
-
-        // Sin ninguna prenda confirmada aún (mismo criterio que el filtro «Sin empezar»)
-        $sinEmpezar = $filasResumen->filter(
-            fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0
-        )->count();
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion, $search);
+        $total = $resumenVestuario->count();
+        $listos = $resumenVestuario
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+            ->count();
+        $sinEmpezar = $resumenVestuario
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
+            ->count();
 
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
         } elseif ($filtro === 'sin_nue') {
             $empleadosQuery->whereNull('nue');
         } elseif ($filtro === 'listos') {
+            $idsListos = $resumenVestuario
+                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+                ->pluck('id')
+                ->all();
             $this->restringirEmpleadosPorIds(
                 $empleadosQuery,
-                $filasResumen->filter(fn (array $f) => $this->empleadoVestuarioListo($f))->pluck('id')->all()
+                $idsListos
             );
         } elseif ($filtro === 'sin_empezar') {
+            $idsSinEmpezar = $resumenVestuario
+                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
+                ->pluck('id')
+                ->all();
             $this->restringirEmpleadosPorIds(
                 $empleadosQuery,
-                $filasResumen
-                    ->filter(fn (array $f) => $f['total_prendas'] > 0 && $f['confirmadas'] === 0)
-                    ->pluck('id')
-                    ->all()
+                $idsSinEmpezar
             );
         }
 
@@ -356,6 +364,47 @@ class MiDelegacionController extends Controller
         }
 
         $query->whereIn('id', $ids);
+    }
+
+    /**
+     * Resumen de vestuario por empleado para evitar N+1 al calcular métricas globales.
+     *
+     * @param  list<string>|null  $codigosDelegacion
+     * @return \Illuminate\Support\Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
+     */
+    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): \Illuminate\Support\Collection
+    {
+        return DB::table('empleado as e')
+            ->join('asignacion_empleado_producto as aep', function ($join): void {
+                $join->on('aep.empleado_id', '=', 'e.id')
+                    ->where('aep.anio', self::ANIO_REFERENCIA)
+                    ->whereNotNull('aep.producto_cotizado_id');
+            })
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('e.nombre', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('e.nue', 'like', "%{$search}%");
+                });
+            })
+            ->select([
+                'e.id',
+                'e.estado_delegacion',
+                DB::raw('COUNT(*) as total_prendas'),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) as confirmadas"),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja' THEN 1 ELSE 0 END) as bajas"),
+            ])
+            ->groupBy('e.id', 'e.estado_delegacion')
+            ->get()
+            ->map(static fn ($row): array => [
+                'id' => (int) $row->id,
+                'estado_delegacion' => (string) ($row->estado_delegacion ?? 'activo'),
+                'total_prendas' => (int) $row->total_prendas,
+                'confirmadas' => (int) $row->confirmadas,
+                'bajas' => (int) $row->bajas,
+            ]);
     }
 
     /**

@@ -25,7 +25,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('throttle:login')
+        ->name('login');
 });
 
 Route::get('/acuse-vestuario/r/{token}', [AcuseReciboPublicController::class, 'show'])
