@@ -60,9 +60,8 @@ class MiDelegacionController extends Controller
                 'anio_actual'    => self::ANIO_ACTUAL,
                 'anio_ref'       => self::ANIO_REFERENCIA,
             ],
-            'contexto'        => $contexto,
-            'periodo'         => $this->periodoActual(),
-            'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
+            'contexto' => $contexto,
+            'periodo'  => $this->periodoActual(),
         ]);
     }
 
