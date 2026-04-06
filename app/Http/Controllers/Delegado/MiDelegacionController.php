@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Delegado;
 
-use App\Http\Controllers\Controller;
 use App\Events\SivsoNotificacion;
+use App\Http\Controllers\Controller;
 use App\Models\AsignacionEmpleadoProducto;
 use App\Models\Delegacion;
 use App\Models\Empleado;
@@ -14,16 +14,18 @@ use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\NuevaSolicitudNotification;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MiDelegacionController extends Controller
 {
     private const ANIO_REFERENCIA = 2025; // año del que se copian asignaciones base
-    private const ANIO_ACTUAL     = 2026; // año sobre el que se trabaja
+
+    private const ANIO_ACTUAL = 2026; // año sobre el que se trabaja
 
     /** @var list<int> */
     private const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
@@ -37,32 +39,72 @@ class MiDelegacionController extends Controller
         $user = $request->user();
 
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
-        $contexto          = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
+        $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
 
         $empleadosQuery = Empleado::query()
             ->whereHas('asignaciones', fn ($q) => $q->where('anio', self::ANIO_REFERENCIA))
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion));
 
-        $total        = (clone $empleadosQuery)->count();
+        $total = (clone $empleadosQuery)->count();
         $filasResumen = (clone $empleadosQuery)->get()->map(fn (Empleado $e) => $this->mapEmpleadoParaVista($e));
 
-        $listos     = $filasResumen->filter(fn (array $f) => $this->empleadoVestuarioListo($f))->count();
+        $listos = $filasResumen->filter(fn (array $f) => $this->empleadoVestuarioListo($f))->count();
         $sinEmpezar = $filasResumen->filter(fn (array $f) => $f['total_prendas'] > 0 && $f['confirmadas'] === 0)->count();
-        $bajas      = $filasResumen->filter(fn (array $f) => $f['estado_delegacion'] === 'baja')->count();
+        $bajas = $filasResumen->filter(fn (array $f) => $f['estado_delegacion'] === 'baja')->count();
 
         return Inertia::render('Delegado/Panel', [
             'resumen' => [
-                'total'          => $total,
-                'listos'         => $listos,
-                'sin_empezar'    => $sinEmpezar,
-                'bajas'          => $bajas,
+                'total' => $total,
+                'listos' => $listos,
+                'sin_empezar' => $sinEmpezar,
+                'bajas' => $bajas,
                 'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
-                'anio_actual'    => self::ANIO_ACTUAL,
-                'anio_ref'       => self::ANIO_REFERENCIA,
+                'anio_actual' => self::ANIO_ACTUAL,
+                'anio_ref' => self::ANIO_REFERENCIA,
             ],
             'contexto' => $contexto,
-            'periodo'  => $this->periodoActual(),
+            'periodo' => $this->periodoActual(),
+            'mis_solicitudes' => $this->misSolicitudesParaPanel($user),
+            'solicitudes_count' => SolicitudMovimiento::query()
+                ->where('solicitada_por', $user->id)
+                ->count(),
         ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function misSolicitudesParaPanel(User $user): array
+    {
+        return SolicitudMovimiento::query()
+            ->where('solicitada_por', $user->id)
+            ->with(['empleado:id,nombre,apellido_paterno,apellido_materno,nue'])
+            ->latest()
+            ->limit(12)
+            ->get()
+            ->map(static function (SolicitudMovimiento $s): array {
+                $emp = $s->empleado;
+                $nombreEmp = $emp !== null
+                    ? trim(implode(' ', array_filter([
+                        (string) $emp->nombre,
+                        (string) $emp->apellido_paterno,
+                        (string) $emp->apellido_materno,
+                    ], static fn ($p) => $p !== '')))
+                    : '—';
+
+                return [
+                    'id' => $s->id,
+                    'tipo' => $s->tipo,
+                    'estado' => $s->estado,
+                    'delegacion_origen' => $s->delegacion_origen,
+                    'delegacion_destino' => $s->delegacion_destino,
+                    'empleado_label' => $nombreEmp !== '' ? $nombreEmp : '—',
+                    'empleado_nue' => $emp?->nue,
+                    'creado_relativo' => $s->created_at?->diffForHumans() ?? '',
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function index(Request $request): Response
@@ -92,9 +134,9 @@ class MiDelegacionController extends Controller
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
-                      ->orWhere('apellido_paterno', 'like', "%{$search}%")
-                      ->orWhere('apellido_materno', 'like', "%{$search}%")
-                      ->orWhere('nue', 'like', "%{$search}%");
+                        ->orWhere('apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('nue', 'like', "%{$search}%");
                 });
             })
             ->orderBy('apellido_paterno')
@@ -143,18 +185,18 @@ class MiDelegacionController extends Controller
             ->all();
 
         return Inertia::render('Delegado/MiDelegacion/Index', [
-            'empleados'        => $empleados,
-            'delegaciones'     => $delegaciones,
-            'contexto'         => $contexto,
-            'resumen'          => [
-                'total'       => $total,
-                'listos'      => $listos,
+            'empleados' => $empleados,
+            'delegaciones' => $delegaciones,
+            'contexto' => $contexto,
+            'resumen' => [
+                'total' => $total,
+                'listos' => $listos,
                 'sin_empezar' => $sinEmpezar,
-                'anio_ref'    => self::ANIO_REFERENCIA,
+                'anio_ref' => self::ANIO_REFERENCIA,
                 'anio_actual' => self::ANIO_ACTUAL,
             ],
-            'resumen_prendas'  => $this->resumenPorCategoria($codigosDelegacion),
-            'periodo'          => $this->periodoActual(),
+            'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
+            'periodo' => $this->periodoActual(),
             'filters' => array_merge(
                 $request->only(['search']),
                 ['filtro' => $filtro, 'per_page' => $perPage],
@@ -186,14 +228,14 @@ class MiDelegacionController extends Controller
             ])
             ->get()
             ->map(fn ($a) => [
-                'id'                   => $a->id,
-                'prenda'               => $a->prenda,
-                'clave'                => $a->clave,
-                'talla_anterior'       => $a->talla,
-                'talla'                => $a->talla_anio_actual ?? $a->talla,
-                'medida'               => $a->medida_anio_actual,
-                'estado'               => $a->estado_anio_actual ?? 'pendiente',
-                'observacion'          => $a->observacion_anio_actual,
+                'id' => $a->id,
+                'prenda' => $a->prenda,
+                'clave' => $a->clave,
+                'talla_anterior' => $a->talla,
+                'talla' => $a->talla_anio_actual ?? $a->talla,
+                'medida' => $a->medida_anio_actual,
+                'estado' => $a->estado_anio_actual ?? 'pendiente',
+                'observacion' => $a->observacion_anio_actual,
                 'talla_actualizada_at' => $a->talla_actualizada_at,
             ])
             ->values()
@@ -207,20 +249,20 @@ class MiDelegacionController extends Controller
             ->first();
 
         return [
-            'id'                     => $e->id,
-            'nombre_completo'        => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
-            'nue'                    => $e->nue,
-            'ur'                     => $e->ur,
-            'dependencia_nombre'     => $e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia',
-            'delegacion_codigo'      => $e->delegacion_codigo,
-            'estado_delegacion'      => $e->estado_delegacion ?? 'activo',
+            'id' => $e->id,
+            'nombre_completo' => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
+            'nue' => $e->nue,
+            'ur' => $e->ur,
+            'dependencia_nombre' => $e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia',
+            'delegacion_codigo' => $e->delegacion_codigo,
+            'estado_delegacion' => $e->estado_delegacion ?? 'activo',
             'observacion_delegacion' => $e->observacion_delegacion,
-            'vestuario'              => $asignaciones,
-            'confirmadas'            => $confirmadas,
-            'total_prendas'          => count($asignaciones),
-            'solicitud_pendiente'    => $solicitudPendiente ? [
-                'id'                 => $solicitudPendiente->id,
-                'tipo'               => $solicitudPendiente->tipo,
+            'vestuario' => $asignaciones,
+            'confirmadas' => $confirmadas,
+            'total_prendas' => count($asignaciones),
+            'solicitud_pendiente' => $solicitudPendiente ? [
+                'id' => $solicitudPendiente->id,
+                'tipo' => $solicitudPendiente->tipo,
                 'delegacion_destino' => $solicitudPendiente->delegacion_destino,
             ] : null,
         ];
@@ -263,31 +305,31 @@ class MiDelegacionController extends Controller
     public function actualizarTalla(Request $request, int $asignacionId): JsonResponse
     {
         $validated = $request->validate([
-            'talla'       => ['nullable', 'string', 'max:20'],
-            'medida'      => ['nullable', 'string', 'max:20'],
-            'estado'      => ['required', 'string', 'in:pendiente,confirmado,cambio,baja'],
+            'talla' => ['nullable', 'string', 'max:20'],
+            'medida' => ['nullable', 'string', 'max:20'],
+            'estado' => ['required', 'string', 'in:pendiente,confirmado,cambio,baja'],
             'observacion' => ['nullable', 'string', 'max:255'],
         ]);
 
         $asignacion = AsignacionEmpleadoProducto::query()->with('empleado')->findOrFail($asignacionId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $asignacion->empleado), 403);
         $asignacion->update([
-            'talla_anio_actual'       => $validated['talla'],
-            'medida_anio_actual'      => $validated['medida'],
-            'estado_anio_actual'      => $validated['estado'],
+            'talla_anio_actual' => $validated['talla'],
+            'medida_anio_actual' => $validated['medida'],
+            'estado_anio_actual' => $validated['estado'],
             'observacion_anio_actual' => $validated['observacion'] ?? null,
-            'talla_actualizada_at'    => now(),
+            'talla_actualizada_at' => now(),
         ]);
 
         return response()->json([
-            'data'    => [
-                'talla'       => $validated['talla'],
-                'medida'      => $validated['medida'],
-                'estado'      => $validated['estado'],
+            'data' => [
+                'talla' => $validated['talla'],
+                'medida' => $validated['medida'],
+                'estado' => $validated['estado'],
                 'observacion' => $validated['observacion'] ?? null,
             ],
             'message' => 'Vestuario actualizado correctamente.',
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 
@@ -301,16 +343,16 @@ class MiDelegacionController extends Controller
         $periodo = PeriodoVestuario::activo();
         if (! $periodo) {
             return response()->json([
-                'data'    => null,
+                'data' => null,
                 'message' => 'No hay un período de vestuario activo. Las actualizaciones están cerradas.',
-                'errors'  => null,
+                'errors' => null,
             ], 422);
         }
         $validated = $request->validate([
-            'items'            => ['required', 'array', 'min:1'],
-            'items.*.id'       => ['required', 'integer'],
-            'items.*.talla'    => ['nullable', 'string', 'max:20'],
-            'items.*.medida'   => ['nullable', 'string', 'max:20'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['required', 'integer'],
+            'items.*.talla' => ['nullable', 'string', 'max:20'],
+            'items.*.medida' => ['nullable', 'string', 'max:20'],
         ]);
 
         $empleado = Empleado::findOrFail($empleadoId);
@@ -327,26 +369,26 @@ class MiDelegacionController extends Controller
 
         if ($asignaciones->count() !== count($ids)) {
             return response()->json([
-                'data'    => null,
+                'data' => null,
                 'message' => 'Una o más asignaciones no pertenecen a este empleado.',
-                'errors'  => null,
+                'errors' => null,
             ], 422);
         }
 
         $now = now();
         foreach ($validated['items'] as $item) {
             $asignaciones[$item['id']]->update([
-                'talla_anio_actual'    => $item['talla']  ?? null,
-                'medida_anio_actual'   => $item['medida'] ?? null,
-                'estado_anio_actual'   => 'confirmado',
+                'talla_anio_actual' => $item['talla'] ?? null,
+                'medida_anio_actual' => $item['medida'] ?? null,
+                'estado_anio_actual' => 'confirmado',
                 'talla_actualizada_at' => $now,
             ]);
         }
 
         return response()->json([
-            'data'    => ['actualizadas' => count($validated['items'])],
+            'data' => ['actualizadas' => count($validated['items'])],
             'message' => 'Vestuario actualizado correctamente.',
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 
@@ -357,9 +399,9 @@ class MiDelegacionController extends Controller
     public function solicitarMovimiento(Request $request, int $empleadoId): JsonResponse
     {
         $validated = $request->validate([
-            'tipo'              => ['required', 'string', 'in:baja,cambio'],
-            'observacion'       => ['nullable', 'string', 'max:500'],
-            'nueva_delegacion'  => ['required_if:tipo,cambio', 'nullable', 'string', 'exists:delegacion,codigo'],
+            'tipo' => ['required', 'string', 'in:baja,cambio'],
+            'observacion' => ['nullable', 'string', 'max:500'],
+            'nueva_delegacion' => ['required_if:tipo,cambio', 'nullable', 'string', 'exists:delegacion,codigo'],
         ]);
 
         $empleado = Empleado::findOrFail($empleadoId);
@@ -372,19 +414,19 @@ class MiDelegacionController extends Controller
 
         if ($existente) {
             return response()->json([
-                'data'    => null,
+                'data' => null,
                 'message' => 'Ya existe una solicitud pendiente para este empleado.',
-                'errors'  => ['solicitud' => 'Pendiente de resolución por S.Administración.'],
+                'errors' => ['solicitud' => 'Pendiente de resolución por S.Administración.'],
             ], 422);
         }
 
         $solicitud = SolicitudMovimiento::create([
-            'empleado_id'             => $empleadoId,
-            'solicitada_por'          => Auth::id(),
-            'delegacion_origen'       => $empleado->delegacion_codigo,
-            'delegacion_destino'      => $validated['tipo'] === 'cambio' ? $validated['nueva_delegacion'] : null,
-            'tipo'                    => $validated['tipo'],
-            'estado'                  => 'pendiente',
+            'empleado_id' => $empleadoId,
+            'solicitada_por' => Auth::id(),
+            'delegacion_origen' => $empleado->delegacion_codigo,
+            'delegacion_destino' => $validated['tipo'] === 'cambio' ? $validated['nueva_delegacion'] : null,
+            'tipo' => $validated['tipo'],
+            'estado' => 'pendiente',
             'observacion_solicitante' => $validated['observacion'] ?? null,
         ]);
 
@@ -396,7 +438,7 @@ class MiDelegacionController extends Controller
 
         User::where('is_super_admin', true)
             ->get()
-            ->each(function (User $admin) use ($notification, $solicitud) {
+            ->each(function (User $admin) use ($notification) {
                 $admin->notify($notification);
                 $payload = array_merge($notification->toArray($admin), [
                     'id' => $admin->notifications()->latest()->first()?->id,
@@ -405,13 +447,13 @@ class MiDelegacionController extends Controller
             });
 
         return response()->json([
-            'data'    => [
+            'data' => [
                 'solicitud_id' => $solicitud->id,
-                'tipo'         => $solicitud->tipo,
-                'estado'       => $solicitud->estado,
+                'tipo' => $solicitud->tipo,
+                'estado' => $solicitud->estado,
             ],
             'message' => 'Solicitud enviada. S.Administración la revisará a la brevedad.',
-            'errors'  => null,
+            'errors' => null,
         ], 201);
     }
 
@@ -426,21 +468,21 @@ class MiDelegacionController extends Controller
         $estado = $empleado->estado_delegacion ?? 'activo';
         if (! in_array($estado, ['baja', 'cambio'], true)) {
             return response()->json([
-                'data'    => null,
+                'data' => null,
                 'message' => 'El empleado ya está activo en la delegación.',
-                'errors'  => ['estado' => 'No aplica reactivación.'],
+                'errors' => ['estado' => 'No aplica reactivación.'],
             ], 422);
         }
 
         $empleado->update([
-            'estado_delegacion'       => 'activo',
-            'observacion_delegacion'  => null,
+            'estado_delegacion' => 'activo',
+            'observacion_delegacion' => null,
         ]);
 
         return response()->json([
-            'data'    => null,
+            'data' => null,
             'message' => 'Empleado reactivado en tu listado.',
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 
@@ -452,13 +494,15 @@ class MiDelegacionController extends Controller
         $empleado = Empleado::findOrFail($empleadoId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
-        $parseClasifs = static function (string|null $raw): array {
+        $parseClasifs = static function (?string $raw): array {
             if (! $raw) {
                 return [];
             }
+
             return collect(explode(';;', $raw))
                 ->map(function ($item) {
                     [$codigo, $nombre] = array_pad(explode('|', $item, 2), 2, '');
+
                     return ['codigo' => $codigo, 'nombre' => $nombre];
                 })
                 ->values()
@@ -466,7 +510,7 @@ class MiDelegacionController extends Controller
         };
 
         // Licitados — producto base de la licitación
-        $licitados = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+        $licitados = DB::table('asignacion_empleado_producto as aep')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
             ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pl.clasificacion_principal_id')
             ->where('aep.empleado_id', $empleadoId)
@@ -503,13 +547,14 @@ class MiDelegacionController extends Controller
                 $arr = (array) $r;
                 $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
                 unset($arr['clasificaciones_raw']);
+
                 return $arr;
             })
             ->values()
             ->all();
 
         // Cotizados — producto contractual (puede ser null)
-        $cotizados = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+        $cotizados = DB::table('asignacion_empleado_producto as aep')
             ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
             ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pc.clasificacion_principal_id')
             ->where('aep.empleado_id', $empleadoId)
@@ -546,6 +591,7 @@ class MiDelegacionController extends Controller
                 $arr = (array) $r;
                 $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
                 unset($arr['clasificaciones_raw']);
+
                 return $arr;
             })
             ->values()
@@ -553,17 +599,17 @@ class MiDelegacionController extends Controller
 
         return response()->json([
             'data' => [
-                'empleado'  => [
-                    'id'             => $empleado->id,
-                    'nombre_completo'=> strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
-                    'nue'            => $empleado->nue,
+                'empleado' => [
+                    'id' => $empleado->id,
+                    'nombre_completo' => strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
+                    'nue' => $empleado->nue,
                 ],
-                'anio'      => self::ANIO_REFERENCIA,
+                'anio' => self::ANIO_REFERENCIA,
                 'licitados' => $licitados,
                 'cotizados' => $cotizados,
             ],
             'message' => null,
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 
@@ -583,9 +629,9 @@ class MiDelegacionController extends Controller
         $solicitud->delete();
 
         return response()->json([
-            'data'    => null,
+            'data' => null,
             'message' => 'Solicitud cancelada.',
-            'errors'  => null,
+            'errors' => null,
         ]);
     }
 
@@ -633,17 +679,17 @@ class MiDelegacionController extends Controller
      */
     private function resumenPorCategoria(?array $codigosDelegacion): array
     {
-        $query = \Illuminate\Support\Facades\DB::table('asignacion_empleado_producto as aep')
+        $query = DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
             ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
             ->select([
                 'aep.anio',
                 'pc.clave',
                 'pc.descripcion',
-                \Illuminate\Support\Facades\DB::raw('COUNT(*) as total'),
-                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
-                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
-                \Illuminate\Support\Facades\DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
             ])
             ->where('e.estado_delegacion', 'activo')
             ->whereNotNull('aep.producto_cotizado_id')
@@ -654,14 +700,14 @@ class MiDelegacionController extends Controller
             ->get();
 
         return $query->map(fn ($row) => [
-            'anio'        => $row->anio,
-            'clave'       => $row->clave,
+            'anio' => $row->anio,
+            'clave' => $row->clave,
             'descripcion' => $row->descripcion,
-            'total'       => (int) $row->total,
+            'total' => (int) $row->total,
             'confirmadas' => (int) $row->confirmadas,
-            'pendientes'  => (int) $row->pendientes,
-            'bajas'       => (int) $row->bajas,
-            'porcentaje'  => $row->total > 0 ? round(($row->confirmadas / $row->total) * 100) : 0,
+            'pendientes' => (int) $row->pendientes,
+            'bajas' => (int) $row->bajas,
+            'porcentaje' => $row->total > 0 ? round(($row->confirmadas / $row->total) * 100) : 0,
         ])->values()->all();
     }
 
@@ -673,9 +719,9 @@ class MiDelegacionController extends Controller
     {
         if ($user->is_super_admin) {
             return [
-                'modo'             => 'super_admin',
-                'delegaciones'     => [],
-                'delegado_nombre'  => null,
+                'modo' => 'super_admin',
+                'delegaciones' => [],
+                'delegado_nombre' => null,
             ];
         }
 
@@ -684,9 +730,9 @@ class MiDelegacionController extends Controller
 
         if (! $delegado) {
             return [
-                'modo'             => 'sin_perfil',
-                'delegaciones'     => [],
-                'delegado_nombre'  => null,
+                'modo' => 'sin_perfil',
+                'delegaciones' => [],
+                'delegado_nombre' => null,
             ];
         }
 
@@ -695,9 +741,9 @@ class MiDelegacionController extends Controller
             : $delegado->delegaciones->pluck('codigo')->unique()->values()->all();
 
         return [
-            'modo'             => 'delegado',
-            'delegaciones'     => $codigos,
-            'delegado_nombre'  => $delegado->nombre_completo,
+            'modo' => 'delegado',
+            'delegaciones' => $codigos,
+            'delegado_nombre' => $delegado->nombre_completo,
         ];
     }
 
@@ -712,13 +758,13 @@ class MiDelegacionController extends Controller
         }
 
         return [
-            'id'           => $p->id,
-            'nombre'       => $p->nombre,
-            'anio'         => $p->anio,
+            'id' => $p->id,
+            'nombre' => $p->nombre,
+            'anio' => $p->anio,
             'fecha_inicio' => $p->fecha_inicio?->format('Y-m-d'),
-            'fecha_fin'    => $p->fecha_fin?->format('Y-m-d'),
-            'estado'       => $p->estado,
-            'descripcion'  => $p->descripcion,
+            'fecha_fin' => $p->fecha_fin?->format('Y-m-d'),
+            'estado' => $p->estado,
+            'descripcion' => $p->descripcion,
         ];
     }
 }

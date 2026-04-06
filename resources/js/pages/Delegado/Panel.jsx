@@ -1,14 +1,12 @@
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
+    ArrowLeftRight,
     ArrowRight,
     Bell,
     CheckCircle2,
-    ChevronRight,
+    ClipboardList,
     LayoutList,
-    PieChart,
-    Shirt,
-    User,
     Users,
     XCircle,
 } from 'lucide-react';
@@ -23,27 +21,45 @@ function fmtCorto(d) {
     });
 }
 
-function SectionLabel({ children }) {
+/** Lista legible: "A", "A y B", "A, B y C" */
+function delegacionesComoTexto(codigos) {
+    if (!Array.isArray(codigos) || codigos.length === 0) {
+        return null;
+    }
+    if (codigos.length === 1) {
+        return codigos[0];
+    }
+    if (codigos.length === 2) {
+        return `${codigos[0]} y ${codigos[1]}`;
+    }
+    return `${codigos.slice(0, -1).join(', ')} y ${codigos[codigos.length - 1]}`;
+}
+
+function SectionLabel({ children, compact = false }) {
     return (
-        <div className="flex items-center gap-2.5">
+        <div className={compact ? 'flex items-center gap-2' : 'flex items-center gap-2.5'}>
             <span
-                className="h-3 w-px shrink-0 rounded-full bg-gradient-to-b from-brand-gold/70 to-brand-gold/25 dark:from-brand-gold-soft/65 dark:to-brand-gold-soft/20"
+                className={`w-px shrink-0 rounded-full bg-gradient-to-b from-brand-gold/70 to-brand-gold/25 dark:from-brand-gold-soft/65 dark:to-brand-gold-soft/20 ${compact ? 'h-2.5' : 'h-3'}`}
                 aria-hidden
             />
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{children}</p>
+            <p
+                className={`font-medium uppercase text-zinc-500 dark:text-zinc-400 ${compact ? 'text-[10px] tracking-[0.12em]' : 'text-[11px] tracking-[0.14em]'}`}
+            >
+                {children}
+            </p>
         </div>
     );
 }
 
 function SinPeriodoMensaje() {
     return (
-        <div className="rounded-2xl border border-dashed border-zinc-200/90 bg-zinc-50/30 px-5 py-4 dark:border-zinc-700/80 dark:bg-zinc-900/20">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Sin período de captura</p>
-            <p className="mt-2 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        <div className="rounded-xl border border-dashed border-zinc-200/90 bg-zinc-50/30 px-3.5 py-2.5 dark:border-zinc-700/80 dark:bg-zinc-900/20">
+            <p className="text-[12px] font-medium leading-snug text-zinc-900 dark:text-zinc-100">Sin período de captura</p>
+            <p className="mt-1.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
                 No hay un período de vestuario configurado. Puede{' '}
-                <span className="font-medium text-zinc-800 dark:text-zinc-200">consultar</span> empleados y estado del
-                vestuario en <span className="font-medium text-zinc-800 dark:text-zinc-200">Mi delegación</span>. La{' '}
-                <span className="font-medium text-zinc-800 dark:text-zinc-200">actualización de tallas</span> estará
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">consultar</span> empleados y estado del
+                vestuario en <span className="font-medium text-zinc-700 dark:text-zinc-300">Mi delegación</span>. La{' '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">actualización de tallas</span> estará
                 habilitada cuando exista un período abierto.
             </p>
         </div>
@@ -123,87 +139,106 @@ function CapturaProgress({ pct }) {
 
 function StatTile({ icon: Icon, label, value, hint }) {
     return (
-        <div className="flex flex-col rounded-2xl border border-zinc-200/75 border-l-[3px] border-l-brand-gold/40 bg-zinc-50/40 px-4 py-3.5 dark:border-zinc-800 dark:border-l-brand-gold-soft/35 dark:bg-zinc-900/25">
-            <div className="flex items-start justify-between gap-2">
-                <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+        <div className="flex flex-col rounded-xl border border-zinc-200/75 border-l-2 border-l-brand-gold/40 bg-zinc-50/40 px-2.5 py-2 dark:border-zinc-800 dark:border-l-brand-gold-soft/35 dark:bg-zinc-900/25">
+            <div className="flex items-center justify-between gap-1.5">
+                <span className="text-[9px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
                 <Icon
-                    className="size-3.5 shrink-0 text-brand-gold/55 dark:text-brand-gold-soft/50"
+                    className="size-3 shrink-0 text-brand-gold/50 dark:text-brand-gold-soft/45"
                     strokeWidth={1.75}
                     aria-hidden
                 />
             </div>
-            <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
-                {value}
-            </p>
+            <p className="mt-0.5 text-lg font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{value}</p>
             {hint ? (
-                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">{hint}</p>
+                <p className="mt-0.5 line-clamp-1 text-[9px] leading-snug text-zinc-400 dark:text-zinc-500">{hint}</p>
             ) : null}
         </div>
     );
 }
 
-function ActionRow({ href, title, subtitle, icon: Icon, badge, emphasis }) {
-    const base =
-        'group flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold/40';
-    const normal = `${base} hover:bg-zinc-50 dark:hover:bg-zinc-800/40`;
-    const strong = `${base} bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200`;
+const ESTADO_SOL_LABEL = {
+    pendiente: 'Pendiente',
+    aprobada: 'Aprobada',
+    rechazada: 'Rechazada',
+};
+
+function PanelMisSolicitudes({ solicitudes }) {
+    const list = Array.isArray(solicitudes) ? solicitudes : [];
 
     return (
-        <Link href={href} className={emphasis ? strong : normal}>
-            <span
-                className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-                    emphasis
-                        ? 'bg-white/10 text-white dark:bg-zinc-900/10 dark:text-zinc-900'
-                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-300'
-                }`}
-            >
-                <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
-                    <span
-                        className={`truncate text-[13px] font-medium ${
-                            emphasis ? 'text-white dark:text-zinc-900' : 'text-zinc-900 dark:text-zinc-50'
-                        }`}
-                    >
-                        {title}
-                    </span>
-                    {badge != null && badge > 0 ? (
-                        <span className="shrink-0 rounded-md bg-zinc-800 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white dark:bg-zinc-900 dark:text-zinc-100">
-                            {badge > 9 ? '9+' : badge}
-                        </span>
-                    ) : null}
-                </span>
-                {subtitle ? (
-                    <span
-                        className={`mt-0.5 block truncate text-[12px] ${
-                            emphasis ? 'text-zinc-400 dark:text-zinc-600' : 'text-zinc-500 dark:text-zinc-400'
-                        }`}
-                    >
-                        {subtitle}
-                    </span>
-                ) : null}
-            </span>
-            {emphasis ? (
-                <ArrowRight
-                    className="size-4 shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 dark:text-zinc-500"
-                    strokeWidth={1.75}
-                    aria-hidden
-                />
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-950/80">
+            {list.length === 0 ? (
+                <p className="px-3 py-3 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    Aún no has enviado solicitudes de baja o cambio de delegación.
+                </p>
             ) : (
-                <ChevronRight
-                    className="size-4 shrink-0 text-zinc-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/75 dark:text-zinc-600 dark:group-hover:text-brand-gold-soft/80"
-                    strokeWidth={1.75}
-                    aria-hidden
-                />
+                <ul className="max-h-[220px] divide-y divide-zinc-100 overflow-y-auto dark:divide-zinc-800/80">
+                    {list.map((s) => (
+                        <li key={s.id} className="px-3 py-2">
+                            <div className="flex items-start justify-between gap-2">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                    {s.tipo === 'cambio' ? (
+                                        <ArrowLeftRight
+                                            className="size-3 shrink-0 text-brand-gold/55 dark:text-brand-gold-soft/50"
+                                            strokeWidth={1.75}
+                                            aria-hidden
+                                        />
+                                    ) : (
+                                        <XCircle
+                                            className="size-3 shrink-0 text-brand-gold/55 dark:text-brand-gold-soft/50"
+                                            strokeWidth={1.75}
+                                            aria-hidden
+                                        />
+                                    )}
+                                    <span className="min-w-0 text-[11px] font-medium text-zinc-900 dark:text-zinc-100">
+                                        <span className="block truncate">{s.empleado_label}</span>
+                                        {s.empleado_nue ? (
+                                            <span className="font-mono text-[10px] font-normal text-zinc-500 dark:text-zinc-400">
+                                                {s.empleado_nue}
+                                            </span>
+                                        ) : null}
+                                    </span>
+                                </span>
+                                <span
+                                    className={`shrink-0 rounded-md px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide ${
+                                        s.estado === 'pendiente'
+                                            ? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                            : s.estado === 'aprobada'
+                                              ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                                              : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                                    }`}
+                                >
+                                    {ESTADO_SOL_LABEL[s.estado] ?? s.estado}
+                                </span>
+                            </div>
+                            <p className="mt-1 pl-[18px] text-[10px] text-zinc-500 dark:text-zinc-400">
+                                {s.tipo === 'cambio'
+                                    ? `Cambio · ${s.delegacion_origen} → ${s.delegacion_destino ?? '—'}`
+                                    : 'Baja solicitada'}
+                                {s.creado_relativo ? (
+                                    <span className="text-zinc-400 dark:text-zinc-500"> · {s.creado_relativo}</span>
+                                ) : null}
+                            </p>
+                        </li>
+                    ))}
+                </ul>
             )}
-        </Link>
+            <div className="border-t border-zinc-100 px-3 py-2 dark:border-zinc-800/80">
+                <Link
+                    href={route('my-delegation.index')}
+                    className="text-[10px] font-semibold uppercase tracking-wide text-brand-gold hover:underline dark:text-brand-gold-soft"
+                >
+                    Ir a mi delegación
+                </Link>
+            </div>
+        </div>
     );
 }
 
-function PanelDelegado({ resumen, contexto, periodo }) {
+function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solicitudes_count = 0 }) {
     const { notificaciones = [] } = usePage().props;
     const notifCount = Array.isArray(notificaciones) ? notificaciones.length : 0;
+    const solicitudesTotal = typeof solicitudes_count === 'number' ? solicitudes_count : 0;
 
     const anio = resumen.anio_actual ?? new Date().getFullYear();
     const pct = Math.min(100, Math.max(0, resumen.pct_completado ?? 0));
@@ -214,6 +249,7 @@ function PanelDelegado({ resumen, contexto, periodo }) {
 
     const nombre = contexto.delegado_nombre;
     const delegaciones = contexto.delegaciones ?? [];
+    const delegacionesTexto = delegacionesComoTexto(delegaciones);
 
     const hayPeriodo = periodo != null;
     const capturaAbierta = hayPeriodo && periodo.estado === 'abierto';
@@ -228,31 +264,6 @@ function PanelDelegado({ resumen, contexto, periodo }) {
     const hintCompletosCaptura = `${pct}% con vestuario confirmado`;
 
     const tituloPrincipal = capturaAbierta ? 'Actualizar en mi delegación' : 'Consultar mi delegación';
-    const hintPrincipal = capturaAbierta
-        ? 'Empleados, tallas y solicitudes'
-        : 'Consulta sin edición de tallas';
-
-    const resumenLink = {
-        href: route('vestuario.resumen'),
-        title: 'Resumen por categoría',
-        subtitle: 'Vista consolidada de vestuario',
-        icon: PieChart,
-    };
-    const notifLink = {
-        href: route('notificaciones.index'),
-        title: 'Notificaciones',
-        subtitle: notifCount > 0 ? `${notifCount} sin leer` : 'Avisos del sistema',
-        icon: Bell,
-        badge: notifCount,
-    };
-    const cuentaLink = {
-        href: route('profile.edit'),
-        title: 'Mi cuenta',
-        subtitle: 'Datos personales y contraseña',
-        icon: User,
-    };
-
-    const secondaryActions = capturaAbierta ? [resumenLink, notifLink, cuentaLink] : [notifLink, resumenLink, cuentaLink];
 
     return (
         <>
@@ -283,9 +294,37 @@ function PanelDelegado({ resumen, contexto, periodo }) {
                                         </>
                                     )}
                                 </h1>
+                                {delegacionesTexto ? (
+                                    <p className="pt-1 text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                        Eres delegado de{' '}
+                                        <span className="font-medium text-zinc-800 [overflow-wrap:anywhere] dark:text-zinc-200">
+                                            {delegacionesTexto}
+                                        </span>
+                                        .
+                                    </p>
+                                ) : (
+                                    <p className="pt-1 text-[12px] text-zinc-500 dark:text-zinc-400">
+                                        Aún no tienes delegaciones asignadas.
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/90 to-transparent dark:via-zinc-700/70" aria-hidden />
+                        <div className="flex flex-col items-center px-1 text-center">
+                            <Link
+                                href={route('my-delegation.index')}
+                                className="group inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200/90 bg-zinc-50/90 px-5 py-2.5 shadow-sm transition-colors hover:border-brand-gold/45 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/45 dark:shadow-none dark:hover:border-brand-gold-soft/40 dark:hover:bg-zinc-800/55"
+                            >
+                                <span className="text-[13px] font-semibold tracking-tight text-zinc-800 transition-colors group-hover:text-brand-gold dark:text-zinc-100 dark:group-hover:text-brand-gold-soft">
+                                    {tituloPrincipal}
+                                </span>
+                                <ArrowRight
+                                    className="size-[18px] shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/65 dark:text-zinc-500 dark:group-hover:text-brand-gold-soft/70"
+                                    strokeWidth={1.5}
+                                    aria-hidden
+                                />
+                            </Link>
+                        </div>
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
                             {delegaciones.length > 0 ? (
                                 <div className="flex min-w-0 flex-wrap gap-2">
@@ -318,82 +357,63 @@ function PanelDelegado({ resumen, contexto, periodo }) {
                         </div>
                     </header>
 
-                    <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-                        <div className="space-y-8 lg:col-span-7 xl:col-span-8">
-                            <section className="space-y-3" aria-label="Estado del período de captura">
-                                <SectionLabel>{tituloPeriodoSeccion}</SectionLabel>
-                                {hayPeriodo ? (
-                                    <PeriodoBloque periodo={periodo} capturaAbierta={capturaAbierta} />
-                                ) : (
-                                    <SinPeriodoMensaje />
-                                )}
-                            </section>
+                    <div className="space-y-8">
+                        <section className="space-y-2" aria-label="Estado del período de captura">
+                            <SectionLabel compact>{tituloPeriodoSeccion}</SectionLabel>
+                            {hayPeriodo ? (
+                                <PeriodoBloque periodo={periodo} capturaAbierta={capturaAbierta} />
+                            ) : (
+                                <SinPeriodoMensaje />
+                            )}
+                        </section>
 
+                        {capturaAbierta ? (
+                            <section aria-label="Avance">
+                                <CapturaProgress pct={pct} />
+                            </section>
+                        ) : null}
+
+                        <section className="space-y-3" aria-label="Indicadores">
+                            <SectionLabel>{tituloKpis}</SectionLabel>
                             {capturaAbierta ? (
-                                <section aria-label="Avance">
-                                    <CapturaProgress pct={pct} />
-                                </section>
-                            ) : null}
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    <StatTile icon={Users} label="Personal" value={total} hint="Captura" />
+                                    <StatTile icon={CheckCircle2} label="Listos" value={listos} hint={hintCompletosCaptura} />
+                                    <StatTile icon={LayoutList} label="Pendientes" value={sinEmpezar} hint="Sin confirmar" />
+                                    <StatTile icon={XCircle} label="Bajas" value={bajas} hint="En delegación" />
+                                    <StatTile icon={Bell} label="Notificaciones" value={notifCount} hint="Sin leer" />
+                                    <StatTile
+                                        icon={ClipboardList}
+                                        label="Solicitudes"
+                                        value={solicitudesTotal}
+                                        hint="Total enviadas"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                    <StatTile icon={Users} label="Personal" value={total} hint="Delegación" />
+                                    <StatTile icon={XCircle} label="Bajas" value={bajas} hint="Registros" />
+                                    <StatTile icon={Bell} label="Notificaciones" value={notifCount} hint="Sin leer" />
+                                    <StatTile
+                                        icon={ClipboardList}
+                                        label="Solicitudes"
+                                        value={solicitudesTotal}
+                                        hint="Total enviadas"
+                                    />
+                                </div>
+                            )}
+                        </section>
 
-                            <section className="space-y-3" aria-label="Indicadores">
-                                <SectionLabel>{tituloKpis}</SectionLabel>
-                                {capturaAbierta ? (
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        <StatTile icon={Users} label="Personal" value={total} hint="Sujeto a captura" />
-                                        <StatTile
-                                            icon={CheckCircle2}
-                                            label="Completos"
-                                            value={listos}
-                                            hint={hintCompletosCaptura}
-                                        />
-                                        <StatTile
-                                            icon={LayoutList}
-                                            label="Sin completar"
-                                            value={sinEmpezar}
-                                            hint="Pendientes de confirmar tallas"
-                                        />
-                                        <StatTile icon={XCircle} label="Bajas" value={bajas} hint="Registros dados de baja" />
-                                    </div>
-                                ) : (
-                                    <div className="grid max-w-xl gap-3 sm:grid-cols-2">
-                                        <StatTile icon={Users} label="Personal" value={total} hint="En su delegación" />
-                                        <StatTile icon={XCircle} label="Bajas" value={bajas} hint="Registros dados de baja" />
-                                    </div>
-                                )}
-                            </section>
-                        </div>
-
-                        <aside className="lg:col-span-5 xl:col-span-4">
-                            <div className="space-y-3 lg:sticky lg:top-4">
-                                <SectionLabel>Accesos</SectionLabel>
-                                <nav
-                                    className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:divide-zinc-800/80 dark:border-zinc-800 dark:bg-zinc-950/80"
-                                    aria-label="Enlaces rápidos"
-                                >
-                                    <div className="p-1.5">
-                                        <ActionRow
-                                            href={route('my-delegation.index')}
-                                            title={tituloPrincipal}
-                                            subtitle={hintPrincipal}
-                                            icon={Shirt}
-                                            emphasis
-                                        />
-                                    </div>
-                                    <div className="space-y-0.5 p-1.5 pt-0">
-                                        {secondaryActions.map((a) => (
-                                            <ActionRow
-                                                key={a.href + a.title}
-                                                href={a.href}
-                                                title={a.title}
-                                                subtitle={a.subtitle}
-                                                icon={a.icon}
-                                                badge={a.badge}
-                                            />
-                                        ))}
-                                    </div>
-                                </nav>
-                            </div>
-                        </aside>
+                        <section
+                            className="space-y-3 border-t border-zinc-200/80 pt-8 dark:border-zinc-800/80"
+                            aria-label="Mis solicitudes de movimiento"
+                        >
+                            <SectionLabel>Mis solicitudes</SectionLabel>
+                            <p className="text-[10px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                Bajas y cambios de delegación que enviaste a administración.
+                            </p>
+                            <PanelMisSolicitudes solicitudes={mis_solicitudes} />
+                        </section>
                     </div>
                 </div>
             </div>
