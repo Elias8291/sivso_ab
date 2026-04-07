@@ -52,6 +52,9 @@ function notifCfg(tipo, decision, tipoSol) {
 }
 
 function notifTipoTexto(notif) {
+    if (notif.tipo === 'periodo_abierto' || notif.tipo === 'periodo_cerrado') {
+        return 'Aviso de período:';
+    }
     if (notif.tipo === 'solicitud_resuelta') {
         return notif.decision === 'aprobada' ? 'Solicitud aprobada:' : 'Solicitud rechazada:';
     }
