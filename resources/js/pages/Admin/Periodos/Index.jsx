@@ -54,7 +54,7 @@ function PeriodoField({ label, id, type = 'text', k, ph = '', required = false, 
 }
 
 /* ── Modal crear/editar ── */
-function ModalPeriodo({ open, onClose, periodo, onSaved }) {
+function ModalPeriodo({ onClose, periodo, onSaved }) {
     const isEdit = !!periodo;
     const [form, setForm] = useState({
         anio:         periodo?.anio         ?? new Date().getFullYear(),
@@ -65,8 +65,6 @@ function ModalPeriodo({ open, onClose, periodo, onSaved }) {
     });
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
-
-    if (!open) return null;
 
     const set = (k, v) => { setForm((p) => ({ ...p, [k]: v })); setErrors((e) => ({ ...e, [k]: null })); };
 
@@ -310,12 +308,14 @@ function PeriodosIndex({ periodos: initial = [], filters = {} }) {
                 )}
             </AdminPageShell>
 
-            <ModalPeriodo
-                open={!!modalPeriodo}
-                onClose={() => setModalPeriodo(null)}
-                periodo={modalPeriodo === 'nuevo' ? null : modalPeriodo}
-                onSaved={onSaved}
-            />
+            {modalPeriodo !== null && (
+                <ModalPeriodo
+                    key={typeof modalPeriodo === 'object' ? modalPeriodo.id : 'nuevo'}
+                    onClose={() => setModalPeriodo(null)}
+                    periodo={modalPeriodo === 'nuevo' ? null : modalPeriodo}
+                    onSaved={onSaved}
+                />
+            )}
         </>
     );
 }
