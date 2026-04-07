@@ -1201,7 +1201,8 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     const perPage = PER_PAGE_OPCIONES.includes(Number(filters.per_page))
         ? Number(filters.per_page)
         : 20;
-    const esVistaIndependiente = typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-');
+    const esVistaIndependiente = filters.modo === 'independiente'
+        || (typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-'));
     const moduleTitle = esVistaIndependiente ? 'Delegación independiente' : 'Mi Delegación';
 
     const navegar = (overrides = {}) => {
@@ -1210,6 +1211,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
             per_page: overrides.per_page !== undefined ? overrides.per_page : perPage,
             page: overrides.page !== undefined ? overrides.page : 1,
             delegacion_codigo: filters.delegacion_codigo ?? undefined,
+            modo: filters.modo ?? undefined,
         };
         const s = overrides.search !== undefined ? overrides.search : search;
         if (s) {
@@ -1435,7 +1437,9 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
 MiDelegacionIndex.layout = createAdminPageLayout('Mi Delegación');
 MiDelegacionIndex.layout = (page) => {
     const filtroCodigo = page?.props?.filters?.delegacion_codigo;
-    const esVistaInd = typeof filtroCodigo === 'string' && filtroCodigo.startsWith('IND-');
+    const modo = page?.props?.filters?.modo;
+    const esVistaInd = modo === 'independiente'
+        || (typeof filtroCodigo === 'string' && filtroCodigo.startsWith('IND-'));
     const layoutTitle = esVistaInd ? 'Delegación independiente' : 'Mi Delegación';
 
     return (

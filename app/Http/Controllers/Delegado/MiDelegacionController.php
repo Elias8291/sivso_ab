@@ -133,6 +133,8 @@ class MiDelegacionController extends Controller
         if ($delegacionCodigo === '') {
             $delegacionCodigo = null;
         }
+        $modoVista = $request->input('modo');
+        $modoVista = is_string($modoVista) ? trim($modoVista) : null;
 
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
         $codigosFiltro = $codigosDelegacion;
@@ -249,7 +251,7 @@ class MiDelegacionController extends Controller
             'periodo' => $this->periodoActual(),
             'filters' => array_merge(
                 $request->only(['search']),
-                ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo],
+                ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo, 'modo' => $modoVista],
             ),
         ]);
     }

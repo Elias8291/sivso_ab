@@ -116,7 +116,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                     <td className="px-3 py-2">
                                         <div className="flex justify-end gap-1.5">
                                             <Link
-                                                href={route('my-delegation.index', { delegacion_codigo: row.codigo })}
+                                                href={route('my-delegation.index', { delegacion_codigo: row.codigo, modo: 'independiente' })}
                                                 title={`Ver ${row.codigo}`}
                                                 className="rounded-md border border-zinc-200 p-1.5 text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
                                             >
