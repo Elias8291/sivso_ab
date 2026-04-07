@@ -12,6 +12,8 @@ import {
     CheckCircle2,
     Clock,
     Inbox,
+    Lock,
+    Unlock,
     XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -40,6 +42,28 @@ function cfg(tipo, decision, tipoSol) {
                   label:   'Rechazada',
                   labelCls:'bg-rose-50 text-rose-600 ring-rose-200/40 dark:bg-rose-950/20 dark:text-rose-400',
               };
+    }
+    if (tipo === 'periodo_abierto') {
+        return {
+            iconBg:  'bg-emerald-50 dark:bg-emerald-950/30',
+            iconClr: 'text-emerald-600 dark:text-emerald-400',
+            ring:    'ring-emerald-200/40 dark:ring-emerald-800/20',
+            dot:     'bg-emerald-500',
+            icon:    <Unlock className="size-5" strokeWidth={1.8} />,
+            label:   'Período abierto',
+            labelCls:'bg-emerald-50 text-emerald-700 ring-emerald-200/40 dark:bg-emerald-950/20 dark:text-emerald-400',
+        };
+    }
+    if (tipo === 'periodo_cerrado') {
+        return {
+            iconBg:  'bg-zinc-100 dark:bg-zinc-800/60',
+            iconClr: 'text-zinc-500 dark:text-zinc-400',
+            ring:    'ring-zinc-200/40 dark:ring-zinc-700/30',
+            dot:     'bg-zinc-400',
+            icon:    <Lock className="size-5" strokeWidth={1.8} />,
+            label:   'Período cerrado',
+            labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/40 dark:bg-zinc-800 dark:text-zinc-400',
+        };
     }
     return tipoSol === 'cambio'
         ? {

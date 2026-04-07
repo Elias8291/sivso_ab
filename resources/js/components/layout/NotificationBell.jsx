@@ -8,6 +8,8 @@ import {
     CheckCheck,
     CheckCircle2,
     ExternalLink,
+    Lock,
+    Unlock,
     XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -45,6 +47,12 @@ function notifCfg(tipo, decision, tipoSol) {
         return decision === 'aprobada'
             ? { iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', iconClr: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500', icon: <CheckCircle2 className="size-4" strokeWidth={1.8} /> }
             : { iconBg: 'bg-rose-50 dark:bg-rose-950/30',     iconClr: 'text-rose-500 dark:text-rose-400',       dot: 'bg-rose-500',     icon: <XCircle     className="size-4" strokeWidth={1.8} /> };
+    }
+    if (tipo === 'periodo_abierto') {
+        return { iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', iconClr: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500', icon: <Unlock className="size-4" strokeWidth={1.8} /> };
+    }
+    if (tipo === 'periodo_cerrado') {
+        return { iconBg: 'bg-zinc-100 dark:bg-zinc-800/60', iconClr: 'text-zinc-500 dark:text-zinc-400', dot: 'bg-zinc-400', icon: <Lock className="size-4" strokeWidth={1.8} /> };
     }
     return tipoSol === 'cambio'
         ? { iconBg: 'bg-slate-50 dark:bg-slate-950/30', iconClr: 'text-slate-500 dark:text-slate-400', dot: 'bg-slate-400', icon: <ArrowLeftRight className="size-4" strokeWidth={1.8} /> }
