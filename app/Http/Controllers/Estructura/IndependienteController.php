@@ -21,19 +21,28 @@ final class IndependienteController extends Controller
         $search = $request->input('search');
         $anio = SivsoVestuario::anioReferencia();
 
-        $stats = DB::table('empleado')
+        $vestuarioPorEmpleado = DB::table('asignacion_empleado_producto')
             ->select([
-                'empleado.delegacion_codigo',
-                DB::raw('COUNT(DISTINCT empleado.id) as total_empleados'),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
+                'empleado_id',
+                DB::raw('COUNT(*) as total_prendas'),
+                DB::raw("SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) as confirmadas"),
+                DB::raw("SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) as bajas"),
             ])
-            ->leftJoin('asignacion_empleado_producto as aep', function ($join) use ($anio): void {
-                $join->on('aep.empleado_id', '=', 'empleado.id')
-                    ->where('aep.anio', '=', $anio);
-            })
-            ->where('empleado.estado_delegacion', 'activo')
-            ->groupBy('empleado.delegacion_codigo')
+            ->where('anio', $anio)
+            ->groupBy('empleado_id');
+
+        $stats = DB::table('empleado as e')
+            ->leftJoinSub($vestuarioPorEmpleado, 'v', 'v.empleado_id', '=', 'e.id')
+            ->select([
+                'e.delegacion_codigo',
+                DB::raw('COUNT(DISTINCT e.id) as total_empleados'),
+                DB::raw("SUM(CASE
+                    WHEN COALESCE(v.total_prendas, 0) > 0
+                     AND COALESCE(v.confirmadas, 0) >= (COALESCE(v.total_prendas, 0) - COALESCE(v.bajas, 0))
+                    THEN 1 ELSE 0 END) as empleados_actualizados"),
+            ])
+            ->where('e.estado_delegacion', 'activo')
+            ->groupBy('e.delegacion_codigo')
             ->get()
             ->keyBy('delegacion_codigo');
 
@@ -59,8 +68,8 @@ final class IndependienteController extends Controller
                     'ur_referencia' => $row->ur_referencia,
                     'referencia_nombre' => $row->dependenciaReferencia?->nombre,
                     'total_empleados' => (int) ($s?->total_empleados ?? 0),
-                    'actualizados' => (int) ($s?->confirmadas ?? 0),
-                    'faltan' => (int) ($s?->pendientes ?? 0),
+                    'actualizados' => (int) ($s?->empleados_actualizados ?? 0),
+                    'faltan' => max(0, (int) ($s?->total_empleados ?? 0) - (int) ($s?->empleados_actualizados ?? 0)),
                 ];
             });
 
