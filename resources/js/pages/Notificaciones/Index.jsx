@@ -2,7 +2,7 @@ import TablePagination from '@/components/admin/TablePagination';
 import echo, { isWebsocketRealtimeEnabled } from '@/echo';
 import { getPollIntervalMs } from '@/lib/realtimePoll';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     ArrowLeftRight,
@@ -145,6 +145,7 @@ function EmptyState() {
 const NOTIFICACIONES_INDEX_POLL_MS = 12_000;
 
 function NotificacionesIndex({ notificaciones }) {
+    const { auth } = usePage().props;
     const [items, setItems]  = useState(notificaciones.data);
 
     useEffect(() => {
