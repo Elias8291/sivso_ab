@@ -1287,34 +1287,31 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                     Actualiza tallas, solicita cambio de delegación o baja desde cada fila.
                 </p>
 
-                {/* ── Banner período ── */}
+                {/* ── Indicador período ── */}
                 {periodo && periodo.estado !== 'abierto' && (
-                    <div className="mb-3 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-                        <Lock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
-                        <div>
-                            <p className="text-[12px] font-medium leading-tight text-zinc-700 dark:text-zinc-300">
-                                {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
-                                {' · '}<span className="font-normal">{periodo.nombre}</span>
-                            </p>
-                            <p className="text-[11px] leading-tight text-zinc-500 dark:text-zinc-400">
-                                La actualización de tallas no está disponible en este momento.
-                            </p>
-                        </div>
-                    </div>
+                    <p className="mb-3 flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <Lock className="size-3 shrink-0" strokeWidth={2} />
+                        <span>
+                            {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
+                            <span className="mx-1 text-zinc-300 dark:text-zinc-600" aria-hidden>·</span>
+                            {periodo.nombre}
+                        </span>
+                    </p>
                 )}
                 {periodo?.estado === 'abierto' && (
-                    <div className="mb-3 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 dark:border-emerald-800/40 dark:bg-emerald-950/20">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
-                        <p className="text-[12px] text-emerald-800 dark:text-emerald-300">
-                            <span className="font-medium">Período abierto</span>
-                            {' · '}{periodo.nombre}
+                    <p className="mb-3 flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                        <span className="size-1.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                        <span>
+                            <span className="font-medium text-zinc-700 dark:text-zinc-300">Período abierto</span>
+                            <span className="mx-1 text-zinc-300 dark:text-zinc-600" aria-hidden>·</span>
+                            {periodo.nombre}
                             {periodo.fecha_fin && (
-                                <span className="ml-1 font-normal text-emerald-700 dark:text-emerald-400">
-                                    — hasta el {new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                <span className="text-zinc-400 dark:text-zinc-500">
+                                    {' — hasta el '}{new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
                             )}
-                        </p>
-                    </div>
+                        </span>
+                    </p>
                 )}
 
                 <div className="mb-3 grid gap-2 sm:grid-cols-3">
