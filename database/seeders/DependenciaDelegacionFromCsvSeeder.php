@@ -24,6 +24,6 @@ class DependenciaDelegacionFromCsvSeeder extends Seeder
                 'delegacion_codigo' => $codigo,
             ];
         }
-        $this->sivsoInsertChunks('dependencia_delegacion', $rows);
+        $this->sivsoInsertOrIgnoreChunks('dependencia_delegacion', $rows);
     }
 }

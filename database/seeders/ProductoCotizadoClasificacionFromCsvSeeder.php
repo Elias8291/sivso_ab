@@ -28,6 +28,6 @@ class ProductoCotizadoClasificacionFromCsvSeeder extends Seeder
                 'clasificacion_id' => $this->sivsoToInt($r['clasificacion_id'] ?? '0'),
             ];
         }
-        $this->sivsoInsertChunks('producto_cotizado_clasificacion', $rows, 1000);
+        $this->sivsoInsertOrIgnoreChunks('producto_cotizado_clasificacion', $rows, 1000);
     }
 }

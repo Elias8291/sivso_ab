@@ -33,6 +33,27 @@ class ProductoLicitadoFromCsvSeeder extends Seeder
                 'clasificacion_principal_id' => $this->sivsoToIntOrNull($r['clasificacion_principal_id'] ?? null),
             ];
         }
-        $this->sivsoInsertChunks('producto_licitado', $rows, 500);
+        $this->sivsoUpsertChunks(
+            'producto_licitado',
+            $rows,
+            ['id'],
+            [
+                'anio',
+                'numero_partida',
+                'lote',
+                'partida_especifica',
+                'codigo_catalogo',
+                'descripcion',
+                'cantidad_propuesta',
+                'unidad',
+                'marca',
+                'precio_unitario',
+                'subtotal',
+                'proveedor',
+                'medida',
+                'clasificacion_principal_id',
+            ],
+            500,
+        );
     }
 }

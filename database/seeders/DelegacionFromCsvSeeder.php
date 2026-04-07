@@ -24,6 +24,6 @@ class DelegacionFromCsvSeeder extends Seeder
                 'ur_referencia' => $this->sivsoToIntOrNull($r['ur_referencia'] ?? null),
             ];
         }
-        $this->sivsoInsertChunks('delegacion', $rows);
+        $this->sivsoUpsertChunks('delegacion', $rows, ['codigo'], ['ur_referencia']);
     }
 }

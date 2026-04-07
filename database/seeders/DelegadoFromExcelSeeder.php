@@ -28,6 +28,6 @@ class DelegadoFromExcelSeeder extends Seeder
                 'nue' => $this->sivsoNullIfEmpty($r['nue'] ?? null),
             ];
         }
-        $this->sivsoInsertChunks('delegado', $rows);
+        $this->sivsoUpsertChunks('delegado', $rows, ['id'], ['nombre_completo', 'nue']);
     }
 }

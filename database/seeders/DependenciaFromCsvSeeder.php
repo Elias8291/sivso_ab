@@ -21,6 +21,6 @@ class DependenciaFromCsvSeeder extends Seeder
                 'nombre_corto' => $this->sivsoNullIfEmpty($r['nombre_corto'] ?? null),
             ];
         }
-        $this->sivsoInsertChunks('dependencia', $rows);
+        $this->sivsoUpsertChunks('dependencia', $rows, ['ur'], ['nombre', 'nombre_corto']);
     }
 }

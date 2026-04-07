@@ -20,6 +20,6 @@ class ProductoLicitadoClasificacionFromCsvSeeder extends Seeder
                 'clasificacion_id' => $this->sivsoToInt($r['clasificacion_id'] ?? '0'),
             ];
         }
-        $this->sivsoInsertChunks('producto_licitado_clasificacion', $rows, 1000);
+        $this->sivsoInsertOrIgnoreChunks('producto_licitado_clasificacion', $rows, 1000);
     }
 }

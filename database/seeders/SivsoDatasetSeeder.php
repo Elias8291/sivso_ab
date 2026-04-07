@@ -19,6 +19,8 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
  *
  * Nota: 14_configuracion_sivso.csv no tiene tabla en las migraciones actuales (se eliminó configuracion_sivso);
  * usa config de aplicación o .env para el año de catálogo si aplica.
+ *
+ * Re-ejecución: los seeders CSV usan upsert / insertOrIgnore para no fallar con 1062 si la base ya tiene datos.
  */
 class SivsoDatasetSeeder extends Seeder
 {

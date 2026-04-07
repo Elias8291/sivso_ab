@@ -26,6 +26,20 @@ class EmpleadoFromCsvSeeder extends Seeder
                 'delegacion_codigo' => $this->sivsoNormalizeDelegacionCodigo((string) ($r['delegacion_codigo'] ?? '')),
             ];
         }
-        $this->sivsoInsertChunks('empleado', $rows, 1000);
+        $this->sivsoUpsertChunks(
+            'empleado',
+            $rows,
+            ['id'],
+            [
+                'legacy_empleado_id',
+                'nue',
+                'nombre',
+                'apellido_paterno',
+                'apellido_materno',
+                'ur',
+                'delegacion_codigo',
+            ],
+            1000,
+        );
     }
 }

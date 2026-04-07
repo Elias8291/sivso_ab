@@ -41,6 +41,23 @@ class AsignacionEmpleadoProductoFromCsvSeeder extends Seeder
                 'legacy_concentrado_id' => $this->sivsoToIntOrNull($r['legacy_concentrado_id'] ?? null),
             ];
         }
-        $this->sivsoInsertChunks('asignacion_empleado_producto', $rows, 1000);
+        $this->sivsoUpsertChunks(
+            'asignacion_empleado_producto',
+            $rows,
+            ['id'],
+            [
+                'anio',
+                'empleado_id',
+                'producto_licitado_id',
+                'producto_cotizado_id',
+                'clave_partida_presupuestal',
+                'cantidad',
+                'talla',
+                'cantidad_secundaria',
+                'clave_presupuestal',
+                'legacy_concentrado_id',
+            ],
+            1000,
+        );
     }
 }

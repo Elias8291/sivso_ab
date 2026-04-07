@@ -136,6 +136,45 @@ trait ReadsSivsoCsv
     }
 
     /**
+     * Inserta u omite filas duplicadas (sin actualizar). Útil para tablas puente con solo PK compuesta.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    protected function sivsoInsertOrIgnoreChunks(string $table, array $rows, int $chunkSize = 500): void
+    {
+        if ($rows === []) {
+            return;
+        }
+
+        foreach (array_chunk($rows, $chunkSize) as $chunk) {
+            DB::table($table)->insertOrIgnore($chunk);
+        }
+    }
+
+    /**
+     * INSERT … ON DUPLICATE KEY UPDATE para re-sembrar sobre datos existentes sin error 1062.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @param  list<string>  $uniqueBy  Columnas de la clave única / primaria
+     * @param  list<string>  $update  Columnas a actualizar si ya existe la fila
+     */
+    protected function sivsoUpsertChunks(
+        string $table,
+        array $rows,
+        array $uniqueBy,
+        array $update,
+        int $chunkSize = 500,
+    ): void {
+        if ($rows === []) {
+            return;
+        }
+
+        foreach (array_chunk($rows, $chunkSize) as $chunk) {
+            DB::table($table)->upsert($chunk, $uniqueBy, $update);
+        }
+    }
+
+    /**
      * Índice del CSV 09: id de fila en el CSV → metadatos para localizar la fila en BD
      * (mismo criterio que el único producto_cotizado: licitado + clave + año).
      *

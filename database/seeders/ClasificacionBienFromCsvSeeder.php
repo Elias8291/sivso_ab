@@ -21,6 +21,6 @@ class ClasificacionBienFromCsvSeeder extends Seeder
                 'nombre' => (string) $r['nombre'],
             ];
         }
-        $this->sivsoInsertChunks('clasificacion_bien', $rows);
+        $this->sivsoUpsertChunks('clasificacion_bien', $rows, ['id'], ['codigo', 'nombre']);
     }
 }

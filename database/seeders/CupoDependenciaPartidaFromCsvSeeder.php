@@ -23,6 +23,11 @@ class CupoDependenciaPartidaFromCsvSeeder extends Seeder
                 'monto_limite' => (string) $r['monto_limite'],
             ];
         }
-        $this->sivsoInsertChunks('cupo_dependencia_partida', $rows);
+        $this->sivsoUpsertChunks(
+            'cupo_dependencia_partida',
+            $rows,
+            ['ur', 'numero_partida', 'partida_especifica', 'anio'],
+            ['monto_limite'],
+        );
     }
 }

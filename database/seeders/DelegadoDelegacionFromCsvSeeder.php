@@ -24,6 +24,6 @@ class DelegadoDelegacionFromCsvSeeder extends Seeder
                 'delegacion_codigo' => $codigo,
             ];
         }
-        $this->sivsoInsertChunks('delegado_delegacion', $rows);
+        $this->sivsoInsertOrIgnoreChunks('delegado_delegacion', $rows);
     }
 }
