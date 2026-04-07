@@ -129,8 +129,8 @@ export default function DataTable({
                                                 <td
                                                     key={col.key}
                                                     className={`align-middle text-[13px] text-zinc-600 dark:text-zinc-400 ${actions
-                                                            ? 'px-4 py-3.5 text-right whitespace-nowrap'
-                                                            : 'px-6 py-4'
+                                                        ? 'px-4 py-3.5 text-right whitespace-nowrap'
+                                                        : 'px-6 py-4'
                                                         } ${colIndex === 0 ? 'font-medium text-zinc-900 dark:text-zinc-100' : ''} ${col.cellClassName ?? ''}`}
                                                 >
                                                     {cellContent(col, row)}
