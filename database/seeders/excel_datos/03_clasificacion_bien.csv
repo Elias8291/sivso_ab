@@ -1,29 +1,29 @@
 ﻿id,codigo,nombre
-29,LAMPARA,Lampara o luminaria
+29,LAMPARA,"Lampara o luminaria"
 30,BOTA,Bota
-31,ZAPATO,Zapato / calzado cerrado
-32,SANDALIA,Sandalia u huarache
-33,PANTALON,Pantalon o mezclilla
+31,ZAPATO,"Zapato / calzado cerrado"
+32,SANDALIA,"Sandalia u huarache"
+33,PANTALON,"Pantalon o mezclilla"
 34,CAMISA,Camisa
 35,BLUSA,Blusa
-36,PLAYERA,Playera o polo
-37,CHAMARRA,Chamarra o abrigo
-38,CHALECO,Chaleco (caballero/dama)
-39,SACO,Saco o saco de vestir
+36,PLAYERA,"Playera o polo"
+37,CHAMARRA,"Chamarra o abrigo"
+38,CHALECO,"Chaleco (caballero/dama)"
+39,SACO,"Saco o saco de vestir"
 40,FALDA,Falda
 41,VESTIDO,Vestido
-42,SUDADERA,Sudadera o hoodie
-43,OVEROL,Overol o mameluco
+42,SUDADERA,"Sudadera o hoodie"
+43,OVEROL,"Overol o mameluco"
 44,GUANTE,Guante
-45,GORRA,Gorra o cachucha
+45,GORRA,"Gorra o cachucha"
 46,SOMBRERO,Sombrero
 47,CORBATA,Corbata
 48,CINTURON,Cinturon
-49,PANUELO,Panuelo o mandil
-50,CALCETIN,Calcetin o media
+49,PANUELO,"Panuelo o mandil"
+50,CALCETIN,"Calcetin o media"
 51,TRAJE,Traje
 52,FILIPINA,Filipina
 53,UNIFORME,Uniforme
-54,IMPERMEABLE,Impermeable o chubasquero
-55,MOCHILA,Mochila o morral
-56,SIN_CLASIFICAR,Sin categoria detectada
+54,IMPERMEABLE,"Impermeable o chubasquero"
+55,MOCHILA,"Mochila o morral"
+56,SIN_CLASIFICAR,"Sin categoria detectada"
