@@ -23,42 +23,42 @@ function cfg(tipo, decision, tipoSol) {
     if (tipo === 'solicitud_resuelta') {
         return decision === 'aprobada'
             ? {
-                  iconBg:  'bg-emerald-50 dark:bg-emerald-950/30',
-                  iconClr: 'text-emerald-600 dark:text-emerald-400',
-                  ring:    'ring-emerald-200/40 dark:ring-emerald-800/20',
-                  dot:     'bg-emerald-500',
+                  iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
+                  iconClr: 'text-zinc-600 dark:text-zinc-300',
+                  ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
+                  dot:     'bg-brand-gold dark:bg-brand-gold-soft',
                   icon:    <CheckCircle2 className="size-5" strokeWidth={1.8} />,
                   label:   'Aprobada',
-                  labelCls:'bg-emerald-50 text-emerald-700 ring-emerald-200/40 dark:bg-emerald-950/20 dark:text-emerald-400',
+                  labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
               }
             : {
-                  iconBg:  'bg-rose-50 dark:bg-rose-950/30',
-                  iconClr: 'text-rose-600 dark:text-rose-400',
-                  ring:    'ring-rose-200/40 dark:ring-rose-800/20',
-                  dot:     'bg-rose-500',
+                  iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
+                  iconClr: 'text-zinc-500 dark:text-zinc-300',
+                  ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
+                  dot:     'bg-zinc-400 dark:bg-zinc-500',
                   icon:    <XCircle className="size-5" strokeWidth={1.8} />,
                   label:   'Rechazada',
-                  labelCls:'bg-rose-50 text-rose-600 ring-rose-200/40 dark:bg-rose-950/20 dark:text-rose-400',
+                  labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
               };
     }
     return tipoSol === 'cambio'
         ? {
-              iconBg:  'bg-slate-50 dark:bg-slate-950/30',
-              iconClr: 'text-slate-500 dark:text-slate-400',
-              ring:    'ring-slate-200/40 dark:ring-slate-800/20',
-              dot:     'bg-slate-400',
+              iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
+              iconClr: 'text-zinc-500 dark:text-zinc-300',
+              ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
+              dot:     'bg-zinc-400 dark:bg-zinc-500',
               icon:    <ArrowLeftRight className="size-5" strokeWidth={1.8} />,
               label:   'Cambio',
-              labelCls:'bg-slate-50 text-slate-600 ring-slate-200/40 dark:bg-slate-950/20 dark:text-slate-400',
+              labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
           }
         : {
-              iconBg:  'bg-rose-50 dark:bg-rose-950/30',
-              iconClr: 'text-rose-600 dark:text-rose-400',
-              ring:    'ring-rose-200/40 dark:ring-rose-800/20',
-              dot:     'bg-rose-500',
+              iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
+              iconClr: 'text-zinc-500 dark:text-zinc-300',
+              ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
+              dot:     'bg-zinc-400 dark:bg-zinc-500',
               icon:    <XCircle className="size-5" strokeWidth={1.8} />,
               label:   'Baja',
-              labelCls:'bg-rose-50 text-rose-600 ring-rose-200/40 dark:bg-rose-950/20 dark:text-rose-400',
+              labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
           };
 }
 
@@ -109,7 +109,7 @@ function TarjetaNotificacion({ notif, onLeer }) {
 
                         {/* badge no leída */}
                         {!notif.leida && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900 px-2 py-0.5 text-[9px] font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[9px] font-bold text-white dark:bg-zinc-200 dark:text-zinc-900">
                                 <span className={`size-1.5 rounded-full ${c.dot}`} /> Nueva
                             </span>
                         )}
@@ -266,7 +266,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
                             onClick={() => applyFiltro(tab.key)}
                             className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-[12px] font-semibold transition-all ${
                                 active
-                                    ? 'border-zinc-300 bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900'
+                                    ? 'border-zinc-300 bg-zinc-800 text-white shadow-sm dark:bg-zinc-200 dark:text-zinc-900'
                                     : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                             }`}
                         >
@@ -277,7 +277,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
                                     active
                                         ? 'bg-white/20 text-white dark:bg-black/20 dark:text-zinc-800'
                                         : tab.key === 'no_leidas'
-                                            ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400'
+                                            ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
                                             : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
                                 }`}>
                                     {count}

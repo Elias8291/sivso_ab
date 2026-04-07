@@ -43,12 +43,12 @@ function toNotifArray(value) {
 function notifCfg(tipo, decision, tipoSol) {
     if (tipo === 'solicitud_resuelta') {
         return decision === 'aprobada'
-            ? { iconBg: 'bg-emerald-50 dark:bg-emerald-950/30', iconClr: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500', icon: <CheckCircle2 className="size-4" strokeWidth={1.8} /> }
-            : { iconBg: 'bg-rose-50 dark:bg-rose-950/30',     iconClr: 'text-rose-500 dark:text-rose-400',       dot: 'bg-rose-500',     icon: <XCircle     className="size-4" strokeWidth={1.8} /> };
+            ? { iconBg: 'bg-zinc-100 dark:bg-zinc-800/70', iconClr: 'text-zinc-600 dark:text-zinc-300', dot: 'bg-brand-gold dark:bg-brand-gold-soft', icon: <CheckCircle2 className="size-4" strokeWidth={1.8} /> }
+            : { iconBg: 'bg-zinc-100 dark:bg-zinc-800/70', iconClr: 'text-zinc-500 dark:text-zinc-300', dot: 'bg-zinc-400 dark:bg-zinc-500', icon: <XCircle className="size-4" strokeWidth={1.8} /> };
     }
     return tipoSol === 'cambio'
-        ? { iconBg: 'bg-slate-50 dark:bg-slate-950/30', iconClr: 'text-slate-500 dark:text-slate-400', dot: 'bg-slate-400', icon: <ArrowLeftRight className="size-4" strokeWidth={1.8} /> }
-        : { iconBg: 'bg-rose-50 dark:bg-rose-950/30',   iconClr: 'text-rose-500 dark:text-rose-400',   dot: 'bg-rose-500',   icon: <XCircle       className="size-4" strokeWidth={1.8} /> };
+        ? { iconBg: 'bg-zinc-100 dark:bg-zinc-800/70', iconClr: 'text-zinc-500 dark:text-zinc-300', dot: 'bg-zinc-400 dark:bg-zinc-500', icon: <ArrowLeftRight className="size-4" strokeWidth={1.8} /> }
+        : { iconBg: 'bg-zinc-100 dark:bg-zinc-800/70', iconClr: 'text-zinc-500 dark:text-zinc-300', dot: 'bg-zinc-400 dark:bg-zinc-500', icon: <XCircle className="size-4" strokeWidth={1.8} /> };
 }
 
 /* ───────────────────────────────────────────────────────────────────
@@ -253,7 +253,7 @@ export default function NotificationBell() {
         }`;
 
     const badge = count > 0 ? (
-        <span className={`absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-zinc-950 ${isNew ? 'animate-ping-once' : ''}`}>
+        <span className={`absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-zinc-700 text-[9px] font-bold text-white ring-2 ring-white dark:bg-zinc-300 dark:text-zinc-900 dark:ring-zinc-950 ${isNew ? 'animate-ping-once' : ''}`}>
             {count > 9 ? '9+' : count}
         </span>
     ) : null;
@@ -299,7 +299,7 @@ export default function NotificationBell() {
                                 </div>
                                 <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">Notificaciones</span>
                                 {count > 0 && (
-                                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
                                         {count} nueva{count !== 1 ? 's' : ''}
                                     </span>
                                 )}
