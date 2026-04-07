@@ -1344,9 +1344,9 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     };
 
     const urlReportePdf = () => {
-        const anio = anioReporte || (anios_disponibles_reporte[0] ?? '');
+        const anio = Number(anioReporte || (anios_disponibles_reporte[0] ?? 0));
         const base = route('my-delegation.reporte-pdf');
-        return anio ? `${base}?anio=${anio}` : base;
+        return anio > 0 ? `${base}?anio=${anio}` : base;
     };
 
     return (
