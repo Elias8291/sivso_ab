@@ -77,6 +77,16 @@ function ModalPeriodo({ open, onClose, periodo, onSaved }) {
                 descripcion:  periodo?.descripcion  ?? '',
             });
             setErrors({});
+        } else {
+            // Reset form when modal closes to prevent stale data
+            setForm({
+                anio:         new Date().getFullYear(),
+                nombre:       '',
+                fecha_inicio: '',
+                fecha_fin:    '',
+                descripcion:  '',
+            });
+            setErrors({});
         }
     }, [open, periodo]);
 
