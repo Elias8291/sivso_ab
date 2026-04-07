@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Estructura;
 use App\Http\Controllers\Controller;
 use App\Models\Delegacion;
 use App\Models\Dependencia;
+use App\Support\SivsoVestuario;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,6 +19,22 @@ final class IndependienteController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->input('search');
+        $anio = SivsoVestuario::anioReferencia();
+
+        $stats = DB::table('empleado')
+            ->select([
+                'empleado.delegacion_codigo',
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
+                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
+            ])
+            ->leftJoin('asignacion_empleado_producto as aep', function ($join) use ($anio): void {
+                $join->on('aep.empleado_id', '=', 'empleado.id')
+                    ->where('aep.anio', '=', $anio);
+            })
+            ->where('empleado.estado_delegacion', 'activo')
+            ->groupBy('empleado.delegacion_codigo')
+            ->get()
+            ->keyBy('delegacion_codigo');
 
         $independientes = Delegacion::query()
             ->where('codigo', 'like', 'IND-%')
@@ -33,11 +51,16 @@ final class IndependienteController extends Controller
             ->orderBy('codigo')
             ->paginate(20)
             ->withQueryString()
-            ->through(static fn (Delegacion $row): array => [
-                'codigo' => $row->codigo,
-                'ur_referencia' => $row->ur_referencia,
-                'referencia_nombre' => $row->dependenciaReferencia?->nombre,
-            ]);
+            ->through(function (Delegacion $row) use ($stats): array {
+                $s = $stats->get($row->codigo);
+                return [
+                    'codigo' => $row->codigo,
+                    'ur_referencia' => $row->ur_referencia,
+                    'referencia_nombre' => $row->dependenciaReferencia?->nombre,
+                    'actualizados' => (int) ($s?->confirmadas ?? 0),
+                    'faltan' => (int) ($s?->pendientes ?? 0),
+                ];
+            });
 
         $dependencias = Dependencia::query()
             ->orderBy('ur')
