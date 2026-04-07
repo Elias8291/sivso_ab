@@ -1,7 +1,7 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertTriangle,
@@ -15,11 +15,9 @@ import {
     Lock,
     Package,
     Pencil,
-    PieChart,
     RotateCcw,
     Search,
     Shirt,
-    Tag,
     Users,
     X,
     XCircle,
@@ -1188,117 +1186,11 @@ function ResumenStatCard({ icon: Icon, label, value, hint }) {
     );
 }
 
-/* ─── ResumenCategorias ──────────────────────────────────────────── */
 
-function ResumenCategorias({ prendas = [] }) {
-    const [open, setOpen] = useState(false);
-
-    // agrupar por año
-    const porAnio = prendas.reduce((acc, p) => {
-        if (!acc[p.anio]) acc[p.anio] = [];
-        acc[p.anio].push(p);
-        return acc;
-    }, {});
-
-    const anios = Object.keys(porAnio).sort((a, b) => b - a);
-
-    if (prendas.length === 0) return null;
-
-    return (
-        <div className="mb-3 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30">
-            {/* cabecera / toggle */}
-            <button
-                type="button"
-                onClick={() => setOpen((p) => !p)}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left sm:px-4"
-            >
-                <span className="flex items-center gap-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
-                    <Tag className="size-3.5 shrink-0 text-brand-gold/65 dark:text-brand-gold-soft/55" strokeWidth={1.75} />
-                    Resumen por categoría de prenda
-                </span>
-                <ChevronDown
-                    className={`size-4 shrink-0 text-zinc-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-                    strokeWidth={2}
-                />
-            </button>
-
-            {/* panel acordeón */}
-            <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="overflow-hidden">
-                    <div className="border-t border-zinc-200/80 px-3 pb-3 pt-2 dark:border-zinc-800 sm:px-4">
-                        {anios.map((anio) => (
-                            <div key={anio} className="mb-3 last:mb-0">
-                                {/* año */}
-                                <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                                    <span className="inline-block size-1 rounded-full bg-brand-gold/55 dark:bg-brand-gold-soft/45" aria-hidden />
-                                    Año {anio}
-                                </p>
-
-                                {/* tabla de prendas */}
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[360px] text-[10px] leading-tight">
-                                        <thead>
-                                            <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                                <th className="pb-1 pt-0.5 text-left text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    Prenda
-                                                </th>
-                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    Total
-                                                </th>
-                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    Conf.
-                                                </th>
-                                                <th className="pb-1 pt-0.5 text-center text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    Pend.
-                                                </th>
-                                                <th className="pb-1 pt-0.5 pr-0.5 text-right text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    %
-                                                </th>
-                                                <th className="w-[28%] pb-1 pt-0.5 pl-2 text-left text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                                    Progreso
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                                            {porAnio[anio].map((p, idx) => (
-                                                <tr key={`resumen-${anio}-${idx}`} className="align-middle">
-                                                    <td className="py-1 pr-2">
-                                                        <p className="font-medium text-zinc-800 dark:text-zinc-200 [overflow-wrap:anywhere]">
-                                                            {p.descripcion}
-                                                        </p>
-                                                        {p.clave && (
-                                                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">{p.clave}</p>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.total}</td>
-                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.confirmadas}</td>
-                                                    <td className="py-1 text-center tabular-nums text-zinc-600 dark:text-zinc-400">{p.pendientes}</td>
-                                                    <td className="py-1 pr-0.5 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{p.porcentaje}%</td>
-                                                    <td className="py-1 pl-2">
-                                                        <div className="h-0.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800 sm:h-1">
-                                                            <div
-                                                                className="h-full rounded-full bg-gradient-to-r from-brand-gold/45 via-brand-gold/65 to-brand-gold-soft/55 dark:from-brand-gold-soft/35 dark:via-brand-gold-soft/50 dark:to-brand-gold/40 transition-all duration-500"
-                                                                style={{ width: `${p.porcentaje}%` }}
-                                                            />
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 /* ─── página principal ───────────────────────────────────────────── */
 
-function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, resumen_prendas = [], periodo = null, filters = {} }) {
+function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, periodo = null, filters = {} }) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
     const isFirstRender       = useRef(true);
@@ -1431,17 +1323,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                     <ResumenStatCard icon={LayoutList} label="Sin empezar" value={resumen.sin_empezar ?? 0} />
                 </div>
 
-                {/* link al resumen general */}
-                <Link href={route('vestuario.resumen')}
-                    className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50 px-4 py-3 text-[12px] text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/50">
-                    <span className="flex items-center gap-2">
-                        <PieChart className="size-4 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
-                        Ver resumen general por categorías y productos
-                    </span>
-                    <ChevronDown className="-rotate-90 size-4 text-zinc-300 dark:text-zinc-600" strokeWidth={2} />
-                </Link>
 
-                <ResumenCategorias prendas={resumen_prendas} />
 
                 <div className="mb-3 space-y-3">
                     <div className="w-full">

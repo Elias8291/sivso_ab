@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Models\Delegado;
 use App\Models\Empleado;
 use App\Models\User;
+use App\Services\Rbac\SyncRbacFromCatalogService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,6 +17,10 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Permisos y roles base (Administrador SIVSO, Delegado, catálogo) antes del resto del seed.
+        // La asignación a usuarios seed va al final, cuando ya existen admin@ y test@.
+        app(SyncRbacFromCatalogService::class)->syncCatalogAndSystemRoles();
+
         User::query()->updateOrCreate(
             ['rfc' => 'RAJE020226H97'],
             [
@@ -57,6 +62,6 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->call(RbacSeeder::class);
+        app(SyncRbacFromCatalogService::class)->assignSeedUsersIfPresent();
     }
 }
