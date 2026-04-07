@@ -11,8 +11,8 @@ return [
     | Vestuario (asignaciones + catálogo cotizado)
     |--------------------------------------------------------------------------
     |
-    | Debe coincidir con asignacion_empleado_producto.anio y producto_cotizado.anio
-    | (p. ej. DPPP importado para ese ejercicio).
+    | producto_cotizado: el año efectivo para resolver por clave es el mayor `anio` en esa tabla
+    | (DPPP más reciente), no solo este valor, si hay varios ejercicios cargados.
     |
     */
     'vestuario' => [

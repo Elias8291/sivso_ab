@@ -71,9 +71,10 @@ final class SivsoVestuario
     }
 
     /**
-     * Año efectivo para resolver producto_cotizado por clave: el configurado si hay filas
-     * en producto_cotizado para ese año; si no, el mayor anio presente en esa tabla.
-     * Así coincide con lo que ves al filtrar cotizados por año en catálogo.
+     * Año efectivo para resolver producto_cotizado por clave: el **mayor** `anio` presente
+     * en la tabla (DPPP más reciente). Si solo se miraba el año del .env y había datos de 2025,
+     * se devolvía 2025 aunque ya existieran filas de 2026 — los joins nunca buscaban en 2026.
+     * Si no hay cotizados, se usa el año configurado.
      */
     public static function anioCatalogoResuelto(): int
     {
@@ -82,18 +83,13 @@ final class SivsoVestuario
         }
 
         $configured = (int) config('sivso.vestuario.anio_referencia');
+        $maxAnio = DB::table('producto_cotizado')->max('anio');
 
-        $hayCotizado = DB::table('producto_cotizado')
-            ->where('anio', $configured)
-            ->exists();
-
-        if ($hayCotizado) {
+        if ($maxAnio === null) {
             return self::$cachedCatalogoResuelto = $configured;
         }
 
-        $max = DB::table('producto_cotizado')->max('anio');
-
-        return self::$cachedCatalogoResuelto = $max !== null ? (int) $max : $configured;
+        return self::$cachedCatalogoResuelto = (int) $maxAnio;
     }
 
     /**
