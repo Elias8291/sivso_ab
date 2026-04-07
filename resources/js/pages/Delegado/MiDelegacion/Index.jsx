@@ -178,7 +178,7 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
 
 /* ─── VestuarioPanel ─────────────────────────────────────────────── */
 
-function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear(), periodoAbierto = true }) {
+function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear(), periodoAbierto = true, loading = false }) {
     // drafts: { [asignacionId]: { talla?, medida? } }
     const [drafts, setDrafts]   = useState({});
     const [saving, setSaving]   = useState(false);
@@ -260,7 +260,12 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
                 </div>
             </div>
 
-            {total === 0 ? (
+            {loading ? (
+                <div className="flex items-center justify-center gap-2 py-6 text-[12px] text-zinc-400 dark:text-zinc-500">
+                    <RotateCcw className="size-3.5 animate-spin" aria-hidden />
+                    Cargando prendas (catálogo vigente por clave)…
+                </div>
+            ) : total === 0 ? (
                 <p className="py-3.5 text-center text-[12px] text-zinc-400 dark:text-zinc-500">
                     Sin prendas asignadas en el año de referencia.
                 </p>
@@ -702,10 +707,10 @@ function ModalProductos({ empleado, open, onClose }) {
                         </div>
                     ) : (
                         <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                            {resumenCategorias.map((cat) => {
+                            {resumenCategorias.map((cat, catIdx) => {
                                 const pct = cat.total > 0 ? Math.round((cat.confirmadas / cat.total) * 100) : 0;
                                 return (
-                                    <li key={cat.codigo} className="flex items-center gap-4 px-5 py-3.5">
+                                    <li key={`${cat.codigo}-${catIdx}-${cat.nombre}`} className="flex items-center gap-4 px-5 py-3.5">
                                         {/* nombre */}
                                         <div className="min-w-0 flex-1">
                                             <p className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200">
@@ -808,8 +813,8 @@ function ModalProductos({ empleado, open, onClose }) {
                                     {/* clasificaciones */}
                                     {clasifs.length > 0 && (
                                         <div className="mt-2 flex flex-wrap gap-1">
-                                            {clasifs.map((c) => (
-                                                <span key={c.codigo}
+                                            {clasifs.map((c, ci) => (
+                                                <span key={`${p.asignacion_id}-${c.codigo}-${ci}`}
                                                     className="rounded-full border border-zinc-200/80 px-2 py-px text-[10px] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
                                                     title={c.nombre}
                                                 >
@@ -822,8 +827,8 @@ function ModalProductos({ empleado, open, onClose }) {
                                     {/* atributos en grid compacto */}
                                     {camposValidos.length > 0 && (
                                         <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-                                            {camposValidos.map(([label, value, mono]) => (
-                                                <span key={label} className="flex items-baseline gap-1 text-[11px]">
+                                            {camposValidos.map(([label, value, mono], fi) => (
+                                                <span key={`${p.asignacion_id}-${label}-${fi}`} className="flex items-baseline gap-1 text-[11px]">
                                                     <span className="text-zinc-400 dark:text-zinc-500">{label}</span>
                                                     <span className={`text-zinc-700 dark:text-zinc-300 ${mono ? 'font-mono' : ''}`}>
                                                         {value}
@@ -852,6 +857,8 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
     const [vestuario, setVestuario]                = useState(empleado.vestuario);
+    const [vestuarioCargando, setVestuarioCargando] = useState(false);
+    const [vestuarioFetchKey, setVestuarioFetchKey] = useState(0);
     const [estadoDelegacion, setEstadoDelegacion]  = useState(empleado.estado_delegacion || 'activo');
     const [obsDelegacion, setObsDelegacion]        = useState(empleado.observacion_delegacion || '');
     const [solicitudPendiente, setSolicitudPendiente] = useState(empleado.solicitud_pendiente ?? null);
@@ -890,13 +897,47 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
         } catch { /* sin acción */ }
     };
 
-    const total = vestuario.length;
-    const enBajaCount = vestuario.filter((v) => v.estado === 'baja').length;
-    const confirmadasOCambio = vestuario.filter((v) => v.estado === 'confirmado' || v.estado === 'cambio').length;
-    const requeridas = total - enBajaCount;
+    useEffect(() => {
+        if (!vestuarioAbierto) return;
+        let cancelled = false;
+        setVestuarioCargando(true);
+        axios
+            .get(route('my-delegation.empleado.vestuario', empleado.id))
+            .then((r) => {
+                if (cancelled) return;
+                const list = r.data?.data?.vestuario;
+                if (Array.isArray(list)) {
+                    setVestuario(list);
+                    setVestuarioFetchKey((k) => k + 1);
+                }
+            })
+            .catch(() => { /* mantener lista previa */ })
+            .finally(() => {
+                if (!cancelled) setVestuarioCargando(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [vestuarioAbierto, empleado.id]);
+
+    /** Listado inicial viene sin prendas; usar métricas del servidor hasta cargar el detalle al abrir el panel. */
+    const tieneDetalleVestuario = vestuario.length > 0;
+    const totalPrendas = tieneDetalleVestuario ? vestuario.length : (empleado.total_prendas ?? 0);
+    const enBajaCount = tieneDetalleVestuario
+        ? vestuario.filter((v) => v.estado === 'baja').length
+        : (empleado.bajas_vestuario ?? 0);
+    const confirmadasOCambio = tieneDetalleVestuario
+        ? vestuario.filter((v) => v.estado === 'confirmado' || v.estado === 'cambio').length
+        : (empleado.confirmadas ?? 0);
+    const requeridas = totalPrendas - enBajaCount;
     const listos = confirmadasOCambio;
-    const completo = total > 0 && confirmadasOCambio >= requeridas;
-    const pendienteVestuario = total > 0 && !completo;
+    const completo = tieneDetalleVestuario
+        ? totalPrendas > 0 && confirmadasOCambio >= requeridas
+        : empleado.vestuario_listo === true;
+    /** Coincide con backend; con detalle local, `completo` gana sobre la marca del listado. */
+    const vestuarioListo = empleado.vestuario_listo === true || completo;
+    const pendienteVestuario = totalPrendas > 0 && !completo;
+    const total = totalPrendas;
     const esBaja   = estadoDelegacion === 'baja';
     const esCambio = estadoDelegacion === 'cambio';
 
@@ -904,21 +945,23 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
         ? 'border-rose-200 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/10'
         : esCambio
             ? 'border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/25'
-            : vestuarioAbierto
-                ? 'border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900'
-                : 'border-zinc-200/80 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/30 dark:hover:border-zinc-700';
+            : vestuarioListo && !esBaja && !esCambio
+                ? 'border-emerald-300/90 bg-emerald-50/80 hover:border-emerald-400/90 dark:border-emerald-800/55 dark:bg-emerald-950/35 dark:hover:border-emerald-700/60'
+                : vestuarioAbierto
+                    ? 'border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900'
+                    : 'border-zinc-200/80 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/30 dark:hover:border-zinc-700';
 
     const cardRingCompleto =
-        completo && !esBaja && !esCambio && !vestuarioAbierto
-            ? ' ring-1 ring-brand-gold/20 dark:ring-brand-gold-soft/18'
+        vestuarioListo && !esBaja && !esCambio
+            ? ' ring-1 ring-emerald-400/35 dark:ring-emerald-600/35'
             : '';
 
     const avatarCls = esBaja
         ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/35 dark:text-rose-400'
         : esCambio
             ? 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
-            : completo
-                ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
+            : vestuarioListo
+                ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white'
                 : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
 
     return (
@@ -956,11 +999,11 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                             )}
                             {!esBaja && !esCambio && (
                                 <span className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-2 py-0.5 text-[10px] font-medium ${
-                                    completo
-                                        ? 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200'
+                                    vestuarioListo
+                                        ? 'border-emerald-300/90 bg-emerald-100/90 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/40 dark:text-emerald-200'
                                         : 'border-transparent bg-zinc-100/80 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400'
                                 }`}>
-                                    {completo ? 'Completo' : `${listos}/${total} prendas`}
+                                    {vestuarioListo ? 'Completo' : `${listos}/${total} prendas`}
                                 </span>
                             )}
                         </div>
@@ -1101,11 +1144,13 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
             <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${vestuarioAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                 <div className="overflow-hidden">
                     <VestuarioPanel
+                        key={`${empleado.id}-${vestuarioFetchKey}`}
                         empleadoId={empleado.id}
                         vestuario={vestuario}
                         onPrendasGuardadas={handlePrendaGuardada}
                         anioActual={anioActual}
                         periodoAbierto={periodoAbierto}
+                        loading={vestuarioCargando}
                     />
                 </div>
             </div>
@@ -1215,8 +1260,8 @@ function ResumenCategorias({ prendas = [] }) {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                                            {porAnio[anio].map((p) => (
-                                                <tr key={`${anio}-${p.clave}`} className="align-middle">
+                                            {porAnio[anio].map((p, idx) => (
+                                                <tr key={`resumen-${anio}-${idx}`} className="align-middle">
                                                     <td className="py-1 pr-2">
                                                         <p className="font-medium text-zinc-800 dark:text-zinc-200 [overflow-wrap:anywhere]">
                                                             {p.descripcion}

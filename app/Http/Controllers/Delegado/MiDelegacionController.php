@@ -133,9 +133,15 @@ class MiDelegacionController extends Controller
 
         $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
 
+        $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
+        $vestAgg = DB::table('asignacion_empleado_producto')
+            ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
+            ->where('anio', $anioVestuario)
+            ->groupBy('empleado_id');
+
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
-            ->whereHas('asignaciones', fn ($q) => $q->where('anio', SivsoVestuario::anioAsignacionesVestuario()))
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -145,11 +151,14 @@ class MiDelegacionController extends Controller
                         ->orWhere('nue', 'like', "%{$search}%");
                 });
             })
-            // En vista general, enviar bajas al final del listado.
-            ->orderByRaw("CASE WHEN estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
-            ->orderBy('apellido_paterno')
-            ->orderBy('apellido_materno')
-            ->orderBy('nombre');
+            ->leftJoinSub($vestAgg, 'vest_agg', 'vest_agg.empleado_id', '=', 'empleado.id')
+            // En vista general: bajas de delegación al final; dentro de cada grupo, vestuario completo al final.
+            ->orderByRaw("CASE WHEN empleado.estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
+            ->orderByRaw('CASE WHEN COALESCE(vest_agg.total_vest, 0) > 0 AND COALESCE(vest_agg.nok, 0) >= (COALESCE(vest_agg.total_vest, 0) - COALESCE(vest_agg.nbaja, 0)) THEN 1 ELSE 0 END ASC')
+            ->orderBy('empleado.apellido_paterno')
+            ->orderBy('empleado.apellido_materno')
+            ->orderBy('empleado.nombre')
+            ->select('empleado.*');
 
         $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion, $search);
         $total = $resumenVestuario->count();
@@ -184,10 +193,25 @@ class MiDelegacionController extends Controller
             );
         }
 
-        $empleados = $empleadosQuery
+        $empleadosPaginator = $empleadosQuery
             ->paginate($perPage)
-            ->withQueryString()
-            ->through(fn (Empleado $e) => $this->mapEmpleadoParaVista($e));
+            ->withQueryString();
+
+        $pageIds = $empleadosPaginator->getCollection()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
+        $vestStats = $this->vestuarioStatsPorEmpleadoIds($pageIds);
+        $solicitudesPend = $this->solicitudesPendientesPorEmpleadoIds($pageIds);
+
+        $empleadosPaginator->setCollection(
+            $empleadosPaginator->getCollection()->map(
+                fn (Empleado $e): array => $this->mapEmpleadoParaVistaIndex(
+                    $e,
+                    $vestStats[$e->id] ?? ['total' => 0, 'bajas' => 0, 'confirmadas' => 0],
+                    $solicitudesPend[$e->id] ?? null,
+                ),
+            ),
+        );
+
+        $empleados = $empleadosPaginator;
 
         // Delegaciones disponibles para transferencias (agrupadas por UR)
         $delegaciones = Delegacion::query()
@@ -218,9 +242,11 @@ class MiDelegacionController extends Controller
     }
 
     /**
-     * @return array<string, mixed>
+     * Listado de prendas para la vista (clave/descripción resueltos al catálogo vigente por clave).
+     *
+     * @return list<array<string, mixed>>
      */
-    private function mapEmpleadoParaVista(Empleado $e): array
+    private function vestuarioListaParaEmpleado(Empleado $e): array
     {
         $anio = SivsoVestuario::anioAsignacionesVestuario();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
@@ -228,7 +254,8 @@ class MiDelegacionController extends Controller
         $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
         VestuarioCotizadoJoin::applyCotizadoResuelto($asignacionesQuery, 'aep', $anioCatalogo);
-        $asignaciones = $asignacionesQuery
+
+        return $asignacionesQuery
             ->where('aep.empleado_id', $e->id)
             ->where('aep.anio', $anio)
             ->select([
@@ -259,6 +286,126 @@ class MiDelegacionController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * JSON al abrir «Ver vestuario»: misma resolución por clave que la página (catálogo actual).
+     */
+    public function vestuarioEmpleado(Request $request, int $empleadoId): JsonResponse
+    {
+        $empleado = Empleado::findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+
+        return response()->json([
+            'data' => [
+                'vestuario' => $this->vestuarioListaParaEmpleado($empleado),
+                'anio_asignacion' => SivsoVestuario::anioAsignacionesVestuario(),
+                'anio_catalogo' => SivsoVestuario::anioCatalogoResuelto(),
+            ],
+            'message' => null,
+            'errors' => null,
+        ]);
+    }
+
+    /**
+     * Payload ligero para la lista de Mi delegación: sin detalle de prendas (se carga al abrir el panel).
+     *
+     * @param  array{total: int, bajas: int, confirmadas: int}  $stat
+     * @param  array{id: int, tipo: string, delegacion_destino: string|null}|null  $solicitudPendiente
+     * @return array<string, mixed>
+     */
+    private function mapEmpleadoParaVistaIndex(Empleado $e, array $stat, ?array $solicitudPendiente): array
+    {
+        $total = $stat['total'];
+        $bajas = $stat['bajas'];
+        $confirmadas = $stat['confirmadas'];
+        $vestuarioListo = $total > 0 && $confirmadas >= ($total - $bajas);
+
+        return [
+            'id' => $e->id,
+            'nombre_completo' => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
+            'nue' => $e->nue,
+            'ur' => $e->ur,
+            'dependencia_nombre' => $e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia',
+            'delegacion_codigo' => $e->delegacion_codigo,
+            'estado_delegacion' => $e->estado_delegacion ?? 'activo',
+            'observacion_delegacion' => $e->observacion_delegacion,
+            'vestuario' => [],
+            'confirmadas' => $confirmadas,
+            'total_prendas' => $total,
+            'bajas_vestuario' => $bajas,
+            'vestuario_listo' => $vestuarioListo,
+            'solicitud_pendiente' => $solicitudPendiente,
+        ];
+    }
+
+    /**
+     * @param  list<int>  $empleadoIds
+     * @return array<int, array{total: int, bajas: int, confirmadas: int}>
+     */
+    private function vestuarioStatsPorEmpleadoIds(array $empleadoIds): array
+    {
+        if ($empleadoIds === []) {
+            return [];
+        }
+
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $rows = DB::table('asignacion_empleado_producto')
+            ->where('anio', $anio)
+            ->whereIn('empleado_id', $empleadoIds)
+            ->selectRaw("empleado_id, COUNT(*) as total, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) as bajas, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) as confirmadas")
+            ->groupBy('empleado_id')
+            ->get();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $eid = (int) $row->empleado_id;
+            $out[$eid] = [
+                'total' => (int) $row->total,
+                'bajas' => (int) $row->bajas,
+                'confirmadas' => (int) $row->confirmadas,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<int>  $empleadoIds
+     * @return array<int, array{id: int, tipo: string, delegacion_destino: string|null}>
+     */
+    private function solicitudesPendientesPorEmpleadoIds(array $empleadoIds): array
+    {
+        if ($empleadoIds === []) {
+            return [];
+        }
+
+        return SolicitudMovimiento::query()
+            ->whereIn('empleado_id', $empleadoIds)
+            ->where('estado', 'pendiente')
+            ->orderBy('id')
+            ->get(['id', 'empleado_id', 'tipo', 'delegacion_destino'])
+            ->unique('empleado_id')
+            ->mapWithKeys(static function (SolicitudMovimiento $s): array {
+                return [
+                    (int) $s->empleado_id => [
+                        'id' => (int) $s->id,
+                        'tipo' => (string) $s->tipo,
+                        'delegacion_destino' => $s->delegacion_destino,
+                    ],
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Incluye el listado completo de prendas (joins a catálogo). Usar en PDF y vistas que necesiten detalle.
+     *
+     * @return array<string, mixed>
+     */
+    private function mapEmpleadoParaVista(Empleado $e): array
+    {
+        $asignaciones = $this->vestuarioListaParaEmpleado($e);
 
         $confirmadas = collect($asignaciones)->whereIn('estado', ['confirmado', 'cambio'])->count();
 
@@ -279,6 +426,7 @@ class MiDelegacionController extends Controller
             'vestuario' => $asignaciones,
             'confirmadas' => $confirmadas,
             'total_prendas' => count($asignaciones),
+            'bajas_vestuario' => collect($asignaciones)->where('estado', 'baja')->count(),
             'solicitud_pendiente' => $solicitudPendiente ? [
                 'id' => $solicitudPendiente->id,
                 'tipo' => $solicitudPendiente->tipo,
@@ -620,6 +768,8 @@ class MiDelegacionController extends Controller
             ? $anioSolicitado
             : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
 
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
         $parseClasifs = static function (?string $raw): array {
             if (! $raw) {
                 return [];
@@ -635,25 +785,31 @@ class MiDelegacionController extends Controller
                 ->all();
         };
 
-        // Licitados — producto base de la licitación
+        // Licitados — mismo criterio que vestuario: preferir licitado del año de catálogo (pl_cat) por partida
         $licitados = DB::table('asignacion_empleado_producto as aep')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
-            ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pl.clasificacion_principal_id')
+            ->leftJoin('producto_licitado as pl_cat', function ($join) use ($anioCatalogo): void {
+                $join->on('pl_cat.numero_partida', '=', 'pl.numero_partida')
+                    ->where('pl_cat.anio', '=', $anioCatalogo);
+            })
+            ->leftJoin('clasificacion_bien as cb', function ($join): void {
+                $join->whereRaw('cb.id = COALESCE(pl_cat.clasificacion_principal_id, pl.clasificacion_principal_id)');
+            })
             ->where('aep.empleado_id', $empleadoId)
             ->where('aep.anio', $anioConsulta)
             ->select([
                 'aep.id                        as asignacion_id',
-                'pl.id                         as id',
-                'pl.numero_partida',
-                'pl.partida_especifica',
-                'pl.codigo_catalogo             as codigo',
-                'pl.descripcion',
-                'pl.cantidad_propuesta          as cantidad',
-                'pl.unidad',
-                'pl.marca',
-                'pl.precio_unitario',
-                'pl.proveedor',
-                'pl.medida',
+                DB::raw('COALESCE(pl_cat.id, pl.id) as id'),
+                DB::raw('COALESCE(pl_cat.numero_partida, pl.numero_partida) as numero_partida'),
+                DB::raw('COALESCE(pl_cat.partida_especifica, pl.partida_especifica) as partida_especifica'),
+                DB::raw('COALESCE(pl_cat.codigo_catalogo, pl.codigo_catalogo) as codigo'),
+                DB::raw('COALESCE(pl_cat.descripcion, pl.descripcion) as descripcion'),
+                DB::raw('COALESCE(pl_cat.cantidad_propuesta, pl.cantidad_propuesta) as cantidad'),
+                DB::raw('COALESCE(pl_cat.unidad, pl.unidad) as unidad'),
+                DB::raw('COALESCE(pl_cat.marca, pl.marca) as marca'),
+                DB::raw('COALESCE(pl_cat.precio_unitario, pl.precio_unitario) as precio_unitario'),
+                DB::raw('COALESCE(pl_cat.proveedor, pl.proveedor) as proveedor'),
+                DB::raw('COALESCE(pl_cat.medida, pl.medida) as medida'),
                 'cb.codigo                      as categoria_codigo',
                 'cb.nombre                      as categoria',
                 'aep.clave_partida_presupuestal as clave_rubro',
@@ -665,9 +821,9 @@ class MiDelegacionController extends Controller
                 '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
                 ' FROM producto_licitado_clasificacion plc2 '.
                 ' JOIN clasificacion_bien cb2 ON cb2.id = plc2.clasificacion_id '.
-                ' WHERE plc2.producto_licitado_id = pl.id) AS clasificaciones_raw'
+                ' WHERE plc2.producto_licitado_id = COALESCE(pl_cat.id, pl.id)) AS clasificaciones_raw'
             )
-            ->orderBy('pl.numero_partida')
+            ->orderByRaw('COALESCE(pl_cat.numero_partida, pl.numero_partida)')
             ->get()
             ->map(function ($r) use ($parseClasifs) {
                 $arr = (array) $r;
@@ -680,7 +836,6 @@ class MiDelegacionController extends Controller
             ->all();
 
         // Cotizados — producto contractual (prioriza producto_cotizado del año de catálogo por clave/partida)
-        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
         $cotizados = DB::table('asignacion_empleado_producto as aep')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
         VestuarioCotizadoJoin::applyCotizadoResuelto($cotizados, 'aep', $anioCatalogo);

@@ -13,10 +13,18 @@ class ProductoCotizadoClasificacionFromCsvSeeder extends Seeder
 
     public function run(): void
     {
+        $map = $this->sivsoProductoCotizadoCsvIdToDbIdMap();
         $rows = [];
         foreach ($this->sivsoCsvRows('11_producto_cotizado_clasificacion.csv') as $r) {
+            $csvCotId = $this->sivsoToInt($r['producto_cotizado_id'] ?? '0');
+            $dbId = $map[$csvCotId] ?? null;
+            if ($dbId === null) {
+                $this->command?->warn("producto_cotizado_clasificacion: sin resolución para csv09 id={$csvCotId}; fila omitida.");
+
+                continue;
+            }
             $rows[] = [
-                'producto_cotizado_id' => $this->sivsoToInt($r['producto_cotizado_id'] ?? '0'),
+                'producto_cotizado_id' => $dbId,
                 'clasificacion_id' => $this->sivsoToInt($r['clasificacion_id'] ?? '0'),
             ];
         }

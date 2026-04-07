@@ -13,14 +13,26 @@ class AsignacionEmpleadoProductoFromCsvSeeder extends Seeder
 
     public function run(): void
     {
+        $map = $this->sivsoProductoCotizadoCsvIdToDbIdMap();
         $rows = [];
         foreach ($this->sivsoCsvRows('13_asignacion_empleado_producto.csv') as $r) {
+            $csvPc = $this->sivsoToIntOrNull($r['producto_cotizado_id'] ?? null);
+            $productoCotizadoId = null;
+            if ($csvPc !== null && $csvPc > 0) {
+                $productoCotizadoId = $map[$csvPc] ?? null;
+                if ($productoCotizadoId === null) {
+                    throw new \RuntimeException(
+                        "asignacion_empleado_producto: no se resolvió producto_cotizado_id CSV 09 id={$csvPc} (¿falta fila en producto_cotizado para ese lic+clave+año?).",
+                    );
+                }
+            }
+
             $rows[] = [
                 'id' => $this->sivsoToInt($r['id'] ?? '0'),
                 'anio' => $this->sivsoToInt($r['anio'] ?? '0'),
                 'empleado_id' => $this->sivsoToInt($r['empleado_id'] ?? '0'),
                 'producto_licitado_id' => $this->sivsoToInt($r['producto_licitado_id'] ?? '0'),
-                'producto_cotizado_id' => $this->sivsoToIntOrNull($r['producto_cotizado_id'] ?? null),
+                'producto_cotizado_id' => $productoCotizadoId,
                 'clave_partida_presupuestal' => $this->sivsoNullIfEmpty($r['clave_partida_presupuestal'] ?? null),
                 'cantidad' => $this->sivsoToIntOrNull($r['cantidad'] ?? null),
                 'talla' => $this->sivsoNullIfEmpty($r['talla'] ?? null),

@@ -21,7 +21,7 @@ final class ImportProductoCotizadoFromDpppJsonCommand extends Command
                             {--force : Con --fresh, borra sin preguntar (útil en scripts/CI)}
                             {--strict-clasificacion : Falla si algún clasificacion_principal_id no existe en clasificacion_bien}';
 
-    protected $description = 'Inserta/actualiza producto_cotizado desde JSON DPPP (upsert por producto_licitado_id + clave)';
+    protected $description = 'Inserta/actualiza producto_cotizado desde JSON DPPP (upsert por producto_licitado_id + clave + anio; conviven varios años)';
 
     public function handle(): int
     {
@@ -189,9 +189,8 @@ final class ImportProductoCotizadoFromDpppJsonCommand extends Command
             $this->info("Eliminadas {$deleted} filas (anio={$anioBorrar}).");
         }
 
-        $uniqueBy = ['producto_licitado_id', 'clave'];
+        $uniqueBy = ['producto_licitado_id', 'clave', 'anio'];
         $update = [
-            'anio',
             'numero_partida',
             'partida_especifica',
             'descripcion',

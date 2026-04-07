@@ -134,4 +134,61 @@ trait ReadsSivsoCsv
             DB::table($table)->insert($chunk);
         }
     }
+
+    /**
+     * Índice del CSV 09: id de fila en el CSV → metadatos para localizar la fila en BD
+     * (mismo criterio que el único producto_cotizado: licitado + clave + año).
+     *
+     * @return array<int, array{producto_licitado_id: int, clave: string, anio: int}>
+     */
+    protected function sivsoProductoCotizado09IndexByCsvId(): array
+    {
+        $idx = [];
+        foreach ($this->sivsoCsvRows('09_producto_cotizado.csv') as $r) {
+            $id = $this->sivsoToInt($r['id'] ?? '0');
+            if ($id < 1) {
+                continue;
+            }
+            $idx[$id] = [
+                'producto_licitado_id' => $this->sivsoToInt($r['producto_licitado_id'] ?? '0'),
+                'clave' => trim((string) ($r['clave'] ?? '')),
+                'anio' => $this->sivsoToInt($r['anio'] ?? '0'),
+            ];
+        }
+
+        return $idx;
+    }
+
+    /**
+     * Mapea el id de fila del CSV 09 al `producto_cotizado.id` real en BD (varios ejercicios conviven).
+     *
+     * @return array<int, int> csv09_id => producto_cotizado.id
+     */
+    protected function sivsoProductoCotizadoCsvIdToDbIdMap(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        $index = $this->sivsoProductoCotizado09IndexByCsvId();
+        $rows = DB::table('producto_cotizado')->get(['id', 'producto_licitado_id', 'clave', 'anio']);
+        $byTriple = [];
+        foreach ($rows as $row) {
+            $k = (int) $row->producto_licitado_id.'|'.trim((string) $row->clave).'|'.(int) $row->anio;
+            $byTriple[$k] = (int) $row->id;
+        }
+
+        $map = [];
+        foreach ($index as $csvId => $meta) {
+            $k = $meta['producto_licitado_id'].'|'.trim($meta['clave']).'|'.$meta['anio'];
+            if (isset($byTriple[$k])) {
+                $map[$csvId] = $byTriple[$k];
+            }
+        }
+
+        $cache = $map;
+
+        return $cache;
+    }
 }
