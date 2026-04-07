@@ -44,6 +44,8 @@ final class SyncRbacFromCatalogService
             ['name' => SivsoPermissions::ROLE_DELEGADO, 'guard_name' => 'web'],
         );
         $delegadoRole->syncPermissions([
+            SivsoPermissions::VER_MI_DELEGACION,
+            SivsoPermissions::GESTIONAR_MI_DELEGACION,
             SivsoPermissions::VER_COTEJO_VESTUARIO,
         ]);
 
