@@ -108,9 +108,8 @@ export default function DataTable({
                                             <th
                                                 key={col.key}
                                                 scope="col"
-                                                className={`py-4 text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${
-                                                    actions ? 'min-w-[12rem] whitespace-nowrap px-4 text-right' : 'whitespace-nowrap px-6'
-                                                } ${col.className ?? ''}`}
+                                                className={`py-4 text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${actions ? 'min-w-[12rem] whitespace-nowrap px-4 text-right' : 'whitespace-nowrap px-6'
+                                                    } ${col.className ?? ''}`}
                                             >
                                                 {headerLabel(col, actions)}
                                             </th>
@@ -129,11 +128,10 @@ export default function DataTable({
                                             return (
                                                 <td
                                                     key={col.key}
-                                                    className={`align-middle text-[13px] text-zinc-600 dark:text-zinc-400 ${
-                                                        actions
+                                                    className={`align-middle text-[13px] text-zinc-600 dark:text-zinc-400 ${actions
                                                             ? 'px-4 py-3.5 text-right whitespace-nowrap'
                                                             : 'px-6 py-4'
-                                                    } ${colIndex === 0 ? 'font-medium text-zinc-900 dark:text-zinc-100' : ''} ${col.cellClassName ?? ''}`}
+                                                        } ${colIndex === 0 ? 'font-medium text-zinc-900 dark:text-zinc-100' : ''} ${col.cellClassName ?? ''}`}
                                                 >
                                                     {cellContent(col, row)}
                                                 </td>
