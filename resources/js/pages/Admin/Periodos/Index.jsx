@@ -66,7 +66,7 @@ const getDefaultFormState = () => ({
 function ModalPeriodo({ open, onClose, periodo, onSaved }) {
     const isEdit = !!periodo;
     
-    const [form, setForm] = useState(getDefaultFormState);
+    const [form, setForm] = useState(getDefaultFormState());
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
 
