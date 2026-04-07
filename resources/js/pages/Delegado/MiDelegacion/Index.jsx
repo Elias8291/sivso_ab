@@ -1,6 +1,6 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
-import { createAdminPageLayout } from '@/layouts/adminPageLayout';
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -1201,6 +1201,8 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     const perPage = PER_PAGE_OPCIONES.includes(Number(filters.per_page))
         ? Number(filters.per_page)
         : 20;
+    const esVistaIndependiente = typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-');
+    const moduleTitle = esVistaIndependiente ? 'Delegación independiente' : 'Mi Delegación';
 
     const navegar = (overrides = {}) => {
         const q = {
@@ -1237,9 +1239,9 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
 
     return (
         <>
-            <Head title="Mi Delegación" />
+            <Head title={moduleTitle} />
             <AdminPageShell
-                title="Mi delegación"
+                title={moduleTitle}
                 description={
                     contexto.modo === 'super_admin' ? (
                         <>
@@ -1431,5 +1433,18 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
 }
 
 MiDelegacionIndex.layout = createAdminPageLayout('Mi Delegación');
+MiDelegacionIndex.layout = (page) => {
+    const filtroCodigo = page?.props?.filters?.delegacion_codigo;
+    const esVistaInd = typeof filtroCodigo === 'string' && filtroCodigo.startsWith('IND-');
+    const layoutTitle = esVistaInd ? 'Delegación independiente' : 'Mi Delegación';
+
+    return (
+        <AuthenticatedLayout
+            header={<span className="truncate text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-lg">{layoutTitle}</span>}
+        >
+            {page}
+        </AuthenticatedLayout>
+    );
+};
 
 export default MiDelegacionIndex;
