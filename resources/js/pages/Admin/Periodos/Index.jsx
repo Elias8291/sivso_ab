@@ -53,18 +53,18 @@ function PeriodoField({ label, id, type = 'text', k, ph = '', required = false, 
     );
 }
 
+/* ── Default form state helper ── */
+const getDefaultFormState = () => ({
+    anio:         new Date().getFullYear(),
+    nombre:       '',
+    fecha_inicio: '',
+    fecha_fin:    '',
+    descripcion:  '',
+});
+
 /* ── Modal crear/editar ── */
 function ModalPeriodo({ open, onClose, periodo, onSaved }) {
     const isEdit = !!periodo;
-    
-    // Default form state helper
-    const getDefaultFormState = () => ({
-        anio:         new Date().getFullYear(),
-        nombre:       '',
-        fecha_inicio: '',
-        fecha_fin:    '',
-        descripcion:  '',
-    });
     
     const [form, setForm] = useState(getDefaultFormState);
     const [saving, setSaving] = useState(false);
