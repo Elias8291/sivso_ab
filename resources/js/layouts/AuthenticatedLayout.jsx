@@ -1,5 +1,6 @@
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import Sidebar from '@/components/layout/Sidebar';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
@@ -32,6 +33,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
                 </div>
             </main>
+            <LoadingOverlay />
         </div>
     );
 }
