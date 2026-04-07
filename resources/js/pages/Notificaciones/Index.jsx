@@ -25,40 +25,28 @@ function cfg(tipo, decision, tipoSol) {
             ? {
                   iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
                   iconClr: 'text-zinc-600 dark:text-zinc-300',
-                  ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
                   dot:     'bg-brand-gold dark:bg-brand-gold-soft',
                   icon:    <CheckCircle2 className="size-5" strokeWidth={1.8} />,
-                  label:   'Aprobada',
-                  labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
               }
             : {
                   iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
                   iconClr: 'text-zinc-500 dark:text-zinc-300',
-                  ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
                   dot:     'bg-zinc-400 dark:bg-zinc-500',
                   icon:    <XCircle className="size-5" strokeWidth={1.8} />,
-                  label:   'Rechazada',
-                  labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
               };
     }
     return tipoSol === 'cambio'
         ? {
               iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
               iconClr: 'text-zinc-500 dark:text-zinc-300',
-              ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
               dot:     'bg-zinc-400 dark:bg-zinc-500',
               icon:    <ArrowLeftRight className="size-5" strokeWidth={1.8} />,
-              label:   'Cambio',
-              labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
           }
         : {
               iconBg:  'bg-zinc-100 dark:bg-zinc-800/70',
               iconClr: 'text-zinc-500 dark:text-zinc-300',
-              ring:    'ring-zinc-200/70 dark:ring-zinc-700/60',
               dot:     'bg-zinc-400 dark:bg-zinc-500',
               icon:    <XCircle className="size-5" strokeWidth={1.8} />,
-              label:   'Baja',
-              labelCls:'bg-zinc-100 text-zinc-600 ring-zinc-200/60 dark:bg-zinc-800/70 dark:text-zinc-300',
           };
 }
 
@@ -92,7 +80,7 @@ function TarjetaNotificacion({ notif, onLeer }) {
 
     return (
         <div className="border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80">
-            <div className="flex items-start gap-4 px-1 py-4 sm:px-2">
+            <div className="flex gap-3 px-2 py-4 sm:gap-4 sm:px-3">
 
                 {/* avatar */}
                 <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${c.iconBg} ${c.iconClr}`}>
@@ -114,40 +102,39 @@ function TarjetaNotificacion({ notif, onLeer }) {
                         )}
                     </div>
 
-                    <p className="text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    <p className="text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400 sm:text-[12.5px]">
                         <span className="font-semibold text-zinc-700 dark:text-zinc-200">{textoTipo}</span>{' '}
                         {notif.cuerpo}
                     </p>
 
-                    <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-zinc-400 dark:text-zinc-500">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-zinc-400 dark:text-zinc-500">
                         <Clock className="size-3" strokeWidth={1.5} />
                         <span>{notif.created_at_full}</span>
                         <span className="text-zinc-300 dark:text-zinc-700">·</span>
                         <span className="italic">{notif.created_at}</span>
                     </div>
-                </div>
-
-                {/* acciones */}
-                <div className="flex shrink-0 items-center gap-2">
-                    {!notif.leida && (
-                        <button
-                            type="button"
-                            onClick={() => onLeer(notif.id)}
-                            className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                            title="Marcar como leída"
-                        >
-                            <CheckCheck className="size-3.5" /> Leída
-                        </button>
-                    )}
-                    {notif.url && (
-                        <button
-                            type="button"
-                            onClick={handleClick}
-                            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                        >
-                            Ver
-                        </button>
-                    )}
+                    {/* acciones */}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {!notif.leida && (
+                            <button
+                                type="button"
+                                onClick={() => onLeer(notif.id)}
+                                className="flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10.5px] font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                                title="Marcar como leída"
+                            >
+                                <CheckCheck className="size-3.5" /> Leída
+                            </button>
+                        )}
+                        {notif.url && (
+                            <button
+                                type="button"
+                                onClick={handleClick}
+                                className="rounded-md border border-zinc-200 px-2.5 py-1 text-[10.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                                Ver
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -237,7 +224,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
             <Head title="Notificaciones" />
 
             {/* ── encabezado de sección ── */}
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3 sm:mb-6 sm:gap-4">
                 <div>
                     <p className="text-[13px] text-zinc-500 dark:text-zinc-400">
                         Solicitudes resueltas, bajas aprobadas y movimientos de delegación.
@@ -255,7 +242,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
             </div>
 
             {/* ── pestañas ── */}
-            <div className="mb-5 flex items-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5">
                 {TABS.map((tab) => {
                     const count  = totales[tab.key] ?? 0;
                     const active = filtro === tab.key;
@@ -264,7 +251,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
                             key={tab.key}
                             type="button"
                             onClick={() => applyFiltro(tab.key)}
-                            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-[12px] font-semibold transition-all ${
+                            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[11.5px] font-semibold transition-all sm:rounded-2xl sm:px-4 sm:py-2 sm:text-[12px] ${
                                 active
                                     ? 'border-zinc-300 bg-zinc-800 text-white shadow-sm dark:bg-zinc-200 dark:text-zinc-900'
                                     : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
@@ -297,7 +284,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
             {items.length === 0 ? (
                 <EmptyState filtro={filtro} />
             ) : (
-                <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white/50 dark:border-zinc-800 dark:bg-zinc-900/20">
+                <div className="overflow-hidden rounded-lg border border-zinc-200/80 bg-white/50 sm:rounded-xl dark:border-zinc-800 dark:bg-zinc-900/20">
                     {items.map((n) => (
                         <TarjetaNotificacion key={n.id} notif={n} onLeer={leerUna} />
                     ))}

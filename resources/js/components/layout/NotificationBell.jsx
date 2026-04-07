@@ -74,17 +74,17 @@ function NotifRow({ notif, onRead }) {
                 await onRead(notif.id);           // espera a quitar del estado y hacer POST
                 if (notif.url) router.visit(notif.url);
             }}
-            className="group flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
         >
-            <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${cfg.iconBg} ${cfg.iconClr}`}>
+            <span className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg ${cfg.iconBg} ${cfg.iconClr}`}>
                 {cfg.icon}
             </span>
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
-                    <span className="block truncate text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100">{notif.titulo}</span>
+                    <span className="block truncate text-[12px] font-semibold text-zinc-800 dark:text-zinc-100">{notif.titulo}</span>
                     <span className={`size-1.5 shrink-0 rounded-full ${cfg.dot}`} />
                 </span>
-                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
                     <span className="font-semibold text-zinc-700 dark:text-zinc-200">{tipoTexto}</span>{' '}
                     {notif.cuerpo}
                 </span>
@@ -302,7 +302,7 @@ export default function NotificationBell() {
 
                 {open && (
                     <div
-                        className="absolute right-0 top-full z-50 mt-2.5 w-[360px] overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900"
+                        className="absolute right-0 top-full z-50 mt-2.5 w-[min(92vw,360px)] overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900"
                         style={{ animation: 'notifIn 0.15s cubic-bezier(.16,1,.3,1)' }}
                     >
                         {/* cabecera */}
