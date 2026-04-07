@@ -14,10 +14,13 @@ use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\NuevaSolicitudNotification;
 use App\Services\Delegado\AcuseReciboVestuarioPdfService;
+use App\Support\SivsoVestuario;
+use App\Support\VestuarioCotizadoJoin;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -25,10 +28,6 @@ use Inertia\Response as InertiaResponse;
 
 class MiDelegacionController extends Controller
 {
-    private const ANIO_REFERENCIA = 2025; // año del que se copian asignaciones base
-
-    private const ANIO_ACTUAL = 2026; // año sobre el que se trabaja
-
     /** @var list<int> */
     private const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 
@@ -62,8 +61,8 @@ class MiDelegacionController extends Controller
                 'sin_empezar' => $sinEmpezar,
                 'bajas' => $bajas,
                 'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
-                'anio_actual' => self::ANIO_ACTUAL,
-                'anio_ref' => self::ANIO_REFERENCIA,
+                'anio_actual' => SivsoVestuario::anioActual(),
+                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
             ],
             'contexto' => $contexto,
             'periodo' => $this->periodoActual(),
@@ -136,7 +135,7 @@ class MiDelegacionController extends Controller
 
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
-            ->whereHas('asignaciones', fn ($q) => $q->where('anio', self::ANIO_REFERENCIA))
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', SivsoVestuario::anioAsignacionesVestuario()))
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -206,8 +205,8 @@ class MiDelegacionController extends Controller
                 'total' => $total,
                 'listos' => $listos,
                 'sin_empezar' => $sinEmpezar,
-                'anio_ref' => self::ANIO_REFERENCIA,
-                'anio_actual' => self::ANIO_ACTUAL,
+                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
+                'anio_actual' => SivsoVestuario::anioActual(),
             ],
             'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
             'periodo' => $this->periodoActual(),
@@ -223,23 +222,28 @@ class MiDelegacionController extends Controller
      */
     private function mapEmpleadoParaVista(Empleado $e): array
     {
-        $asignaciones = AsignacionEmpleadoProducto::query()
-            ->where('asignacion_empleado_producto.empleado_id', $e->id)
-            ->where('asignacion_empleado_producto.anio', self::ANIO_REFERENCIA)
-            ->whereNotNull('asignacion_empleado_producto.producto_cotizado_id')
-            ->join('producto_cotizado', 'producto_cotizado.id', '=', 'asignacion_empleado_producto.producto_cotizado_id')
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
+        $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($asignacionesQuery, 'aep', $anioCatalogo);
+        $asignaciones = $asignacionesQuery
+            ->where('aep.empleado_id', $e->id)
+            ->where('aep.anio', $anio)
             ->select([
-                'asignacion_empleado_producto.id',
-                'asignacion_empleado_producto.talla',
-                'asignacion_empleado_producto.talla_anio_actual',
-                'asignacion_empleado_producto.medida_anio_actual',
-                'asignacion_empleado_producto.estado_anio_actual',
-                'asignacion_empleado_producto.observacion_anio_actual',
-                'asignacion_empleado_producto.talla_actualizada_at',
-                'asignacion_empleado_producto.cantidad',
-                'producto_cotizado.descripcion as prenda',
-                'producto_cotizado.clave as clave',
+                'aep.id',
+                'aep.talla',
+                'aep.talla_anio_actual',
+                'aep.medida_anio_actual',
+                'aep.estado_anio_actual',
+                'aep.observacion_anio_actual',
+                'aep.talla_actualizada_at',
+                'aep.cantidad',
+                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
+                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
             ])
+            ->orderBy('clave')
             ->get()
             ->map(fn ($a) => [
                 'id' => $a->id,
@@ -330,8 +334,8 @@ class MiDelegacionController extends Controller
             $empleadoModel,
             $delegadoNombre,
             $fila,
-            self::ANIO_ACTUAL,
-            self::ANIO_REFERENCIA,
+            SivsoVestuario::anioActual(),
+            SivsoVestuario::anioAsignacionesVestuario(),
         );
     }
 
@@ -370,15 +374,16 @@ class MiDelegacionController extends Controller
      * Resumen de vestuario por empleado para evitar N+1 al calcular métricas globales.
      *
      * @param  list<string>|null  $codigosDelegacion
-     * @return \Illuminate\Support\Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
+     * @return Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
      */
-    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): \Illuminate\Support\Collection
+    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): Collection
     {
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
+
         return DB::table('empleado as e')
-            ->join('asignacion_empleado_producto as aep', function ($join): void {
+            ->join('asignacion_empleado_producto as aep', function ($join) use ($anio): void {
                 $join->on('aep.empleado_id', '=', 'e.id')
-                    ->where('aep.anio', self::ANIO_REFERENCIA)
-                    ->whereNotNull('aep.producto_cotizado_id');
+                    ->where('aep.anio', $anio);
             })
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search): void {
@@ -613,7 +618,7 @@ class MiDelegacionController extends Controller
 
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? self::ANIO_REFERENCIA);
+            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
 
         $parseClasifs = static function (?string $raw): array {
             if (! $raw) {
@@ -674,24 +679,28 @@ class MiDelegacionController extends Controller
             ->values()
             ->all();
 
-        // Cotizados — producto contractual (puede ser null)
+        // Cotizados — producto contractual (prioriza producto_cotizado del año de catálogo por clave/partida)
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
         $cotizados = DB::table('asignacion_empleado_producto as aep')
-            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
-            ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pc.clasificacion_principal_id')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($cotizados, 'aep', $anioCatalogo);
+        $cotizados->leftJoin('clasificacion_bien as cb', function ($join): void {
+            $join->whereRaw('cb.id = '.VestuarioCotizadoJoin::coalesceClasificacionPrincipalIdSql());
+        })
             ->where('aep.empleado_id', $empleadoId)
             ->where('aep.anio', $anioConsulta)
-            ->whereNotNull('aep.producto_cotizado_id')
+            ->whereRaw('('.VestuarioCotizadoJoin::cotizadoResueltoIdSql().') IS NOT NULL')
             ->select([
                 'aep.id                        as asignacion_id',
-                'pc.id                         as id',
-                'pc.numero_partida',
-                'pc.partida_especifica',
-                'pc.clave                       as codigo',
-                'pc.descripcion',
-                'pc.precio_unitario',
-                'pc.importe',
-                'pc.total',
-                'pc.referencia_codigo           as referencia',
+                DB::raw(VestuarioCotizadoJoin::cotizadoResueltoIdSql().' as id'),
+                DB::raw('COALESCE(pc_cat.numero_partida, pc_cat_fb.numero_partida, pc_old.numero_partida) as numero_partida'),
+                DB::raw('COALESCE(pc_cat.partida_especifica, pc_cat_fb.partida_especifica, pc_old.partida_especifica) as partida_especifica'),
+                DB::raw('COALESCE(pc_cat.clave, pc_cat_fb.clave, pc_old.clave) as codigo'),
+                DB::raw('COALESCE(pc_cat.descripcion, pc_cat_fb.descripcion, pc_old.descripcion) as descripcion'),
+                DB::raw('COALESCE(pc_cat.precio_unitario, pc_cat_fb.precio_unitario, pc_old.precio_unitario) as precio_unitario'),
+                DB::raw('COALESCE(pc_cat.importe, pc_cat_fb.importe, pc_old.importe) as importe'),
+                DB::raw('COALESCE(pc_cat.total, pc_cat_fb.total, pc_old.total) as total'),
+                DB::raw('COALESCE(pc_cat.referencia_codigo, pc_cat_fb.referencia_codigo, pc_old.referencia_codigo) as referencia'),
                 'cb.codigo                      as categoria_codigo',
                 'cb.nombre                      as categoria',
                 'aep.clave_partida_presupuestal as clave_rubro',
@@ -704,9 +713,9 @@ class MiDelegacionController extends Controller
                 '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
                 ' FROM producto_cotizado_clasificacion pcc2 '.
                 ' JOIN clasificacion_bien cb2 ON cb2.id = pcc2.clasificacion_id '.
-                ' WHERE pcc2.producto_cotizado_id = pc.id) AS clasificaciones_raw'
+                ' WHERE pcc2.producto_cotizado_id = '.VestuarioCotizadoJoin::cotizadoResueltoIdSql().') AS clasificaciones_raw'
             )
-            ->orderBy('pc.numero_partida')
+            ->orderByRaw('COALESCE(pc_cat.numero_partida, pc_cat_fb.numero_partida, pc_old.numero_partida)')
             ->get()
             ->map(function ($r) use ($parseClasifs) {
                 $arr = (array) $r;
@@ -801,27 +810,31 @@ class MiDelegacionController extends Controller
      */
     private function resumenPorCategoria(?array $codigosDelegacion): array
     {
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
         $query = DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
-            ->select([
-                'aep.anio',
-                'pc.clave',
-                'pc.descripcion',
-                DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
-            ])
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($query, 'aep', $anioCatalogo);
+        $filas = $query->select([
+            'aep.anio',
+            DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
+            DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as descripcion'),
+            DB::raw('COUNT(*) as total'),
+            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
+            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
+            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
+        ])
             ->where('e.estado_delegacion', 'activo')
-            ->whereNotNull('aep.producto_cotizado_id')
+            ->where('aep.anio', $anio)
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->groupBy('aep.anio', 'pc.clave', 'pc.descripcion')
+            ->groupByRaw('aep.anio, '.VestuarioCotizadoJoin::coalesceClaveSql().', '.VestuarioCotizadoJoin::coalesceDescripcionSql())
             ->orderBy('aep.anio', 'desc')
             ->orderBy('total', 'desc')
             ->get();
 
-        return $query->map(fn ($row) => [
+        return $filas->map(fn ($row) => [
             'anio' => $row->anio,
             'clave' => $row->clave,
             'descripcion' => $row->descripcion,

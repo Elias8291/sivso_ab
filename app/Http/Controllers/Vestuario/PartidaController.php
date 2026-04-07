@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Vestuario;
 use App\Http\Controllers\Controller;
 use App\Models\Delegacion;
 use App\Models\User;
+use App\Support\SivsoVestuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ use Inertia\Response;
 final class PartidaController extends Controller
 {
     private const IVA_RATE = 0.16;
+
     private const PARTIDAS_ESPECIFICAS_OBJETIVO = [244, 246];
 
     public function index(Request $request): Response
@@ -33,8 +35,11 @@ final class PartidaController extends Controller
             ->all();
 
         $anio = $request->integer('anio');
+        $ref = SivsoVestuario::anioReferencia();
         if (! in_array($anio, $aniosDisponibles, true)) {
-            $anio = $aniosDisponibles[0] ?? (int) now()->year;
+            $anio = in_array($ref, $aniosDisponibles, true)
+                ? $ref
+                : ($aniosDisponibles[0] ?? $ref);
         }
 
         $delegacion = $request->string('delegacion')->toString() ?: null;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Vestuario;
 
 use App\Http\Controllers\Controller;
+use App\Support\SivsoVestuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -26,8 +27,9 @@ final class ProductoController extends Controller
             ->all();
 
         $anio = $request->integer('anio');
+        $catalogoResuelto = SivsoVestuario::anioCatalogoResuelto();
         if (! in_array($anio, $anios, true)) {
-            $anio = $anios[0] ?? (int) now()->year;
+            $anio = in_array($catalogoResuelto, $anios, true) ? $catalogoResuelto : ($anios[0] ?? $catalogoResuelto);
         }
 
         $licitados = DB::table('producto_licitado as pl')

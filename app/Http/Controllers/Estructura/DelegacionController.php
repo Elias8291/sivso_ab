@@ -10,6 +10,7 @@ use App\Models\Dependencia;
 use App\Models\Empleado;
 use App\Models\User;
 use App\Notifications\AlertaVestuarioNotification;
+use App\Support\SivsoVestuario;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,8 +20,6 @@ use Inertia\Response;
 
 class DelegacionController extends Controller
 {
-    private const ANIO_REFERENCIA = 2025;
-
     public function index(Request $request): Response
     {
         $search = $request->input('search');
@@ -36,7 +35,7 @@ class DelegacionController extends Controller
             ])
             ->leftJoin('asignacion_empleado_producto as aep', function ($join) {
                 $join->on('aep.empleado_id', '=', 'empleado.id')
-                    ->where('aep.anio', '=', self::ANIO_REFERENCIA);
+                    ->where('aep.anio', '=', SivsoVestuario::anioReferencia());
             })
             ->where('empleado.estado_delegacion', 'activo')
             ->groupBy('empleado.delegacion_codigo')
@@ -44,9 +43,9 @@ class DelegacionController extends Controller
             ->keyBy('delegacion_codigo');
 
         // Totales globales para las tarjetas de resumen
-        $globalTotal       = $stats->sum('total_asignaciones');
+        $globalTotal = $stats->sum('total_asignaciones');
         $globalConfirmadas = $stats->sum('confirmadas');
-        $globalPendientes  = $stats->sum('pendientes');
+        $globalPendientes = $stats->sum('pendientes');
 
         // Delegados por delegación (puede haber varios)
         $delegadosPor = DB::table('delegado_delegacion')
@@ -61,31 +60,31 @@ class DelegacionController extends Controller
             ->with('dependenciaReferencia:ur,nombre')
             ->when($search, function ($query, $search) {
                 $query->where('codigo', 'like', "%{$search}%")
-                      ->orWhereHas('dependenciaReferencia', function ($q) use ($search) {
-                          $q->where('nombre', 'like', "%{$search}%")
+                    ->orWhereHas('dependenciaReferencia', function ($q) use ($search) {
+                        $q->where('nombre', 'like', "%{$search}%")
                             ->orWhere('ur', 'like', "%{$search}%");
-                      });
+                    });
             })
             ->orderBy('codigo')
             ->paginate(15)
             ->withQueryString()
             ->through(function (Delegacion $row) use ($stats, $delegadosPor) {
                 $s = $stats->get($row->codigo);
-                $total       = (int) ($s?->total_asignaciones ?? 0);
+                $total = (int) ($s?->total_asignaciones ?? 0);
                 $confirmadas = (int) ($s?->confirmadas ?? 0);
-                $pendientes  = (int) ($s?->pendientes ?? 0);
-                $porcentaje  = $total > 0 ? round(($confirmadas / $total) * 100) : 0;
+                $pendientes = (int) ($s?->pendientes ?? 0);
+                $porcentaje = $total > 0 ? round(($confirmadas / $total) * 100) : 0;
 
                 return [
-                    'codigo'             => $row->codigo,
-                    'ur_referencia'      => $row->ur_referencia,
-                    'referencia_nombre'  => $row->dependenciaReferencia?->nombre,
-                    'delegados'          => $delegadosPor->get($row->codigo, []),
-                    'total_empleados'    => (int) ($s?->total_empleados ?? 0),
+                    'codigo' => $row->codigo,
+                    'ur_referencia' => $row->ur_referencia,
+                    'referencia_nombre' => $row->dependenciaReferencia?->nombre,
+                    'delegados' => $delegadosPor->get($row->codigo, []),
+                    'total_empleados' => (int) ($s?->total_empleados ?? 0),
                     'total_asignaciones' => $total,
-                    'confirmadas'        => $confirmadas,
-                    'pendientes'         => $pendientes,
-                    'porcentaje'         => $porcentaje,
+                    'confirmadas' => $confirmadas,
+                    'pendientes' => $pendientes,
+                    'porcentaje' => $porcentaje,
                 ];
             });
 
@@ -94,15 +93,15 @@ class DelegacionController extends Controller
             ->get(['ur', 'nombre', 'nombre_corto']);
 
         return Inertia::render('Estructura/Delegaciones/Index', [
-            'delegaciones'     => $delegaciones,
+            'delegaciones' => $delegaciones,
             'dependenciasList' => $dependenciasList,
-            'filters'          => $request->only(['search']),
-            'anio'             => self::ANIO_REFERENCIA,
-            'resumen'          => [
-                'total'       => (int) $globalTotal,
+            'filters' => $request->only(['search']),
+            'anio' => SivsoVestuario::anioReferencia(),
+            'resumen' => [
+                'total' => (int) $globalTotal,
                 'confirmadas' => (int) $globalConfirmadas,
-                'pendientes'  => (int) $globalPendientes,
-                'porcentaje'  => $globalTotal > 0
+                'pendientes' => (int) $globalPendientes,
+                'porcentaje' => $globalTotal > 0
                     ? round(($globalConfirmadas / $globalTotal) * 100)
                     : 0,
             ],
@@ -183,7 +182,7 @@ class DelegacionController extends Controller
         $pendientes = (int) DB::table('empleado')
             ->leftJoin('asignacion_empleado_producto as aep', function ($join) {
                 $join->on('aep.empleado_id', '=', 'empleado.id')
-                    ->where('aep.anio', '=', self::ANIO_REFERENCIA);
+                    ->where('aep.anio', '=', SivsoVestuario::anioReferencia());
             })
             ->where('empleado.delegacion_codigo', $delegacion->codigo)
             ->where('empleado.estado_delegacion', 'activo')
@@ -197,7 +196,7 @@ class DelegacionController extends Controller
         }
 
         return response()->json([
-            'message'  => "Alerta enviada a {$users->count()} delegado(s).",
+            'message' => "Alerta enviada a {$users->count()} delegado(s).",
             'enviados' => $users->count(),
         ]);
     }

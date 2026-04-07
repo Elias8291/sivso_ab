@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Vestuario;
 use App\Http\Controllers\Controller;
 use App\Models\Delegacion;
 use App\Models\User;
+use App\Support\SivsoVestuario;
+use App\Support\VestuarioCotizadoJoin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,19 +17,25 @@ use Inertia\Response;
 
 class ResumenVestuarioController extends Controller
 {
-    /** Años disponibles para el filtro */
-    private const ANIOS_DISPONIBLES = [2024, 2025, 2026];
+    /** @return list<int> */
+    private function aniosDisponibles(): array
+    {
+        $ref = (int) config('sivso.vestuario.anio_referencia');
+
+        return [$ref - 2, $ref - 1, $ref, $ref + 1];
+    }
 
     public function index(Request $request): Response
     {
         /** @var User $user */
         $user = Auth::user();
 
-        $anio      = (int) $request->input('anio', 2025);
+        $anioDefault = SivsoVestuario::anioReferencia();
+        $anio = (int) $request->input('anio', $anioDefault);
         $delegacion = $request->input('delegacion'); // null = todas
 
-        if (! in_array($anio, self::ANIOS_DISPONIBLES, true)) {
-            $anio = 2025;
+        if (! in_array($anio, $this->aniosDisponibles(), true)) {
+            $anio = $anioDefault;
         }
 
         // Códigos permitidos según el rol
@@ -41,16 +49,20 @@ class ResumenVestuarioController extends Controller
             }
         }
 
-        // ── Query principal: agrupado por categoría → producto ──────────
+        // ── Query principal: agrupado por categoría → producto (cotizado resuelto al año de catálogo en .env)
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
         $filas = DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
-            ->leftJoin('clasificacion_bien as cb', 'cb.id', '=', 'pc.clasificacion_principal_id')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($filas, 'aep', $anioCatalogo);
+        $filas->leftJoin('clasificacion_bien as cb', function ($join): void {
+            $join->whereRaw('cb.id = '.VestuarioCotizadoJoin::coalesceClasificacionPrincipalIdSql());
+        })
             ->select([
                 DB::raw('COALESCE(cb.nombre, "Sin clasificación") as categoria'),
                 DB::raw('COALESCE(cb.codigo, "NINGUNA")           as categoria_codigo'),
-                'pc.clave',
-                'pc.descripcion',
+                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
+                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as descripcion'),
                 DB::raw('COUNT(*)                                                                              as total'),
                 DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END)               as confirmadas"),
                 DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente'  THEN 1 ELSE 0 END)               as pendientes"),
@@ -58,10 +70,13 @@ class ResumenVestuarioController extends Controller
             ])
             ->where('aep.anio', $anio)
             ->where('e.estado_delegacion', 'activo')
-            ->whereNotNull('aep.producto_cotizado_id')
+            ->whereRaw('('.VestuarioCotizadoJoin::cotizadoResueltoIdSql().') IS NOT NULL')
             ->when(is_array($codigosPermitidos), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosPermitidos))
             ->when($delegacion, fn ($q) => $q->where('e.delegacion_codigo', $delegacion))
-            ->groupBy('cb.nombre', 'cb.codigo', 'pc.clave', 'pc.descripcion')
+            ->groupByRaw(
+                'COALESCE(cb.nombre, "Sin clasificación"), COALESCE(cb.codigo, "NINGUNA"), '.
+                VestuarioCotizadoJoin::coalesceClaveSql().', '.VestuarioCotizadoJoin::coalesceDescripcionSql()
+            )
             ->orderBy('categoria')
             ->orderByDesc('total')
             ->get();
@@ -71,35 +86,35 @@ class ResumenVestuarioController extends Controller
             ->groupBy('categoria')
             ->map(function ($items, $catNombre) {
                 $productos = $items->map(fn ($r) => [
-                    'clave'       => $r->clave,
+                    'clave' => $r->clave,
                     'descripcion' => $r->descripcion,
-                    'total'       => (int) $r->total,
+                    'total' => (int) $r->total,
                     'confirmadas' => (int) $r->confirmadas,
-                    'pendientes'  => (int) $r->pendientes,
-                    'bajas'       => (int) $r->bajas,
-                    'porcentaje'  => $r->total > 0 ? round(($r->confirmadas / $r->total) * 100) : 0,
+                    'pendientes' => (int) $r->pendientes,
+                    'bajas' => (int) $r->bajas,
+                    'porcentaje' => $r->total > 0 ? round(($r->confirmadas / $r->total) * 100) : 0,
                 ])->values()->all();
 
-                $total      = array_sum(array_column($productos, 'total'));
+                $total = array_sum(array_column($productos, 'total'));
                 $confirmadas = array_sum(array_column($productos, 'confirmadas'));
-                $pendientes  = array_sum(array_column($productos, 'pendientes'));
+                $pendientes = array_sum(array_column($productos, 'pendientes'));
 
                 return [
-                    'nombre'      => $catNombre,
-                    'codigo'      => $items->first()->categoria_codigo,
-                    'total'       => $total,
+                    'nombre' => $catNombre,
+                    'codigo' => $items->first()->categoria_codigo,
+                    'total' => $total,
                     'confirmadas' => $confirmadas,
-                    'pendientes'  => $pendientes,
-                    'porcentaje'  => $total > 0 ? round(($confirmadas / $total) * 100) : 0,
-                    'productos'   => $productos,
+                    'pendientes' => $pendientes,
+                    'porcentaje' => $total > 0 ? round(($confirmadas / $total) * 100) : 0,
+                    'productos' => $productos,
                 ];
             })
             ->values()
             ->all();
 
         // ── Totales globales ─────────────────────────────────────────────
-        $globalTotal      = (int) $filas->sum('total');
-        $globalConfirm    = (int) $filas->sum('confirmadas');
+        $globalTotal = (int) $filas->sum('total');
+        $globalConfirm = (int) $filas->sum('confirmadas');
         $globalPendientes = (int) $filas->sum('pendientes');
 
         // Empleados con actualización capturada en el año (para cotejo UR vs Delegación)
@@ -152,19 +167,19 @@ class ResumenVestuarioController extends Controller
             ->all();
 
         return Inertia::render('Vestuario/Resumen', [
-            'categorias'           => $categorias,
-            'resumen'              => [
-                'total'       => $globalTotal,
+            'categorias' => $categorias,
+            'resumen' => [
+                'total' => $globalTotal,
                 'confirmadas' => $globalConfirm,
-                'pendientes'  => $globalPendientes,
-                'porcentaje'  => $globalTotal > 0 ? round(($globalConfirm / $globalTotal) * 100) : 0,
+                'pendientes' => $globalPendientes,
+                'porcentaje' => $globalTotal > 0 ? round(($globalConfirm / $globalTotal) * 100) : 0,
             ],
-            'anio'                 => $anio,
-            'anios_disponibles'    => self::ANIOS_DISPONIBLES,
-            'delegacion_activa'    => $delegacion,
-            'delegaciones_opciones'=> $delegacionesOpciones,
-            'empleados_actualizados'=> $empleadosActualizados,
-            'filters'              => $request->only(['anio', 'delegacion']),
+            'anio' => $anio,
+            'anios_disponibles' => $this->aniosDisponibles(),
+            'delegacion_activa' => $delegacion,
+            'delegaciones_opciones' => $delegacionesOpciones,
+            'empleados_actualizados' => $empleadosActualizados,
+            'filters' => $request->only(['anio', 'delegacion']),
         ]);
     }
 

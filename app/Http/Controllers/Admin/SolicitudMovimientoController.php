@@ -10,6 +10,8 @@ use App\Models\AsignacionEmpleadoProducto;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\SolicitudResueltaNotification;
+use App\Support\SivsoVestuario;
+use App\Support\VestuarioCotizadoJoin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,8 +21,6 @@ use Inertia\Response;
 
 class SolicitudMovimientoController extends Controller
 {
-    private const ANIO_REFERENCIA = 2025;
-
     public function index(Request $request): Response
     {
         $estado = $request->input('estado', 'pendiente');
@@ -89,22 +89,25 @@ class SolicitudMovimientoController extends Controller
             ], 404);
         }
 
-        $vestuario = AsignacionEmpleadoProducto::query()
-            ->where('asignacion_empleado_producto.empleado_id', $empleado->id)
-            ->where('asignacion_empleado_producto.anio', self::ANIO_REFERENCIA)
-            ->whereNotNull('asignacion_empleado_producto.producto_cotizado_id')
-            ->join('producto_cotizado', 'producto_cotizado.id', '=', 'asignacion_empleado_producto.producto_cotizado_id')
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
+        $vestuario = DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($vestuario, 'aep', $anioCatalogo);
+        $vestuario->where('aep.empleado_id', $empleado->id)
+            ->where('aep.anio', $anio)
             ->select([
-                'asignacion_empleado_producto.id',
-                'asignacion_empleado_producto.cantidad',
-                'asignacion_empleado_producto.talla',
-                'asignacion_empleado_producto.talla_anio_actual',
-                'asignacion_empleado_producto.medida_anio_actual',
-                'asignacion_empleado_producto.estado_anio_actual',
-                'producto_cotizado.descripcion as prenda',
-                'producto_cotizado.clave as clave',
+                'aep.id',
+                'aep.cantidad',
+                'aep.talla',
+                'aep.talla_anio_actual',
+                'aep.medida_anio_actual',
+                'aep.estado_anio_actual',
+                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
+                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
             ])
-            ->orderBy('producto_cotizado.clave')
+            ->orderBy('clave')
             ->get()
             ->map(fn ($a) => [
                 'id' => $a->id,
@@ -127,7 +130,7 @@ class SolicitudMovimientoController extends Controller
                     'ur' => $empleado->ur,
                     'delegacion' => $empleado->delegacion_codigo,
                 ],
-                'anio' => self::ANIO_REFERENCIA,
+                'anio' => SivsoVestuario::anioAsignacionesVestuario(),
                 'vestuario' => $vestuario,
             ],
             'message' => null,
@@ -194,7 +197,7 @@ class SolicitudMovimientoController extends Controller
                     if ($validated['lleva_recurso']) {
                         // El recurso va con el empleado: resetear tallas para nueva asignación
                         AsignacionEmpleadoProducto::where('empleado_id', $empleado->id)
-                            ->where('anio', self::ANIO_REFERENCIA)
+                            ->where('anio', SivsoVestuario::anioReferencia())
                             ->update([
                                 'talla_anio_actual' => null,
                                 'medida_anio_actual' => null,

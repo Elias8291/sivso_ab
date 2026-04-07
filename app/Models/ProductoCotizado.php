@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class ProductoCotizado extends Model
 {
@@ -21,6 +20,11 @@ final class ProductoCotizado extends Model
         'clave',
         'descripcion',
         'precio_unitario',
+        'importe',
+        'iva',
+        'total',
+        'precio_alterno',
         'referencia_codigo',
+        'clasificacion_principal_id',
     ];
 }

@@ -241,6 +241,8 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solic
     const solicitudesTotal = typeof solicitudes_count === 'number' ? solicitudes_count : 0;
 
     const anio = resumen.anio_actual ?? new Date().getFullYear();
+    const anioRefFallback =
+        resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
     const pct = Math.min(100, Math.max(0, resumen.pct_completado ?? 0));
     const total = resumen.total ?? 0;
     const listos = resumen.listos ?? 0;
@@ -351,7 +353,7 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solic
                                     ·
                                 </span>
                                 <span className="font-normal normal-case tracking-normal tabular-nums text-zinc-500 dark:text-zinc-400">
-                                    ref. {resumen.anio_ref}
+                                    ref. {anioRefFallback}
                                 </span>
                             </p>
                         </div>

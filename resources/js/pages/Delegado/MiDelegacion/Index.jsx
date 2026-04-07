@@ -1257,6 +1257,8 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
     const isFirstRender       = useRef(true);
+    const anioRefFallback =
+        resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
     const anioVestuario       = resumen.anio_actual ?? new Date().getFullYear();
 
     const perPage = PER_PAGE_OPCIONES.includes(Number(filters.per_page))
@@ -1306,7 +1308,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                             Vista global (super admin).{' '}
                             <span className="tabular-nums">
                                 Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref.{' '}
-                                {resumen.anio_ref ?? new Date().getFullYear() - 1}
+                                {anioRefFallback}
                             </span>
                         </>
                     ) : contexto.modo === 'delegado' && contexto.delegaciones?.length ? (
@@ -1322,14 +1324,14 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                                     ·
                                 </span>
                                 <span className="whitespace-nowrap tabular-nums">
-                                    {anioVestuario} · ref. {resumen.anio_ref ?? new Date().getFullYear() - 1}
+                                    {anioVestuario} · ref. {anioRefFallback}
                                 </span>
                             </p>
                         </>
                     ) : (
                         <span className="tabular-nums">
                             Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref.{' '}
-                            {resumen.anio_ref ?? new Date().getFullYear() - 1}
+                            {anioRefFallback}
                         </span>
                     )
                 }
