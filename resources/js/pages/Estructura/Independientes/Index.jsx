@@ -5,7 +5,7 @@ import Modal from '@/components/admin/Modal';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { route } from 'ziggy-js';
 
@@ -113,9 +113,10 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                         <div className="flex justify-end gap-1.5">
                                             <Link
                                                 href={route('my-delegation.index', { delegacion_codigo: row.codigo })}
-                                                className="rounded-md border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
+                                                title={`Ver ${row.codigo}`}
+                                                className="rounded-md border border-zinc-200 p-1.5 text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
                                             >
-                                                Ver
+                                                <Eye className="size-3.5" />
                                             </Link>
                                             {puedeGestionar && (
                                                 <>
