@@ -1,12 +1,15 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import ConfirmDeleteModal from '@/components/admin/ConfirmDeleteModal';
+import CrudRowActions from '@/components/admin/CrudRowActions';
+import DataTable from '@/components/admin/DataTable';
 import FormField from '@/components/admin/FormField';
 import Modal from '@/components/admin/Modal';
+import TablePagination from '@/components/admin/TablePagination';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
-import { Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { Plus, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { route } from 'ziggy-js';
 
 function IndependientesIndex({ independientes, dependenciasList = [], filters = {} }) {
@@ -65,6 +68,35 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
         });
     };
 
+    const columns = useMemo(
+        () => [
+            { key: 'codigo', header: 'Código', cellClassName: 'font-mono text-xs' },
+            { key: 'ur_referencia', header: 'UR referencia', cellClassName: 'font-mono text-xs' },
+            {
+                key: 'referencia_nombre',
+                header: 'Dependencia',
+                render: (row) => row.referencia_nombre || <span className="text-zinc-400">—</span>,
+            },
+            { key: 'total_empleados', header: 'Empleados', cellClassName: 'text-right tabular-nums' },
+            { key: 'actualizados', header: 'Actualizados', cellClassName: 'text-right tabular-nums' },
+            { key: 'faltan', header: 'Faltan', cellClassName: 'text-right tabular-nums' },
+            {
+                key: 'acciones',
+                header: 'Acciones',
+                render: (row) => (
+                    <CrudRowActions
+                        onView={() => router.visit(route('my-delegation.index', { delegacion_codigo: row.codigo, modo: 'independiente' }))}
+                        onEdit={() => setShowEdit(row)}
+                        onDelete={() => setDeleteTarget(row)}
+                        showEdit={puedeGestionar}
+                        showDelete={puedeGestionar}
+                    />
+                ),
+            },
+        ],
+        [puedeGestionar],
+    );
+
     return (
         <>
             <Head title="Independientes" />
@@ -82,7 +114,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                     </button>
                 ) : null}
             >
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white px-5 py-3 shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
                     <Search className="size-4 text-zinc-400" />
                     <input
                         type="text"
@@ -93,59 +125,15 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                     />
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-zinc-200/80 dark:border-zinc-800">
-                    <table className="min-w-[640px] w-full text-[12px]">
-                        <thead>
-                            <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                <th className="px-3 py-2 text-left">Codigo</th>
-                                <th className="px-3 py-2 text-left">UR referencia</th>
-                                <th className="px-3 py-2 text-left">Dependencia</th>
-                                <th className="px-3 py-2 text-right">Empleados</th>
-                                <th className="px-3 py-2 text-right">Actualizados</th>
-                                <th className="px-3 py-2 text-right">Faltan</th>
-                                <th className="px-3 py-2 text-right">Accion</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {independientes.data.map((row) => (
-                                <tr key={row.codigo} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                    <td className="px-3 py-2 font-mono">{row.codigo}</td>
-                                    <td className="px-3 py-2">{row.ur_referencia ?? '—'}</td>
-                                    <td className="px-3 py-2">{row.referencia_nombre ?? '—'}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">{row.total_empleados ?? 0}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">{row.actualizados ?? 0}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">{row.faltan ?? 0}</td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex justify-end gap-1.5">
-                                            <Link
-                                                href={route('my-delegation.index', { delegacion_codigo: row.codigo, modo: 'independiente' })}
-                                                title={`Ver ${row.codigo}`}
-                                                className="rounded-md border border-zinc-200 p-1.5 text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
-                                            >
-                                                <Eye className="size-3.5" />
-                                            </Link>
-                                            {puedeGestionar && (
-                                                <>
-                                                <button type="button" onClick={() => setShowEdit(row)} className="rounded-md border border-zinc-200 p-1.5 dark:border-zinc-700">
-                                                    <Pencil className="size-3.5" />
-                                                </button>
-                                                <button type="button" onClick={() => setDeleteTarget(row)} className="rounded-md border border-zinc-200 p-1.5 dark:border-zinc-700">
-                                                    <Trash2 className="size-3.5" />
-                                                </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {independientes.data.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="px-3 py-6 text-center text-zinc-400">Sin registros</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    columns={columns}
+                    rows={independientes.data}
+                    keyExtractor={(row) => row.codigo}
+                    emptyTitle="Sin independientes"
+                    emptyDescription="No hay códigos independientes o el filtro actual no devuelve resultados."
+                    footer={independientes.last_page > 1 ? <TablePagination pagination={independientes} /> : null}
+                    mobileRowStyle="divided"
+                />
             </AdminPageShell>
 
             <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Nuevo independiente">
