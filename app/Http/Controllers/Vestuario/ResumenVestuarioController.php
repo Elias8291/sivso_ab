@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Vestuario;
 use App\Http\Controllers\Controller;
 use App\Models\Delegacion;
 use App\Models\User;
+use App\Support\SivsoPermissions;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class ResumenVestuarioController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+        abort_unless($user->can(SivsoPermissions::VER_COTEJO_VESTUARIO), 403);
 
         $anioDefault = SivsoVestuario::anioReferencia();
         $anio = (int) $request->input('anio', $anioDefault);
@@ -55,7 +57,7 @@ class ResumenVestuarioController extends Controller
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
             ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
         VestuarioCotizadoJoin::applyCotizadoResuelto($filas, 'aep', $anioCatalogo);
-        $filas->leftJoin('clasificacion_bien as cb', function ($join): void {
+        $filas = $filas->leftJoin('clasificacion_bien as cb', function ($join): void {
             $join->whereRaw('cb.id = '.VestuarioCotizadoJoin::coalesceClasificacionPrincipalIdSql());
         })
             ->select([
