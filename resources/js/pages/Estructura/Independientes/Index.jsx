@@ -4,7 +4,7 @@ import FormField from '@/components/admin/FormField';
 import Modal from '@/components/admin/Modal';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { route } from 'ziggy-js';
@@ -100,7 +100,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                 <th className="px-3 py-2 text-left">Codigo</th>
                                 <th className="px-3 py-2 text-left">UR referencia</th>
                                 <th className="px-3 py-2 text-left">Dependencia</th>
-                                {puedeGestionar && <th className="px-3 py-2 text-right">Accion</th>}
+                                <th className="px-3 py-2 text-right">Accion</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -109,18 +109,26 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                     <td className="px-3 py-2 font-mono">{row.codigo}</td>
                                     <td className="px-3 py-2">{row.ur_referencia ?? '—'}</td>
                                     <td className="px-3 py-2">{row.referencia_nombre ?? '—'}</td>
-                                    {puedeGestionar && (
-                                        <td className="px-3 py-2">
-                                            <div className="flex justify-end gap-1.5">
+                                    <td className="px-3 py-2">
+                                        <div className="flex justify-end gap-1.5">
+                                            <Link
+                                                href={route('my-delegation.index', { delegacion_codigo: row.codigo })}
+                                                className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700"
+                                            >
+                                                Ver
+                                            </Link>
+                                            {puedeGestionar && (
+                                                <>
                                                 <button type="button" onClick={() => setShowEdit(row)} className="rounded-md border border-zinc-200 p-1.5 dark:border-zinc-700">
                                                     <Pencil className="size-3.5" />
                                                 </button>
                                                 <button type="button" onClick={() => setDeleteTarget(row)} className="rounded-md border border-zinc-200 p-1.5 dark:border-zinc-700">
                                                     <Trash2 className="size-3.5" />
                                                 </button>
-                                            </div>
-                                        </td>
-                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                             {independientes.data.length === 0 && (

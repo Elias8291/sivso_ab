@@ -1207,6 +1207,7 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
             filtro: overrides.filtro !== undefined ? overrides.filtro : filtro,
             per_page: overrides.per_page !== undefined ? overrides.per_page : perPage,
             page: overrides.page !== undefined ? overrides.page : 1,
+            delegacion_codigo: filters.delegacion_codigo ?? undefined,
         };
         const s = overrides.search !== undefined ? overrides.search : search;
         if (s) {

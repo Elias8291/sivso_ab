@@ -128,10 +128,23 @@ class MiDelegacionController extends Controller
         if (! in_array($perPage, self::PER_PAGE_OPCIONES, true)) {
             $perPage = 20;
         }
+        $delegacionCodigo = $request->input('delegacion_codigo');
+        $delegacionCodigo = is_string($delegacionCodigo) ? trim($delegacionCodigo) : null;
+        if ($delegacionCodigo === '') {
+            $delegacionCodigo = null;
+        }
 
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosFiltro = $codigosDelegacion;
+        if ($delegacionCodigo !== null) {
+            if (is_array($codigosDelegacion)) {
+                $codigosFiltro = in_array($delegacionCodigo, $codigosDelegacion, true) ? [$delegacionCodigo] : [];
+            } else {
+                $codigosFiltro = [$delegacionCodigo];
+            }
+        }
 
-        $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
+        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
 
         $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
         $vestAgg = DB::table('asignacion_empleado_producto')
@@ -142,7 +155,7 @@ class MiDelegacionController extends Controller
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
             ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
-            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion))
+            ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
             ->when($search !== null, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
@@ -160,7 +173,7 @@ class MiDelegacionController extends Controller
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion, $search);
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
         $total = $resumenVestuario->count();
         $listos = $resumenVestuario
             ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
@@ -232,11 +245,11 @@ class MiDelegacionController extends Controller
                 'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
                 'anio_actual' => SivsoVestuario::anioActual(),
             ],
-            'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
+            'resumen_prendas' => $this->resumenPorCategoria($codigosFiltro),
             'periodo' => $this->periodoActual(),
             'filters' => array_merge(
                 $request->only(['search']),
-                ['filtro' => $filtro, 'per_page' => $perPage],
+                ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo],
             ),
         ]);
     }
