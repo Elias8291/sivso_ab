@@ -60,7 +60,7 @@ class NotificacionesController extends Controller
 
     public function index(Request $request): Response
     {
-        $filtro = $request->input('filtro', 'no_leidas');
+        $filtro = $request->input('filtro', 'todas');
         $user   = Auth::user();
 
         $query = $filtro === 'todas'

@@ -6,12 +6,9 @@ import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
     ArrowLeftRight,
-    Bell,
     BellOff,
-    CheckCheck,
     CheckCircle2,
     Clock,
-    Inbox,
     XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -60,13 +57,6 @@ function tipoTexto(notif) {
     return notif.tipo_sol === 'cambio' ? 'Solicitud de cambio:' : 'Solicitud de baja:';
 }
 
-/* ── pestañas ────────────────────────────────────────────────────── */
-
-const TABS = [
-    { key: 'no_leidas', label: 'No leídas', icon: <Bell className="size-3.5" strokeWidth={2} /> },
-    { key: 'todas',     label: 'Todas',     icon: <Inbox className="size-3.5" strokeWidth={2} /> },
-];
-
 /* ── tarjeta de notificación ─────────────────────────────────────── */
 
 function TarjetaNotificacion({ notif, onLeer }) {
@@ -80,7 +70,9 @@ function TarjetaNotificacion({ notif, onLeer }) {
 
     return (
         <div
-            className="cursor-pointer border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80"
+            className={`cursor-pointer border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80 ${
+                notif.leida ? '' : 'bg-zinc-50/55 dark:bg-zinc-800/20'
+            }`}
             onClick={handleClick}
             role="button"
             tabIndex={0}
@@ -132,20 +124,16 @@ function TarjetaNotificacion({ notif, onLeer }) {
 
 /* ── estado vacío ────────────────────────────────────────────────── */
 
-function EmptyState({ filtro }) {
+function EmptyState() {
     return (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/60 py-20 ring-1 ring-zinc-900/5 dark:bg-zinc-900/40 dark:ring-white/5">
             <div className="flex size-16 items-center justify-center rounded-2xl bg-zinc-50 dark:bg-zinc-800">
                 <BellOff className="size-7 text-zinc-300 dark:text-zinc-600" strokeWidth={1.4} />
             </div>
             <div className="text-center">
-                <p className="text-[14px] font-semibold text-zinc-700 dark:text-zinc-300">
-                    {filtro === 'no_leidas' ? 'Todo al día' : 'Sin notificaciones'}
-                </p>
+                <p className="text-[14px] font-semibold text-zinc-700 dark:text-zinc-300">Sin notificaciones</p>
                 <p className="mt-1 text-[12px] text-zinc-400 dark:text-zinc-500">
-                    {filtro === 'no_leidas'
-                        ? 'No tienes notificaciones pendientes de leer.'
-                        : 'Todavía no hay notificaciones en el historial.'}
+                    Todavia no hay notificaciones en el historial.
                 </p>
             </div>
         </div>
@@ -156,9 +144,8 @@ function EmptyState({ filtro }) {
 
 const NOTIFICACIONES_INDEX_POLL_MS = 12_000;
 
-function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
+function NotificacionesIndex({ notificaciones, filters = {} }) {
     const { auth } = usePage().props;
-    const [filtro, setFiltro] = useState(filters.filtro ?? 'no_leidas');
     const [items, setItems]  = useState(notificaciones.data);
     const autoReadDoneRef = useRef(false);
 
@@ -171,10 +158,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
 
         const reloadList = () => {
             if (document.visibilityState === 'hidden') return;
-            router.reload({
-                only: ['notificaciones', 'totales'],
-                preserveScroll: true,
-            });
+            router.reload({ only: ['notificaciones'], preserveScroll: true });
         };
 
         if (isWebsocketRealtimeEnabled && echo) {
@@ -188,22 +172,10 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
         return () => clearInterval(interval);
     }, [auth?.user?.id]);
 
-    const applyFiltro = (f) => {
-        setFiltro(f);
-        router.get(route('notificaciones.index'), { filtro: f }, { preserveState: true, preserveScroll: true, replace: true });
-    };
-
     const leerUna = useCallback(async (id) => {
         try {
             await axios.post(route('notificaciones.leer', id));
             setItems((prev) => prev.map((n) => n.id === id ? { ...n, leida: true } : n));
-        } catch { /* silent */ }
-    }, []);
-
-    const leerTodas = useCallback(async () => {
-        try {
-            await axios.post(route('notificaciones.leer-todas'));
-            setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
         } catch { /* silent */ }
     }, []);
 
@@ -234,49 +206,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
                         Solicitudes resueltas, bajas aprobadas y movimientos de delegación.
                     </p>
                 </div>
-                {noLeidas > 0 && (
-                    <button
-                        type="button"
-                        onClick={leerTodas}
-                        className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-[12px] font-semibold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                    >
-                        <CheckCheck className="size-4" /> Marcar todas como leídas
-                    </button>
-                )}
-            </div>
-
-            {/* ── pestañas ── */}
-            <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5">
-                {TABS.map((tab) => {
-                    const count  = totales[tab.key] ?? 0;
-                    const active = filtro === tab.key;
-                    return (
-                        <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => applyFiltro(tab.key)}
-                            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-[11.5px] font-semibold transition-all sm:rounded-2xl sm:px-4 sm:py-2 sm:text-[12px] ${
-                                active
-                                    ? 'border-zinc-300 bg-zinc-800 text-white shadow-sm dark:bg-zinc-200 dark:text-zinc-900'
-                                    : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                            }`}
-                        >
-                            {tab.icon}
-                            {tab.label}
-                            {count > 0 && (
-                                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
-                                    active
-                                        ? 'bg-white/20 text-white dark:bg-black/20 dark:text-zinc-800'
-                                        : tab.key === 'no_leidas'
-                                            ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
-                                            : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
-                                }`}>
-                                    {count}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
+                {noLeidas > 0 ? <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Nuevas: {noLeidas}</span> : null}
             </div>
 
             {/* ── contador ── */}
@@ -286,7 +216,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
 
             {/* ── lista ── */}
             {items.length === 0 ? (
-                <EmptyState filtro={filtro} />
+                <EmptyState />
             ) : (
                 <div className="overflow-hidden rounded-lg border border-zinc-200/80 bg-white/50 sm:rounded-xl dark:border-zinc-800 dark:bg-zinc-900/20">
                     {items.map((n) => (
