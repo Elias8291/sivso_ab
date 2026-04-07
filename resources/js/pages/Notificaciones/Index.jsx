@@ -2,7 +2,7 @@ import TablePagination from '@/components/admin/TablePagination';
 import echo, { isWebsocketRealtimeEnabled } from '@/echo';
 import { getPollIntervalMs } from '@/lib/realtimePoll';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
     ArrowLeftRight,
@@ -11,7 +11,7 @@ import {
     Clock,
     XCircle,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { route } from 'ziggy-js';
 
 /* ── configuración visual ────────────────────────────────────────── */
@@ -144,10 +144,8 @@ function EmptyState() {
 
 const NOTIFICACIONES_INDEX_POLL_MS = 12_000;
 
-function NotificacionesIndex({ notificaciones, filters = {} }) {
-    const { auth } = usePage().props;
+function NotificacionesIndex({ notificaciones }) {
     const [items, setItems]  = useState(notificaciones.data);
-    const autoReadDoneRef = useRef(false);
 
     useEffect(() => {
         setItems(notificaciones.data);
@@ -180,20 +178,6 @@ function NotificacionesIndex({ notificaciones, filters = {} }) {
     }, []);
 
     const noLeidas = items.filter((n) => !n.leida).length;
-
-    useEffect(() => {
-        if (autoReadDoneRef.current || !auth?.user || noLeidas === 0) return;
-
-        autoReadDoneRef.current = true;
-        void (async () => {
-            try {
-                await axios.post(route('notificaciones.leer-todas'));
-                setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
-            } catch {
-                autoReadDoneRef.current = false;
-            }
-        })();
-    }, [auth?.user, noLeidas]);
 
     return (
         <>

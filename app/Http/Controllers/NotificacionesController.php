@@ -60,12 +60,13 @@ class NotificacionesController extends Controller
 
     public function index(Request $request): Response
     {
-        $filtro = $request->input('filtro', 'todas');
         $user   = Auth::user();
 
-        $query = $filtro === 'todas'
-            ? $user->notifications()
-            : $user->unreadNotifications();
+        // Al entrar al modulo, marcamos pendientes como leidas para evitar
+        // parpadeo del contador en el header/campana durante recargas.
+        $user->unreadNotifications->markAsRead();
+
+        $query = $user->notifications();
 
         $notificaciones = $query
             ->latest()
@@ -90,7 +91,7 @@ class NotificacionesController extends Controller
                 'no_leidas' => $user->unreadNotifications()->count(),
                 'todas'     => $user->notifications()->count(),
             ],
-            'filters' => $request->only(['filtro']),
+            'filters' => [],
         ]);
     }
 
