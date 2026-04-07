@@ -1,4 +1,5 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
+import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router } from '@inertiajs/react';
 import {
@@ -195,6 +196,20 @@ function ResumenVestuario({
     empleados_actualizados = [],
     filters = {},
 }) {
+    const puedeVerResumen = useAuthCan()('Ver cotejo vestuario');
+
+    if (!puedeVerResumen) {
+        return (
+            <>
+                <Head title="Resumen de vestuario" />
+                <AdminPageShell
+                    title="Resumen de vestuario"
+                    description="No tienes permisos para consultar esta sección."
+                />
+            </>
+        );
+    }
+
     const navegar = useCallback((overrides) => {
         router.get(
             route('vestuario.resumen'),
