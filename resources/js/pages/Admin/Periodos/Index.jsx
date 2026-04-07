@@ -208,7 +208,7 @@ function PeriodoCard({ p, puedeGestionar, onEdit, onToggle, onDelete }) {
                             title={p.estado === 'abierto' ? 'Cerrar período' : 'Abrir período'}
                             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
                                 p.estado === 'abierto'
-                                    ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-400'
+                                    ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-400'
                                     : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400'
                             }`}>
                             {busyToggle
