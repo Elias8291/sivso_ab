@@ -76,27 +76,17 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                         <table className="min-w-full text-[12px]">
                             <thead>
                                 <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                    <th className="px-3 py-2 text-left">Partida</th>
-                                    <th className="px-3 py-2 text-left">Código</th>
+                                    <th className="px-3 py-2 text-left">Clave</th>
                                     <th className="px-3 py-2 text-left">Descripción</th>
                                     <th className="px-3 py-2 text-left">Categoría</th>
-                                    <th className="px-3 py-2 text-right">Cant.</th>
-                                    <th className="px-3 py-2 text-right">P.U.</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {licitados.map((item) => (
                                     <tr key={item.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                        <td className="px-3 py-2 tabular-nums">{item.numero_partida}</td>
                                         <td className="px-3 py-2 font-mono">{item.codigo_catalogo}</td>
                                         <td className="px-3 py-2">{item.descripcion}</td>
                                         <td className="px-3 py-2">{item.categoria || '—'}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">{item.cantidad_propuesta}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">
-                                            {item.precio_unitario != null
-                                                ? Number(item.precio_unitario).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-                                                : '—'}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -107,33 +97,17 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                         <table className="min-w-full text-[12px]">
                             <thead>
                                 <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                    <th className="px-3 py-2 text-left">Partida</th>
                                     <th className="px-3 py-2 text-left">Clave</th>
                                     <th className="px-3 py-2 text-left">Descripción</th>
                                     <th className="px-3 py-2 text-left">Categoría</th>
-                                    <th className="px-3 py-2 text-left">Referencia</th>
-                                    <th className="px-3 py-2 text-right">P.U.</th>
-                                    <th className="px-3 py-2 text-right">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {cotizados.map((item) => (
                                     <tr key={item.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                        <td className="px-3 py-2 tabular-nums">{item.numero_partida}</td>
                                         <td className="px-3 py-2 font-mono">{item.clave}</td>
                                         <td className="px-3 py-2">{item.descripcion}</td>
                                         <td className="px-3 py-2">{item.categoria || '—'}</td>
-                                        <td className="px-3 py-2 font-mono">{item.referencia_codigo || '—'}</td>
-                                        <td className="px-3 py-2 text-right tabular-nums">
-                                            {item.precio_unitario != null
-                                                ? Number(item.precio_unitario).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-                                                : '—'}
-                                        </td>
-                                        <td className="px-3 py-2 text-right tabular-nums">
-                                            {item.total != null
-                                                ? Number(item.total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-                                                : '—'}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
