@@ -7,7 +7,7 @@ import {
     Calendar, CheckCircle2, ChevronRight, Clock, Lock,
     Pencil, Plus, RotateCcw, Trash2, Unlock, X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { route } from 'ziggy-js';
 
 /* ── helpers ── */
@@ -57,14 +57,28 @@ function PeriodoField({ label, id, type = 'text', k, ph = '', required = false, 
 function ModalPeriodo({ open, onClose, periodo, onSaved }) {
     const isEdit = !!periodo;
     const [form, setForm] = useState({
-        anio:         periodo?.anio         ?? new Date().getFullYear(),
-        nombre:       periodo?.nombre       ?? '',
-        fecha_inicio: periodo?.fecha_inicio ?? '',
-        fecha_fin:    periodo?.fecha_fin    ?? '',
-        descripcion:  periodo?.descripcion  ?? '',
+        anio:         new Date().getFullYear(),
+        nombre:       '',
+        fecha_inicio: '',
+        fecha_fin:    '',
+        descripcion:  '',
     });
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // Reset form when modal opens or periodo changes
+    useEffect(() => {
+        if (open) {
+            setForm({
+                anio:         periodo?.anio         ?? new Date().getFullYear(),
+                nombre:       periodo?.nombre       ?? '',
+                fecha_inicio: periodo?.fecha_inicio ?? '',
+                fecha_fin:    periodo?.fecha_fin    ?? '',
+                descripcion:  periodo?.descripcion  ?? '',
+            });
+            setErrors({});
+        }
+    }, [open, periodo]);
 
     if (!open) return null;
 
