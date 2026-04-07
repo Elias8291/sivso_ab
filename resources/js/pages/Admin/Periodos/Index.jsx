@@ -15,6 +15,15 @@ const fmt = (iso) => iso
     ? new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 
+const normalizePeriodos = (items = []) => {
+    const seen = new Set();
+    return items.filter((item) => {
+        if (!item?.id || seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+    });
+};
+
 const ESTADO_CFG = {
     abierto: {
         label: 'Abierto',
@@ -217,7 +226,7 @@ function PeriodoCard({ p, puedeGestionar, onEdit, onToggle, onDelete }) {
 /* ── Página principal ── */
 function PeriodosIndex({ periodos: initial = [], filters = {} }) {
     const puedeGestionar = useAuthCan()('Gestionar periodos');
-    const [periodos, setPeriodos] = useState(initial);
+    const [periodos, setPeriodos] = useState(() => normalizePeriodos(initial));
     const [modalPeriodo, setModalPeriodo] = useState(null); // null | 'nuevo' | object (editar)
     const [toast, setToast] = useState('');
 
@@ -225,7 +234,7 @@ function PeriodosIndex({ periodos: initial = [], filters = {} }) {
 
     const onSaved = (data, action) => {
         if (action === 'create') {
-            setPeriodos((p) => [data, ...p]);
+            setPeriodos((p) => normalizePeriodos([data, ...p]));
         } else {
             setPeriodos((p) => p.map((x) => x.id === data.id ? data : x));
         }
@@ -291,7 +300,7 @@ function PeriodosIndex({ periodos: initial = [], filters = {} }) {
                 ) : (
                     <div className="space-y-2.5">
                         {periodos.map((p) => (
-                            <PeriodoCard key={p.id} p={p} puedeGestionar={puedeGestionar}
+                            <PeriodoCard key={`periodo-${p.id}`} p={p} puedeGestionar={puedeGestionar}
                                 onEdit={setModalPeriodo}
                                 onToggle={onToggle}
                                 onDelete={onDelete}
@@ -310,7 +319,7 @@ function PeriodosIndex({ periodos: initial = [], filters = {} }) {
 
             {modalPeriodo !== null && (
                 <ModalPeriodo
-                    key={typeof modalPeriodo === 'object' ? modalPeriodo.id : 'nuevo'}
+                    key={typeof modalPeriodo === 'object' ? `edit-${modalPeriodo?.id ?? 'temp'}` : 'nuevo'}
                     onClose={() => setModalPeriodo(null)}
                     periodo={modalPeriodo === 'nuevo' ? null : modalPeriodo}
                     onSaved={onSaved}
