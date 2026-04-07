@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Delegado\MiDelegacionController;
 use App\Http\Controllers\Estructura\DelegacionController;
+use App\Http\Controllers\Estructura\IndependienteController;
 use App\Http\Controllers\Estructura\DelegadoController;
 use App\Http\Controllers\Estructura\DependenciaController;
 use App\Http\Controllers\Estructura\EmpleadoController;
@@ -145,6 +146,19 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::post('/delegaciones/{delegacion}/alertar', [DelegacionController::class, 'alertar'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
         ->name('delegaciones.alertar');
+
+    Route::get('/independientes', [IndependienteController::class, 'index'])
+        ->middleware('permission:'.SivsoPermissions::VER_DELEGACIONES)
+        ->name('independientes.index');
+    Route::post('/independientes', [IndependienteController::class, 'store'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
+        ->name('independientes.store');
+    Route::patch('/independientes/{independiente}', [IndependienteController::class, 'update'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
+        ->name('independientes.update');
+    Route::delete('/independientes/{independiente}', [IndependienteController::class, 'destroy'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_DELEGACIONES)
+        ->name('independientes.destroy');
 
     Route::get('/delegados', [DelegadoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_DELEGADOS)

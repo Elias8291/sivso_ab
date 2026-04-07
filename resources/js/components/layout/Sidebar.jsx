@@ -172,7 +172,6 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                     {(can('Ver empleados') ||
                         can('Ver productos') ||
                         can('Ver partidas') ||
-                        can('Ver mi delegación') ||
                         can('Ver cotejo vestuario')) && (
                         <>
                             <SectionHeader title="Vestuario" />
@@ -249,6 +248,17 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                                     >
                                         <MapPin className={iconClass(route().current('delegaciones.*'))} strokeWidth={2} aria-hidden />
                                         <span className={collapsed ? 'lg:hidden' : ''}>Delegaciones</span>
+                                    </Link>
+                                )}
+                                {can('Ver delegaciones') && (
+                                    <Link
+                                        href={route('independientes.index')}
+                                        onClick={handleNav}
+                                        className={navLink(route().current('independientes.*'))}
+                                        title="Independientes"
+                                    >
+                                        <MapPin className={iconClass(route().current('independientes.*'))} strokeWidth={2} aria-hidden />
+                                        <span className={collapsed ? 'lg:hidden' : ''}>Independientes</span>
                                     </Link>
                                 )}
                                 {can('Ver delegados') && (
