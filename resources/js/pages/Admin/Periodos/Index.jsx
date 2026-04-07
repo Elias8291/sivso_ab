@@ -86,7 +86,7 @@ function ModalPeriodo({ open, onClose, periodo, onSaved }) {
             setForm(getDefaultFormState());
             setErrors({});
         }
-    }, [open, periodo]);
+    }, [open, periodo?.id]);
 
     if (!open) return null;
 
