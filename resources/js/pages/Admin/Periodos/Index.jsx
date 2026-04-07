@@ -36,6 +36,23 @@ const ESTADO_CFG = {
     },
 };
 
+/* ── Campo reutilizable (definido fuera del modal para evitar re-montajes) ── */
+function PeriodoField({ label, id, type = 'text', k, ph = '', required = false, form, errors, onChange }) {
+    return (
+        <div className="flex flex-col gap-1">
+            <label htmlFor={id} className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                {label}{required && <span className="ml-0.5 text-zinc-500">*</span>}
+            </label>
+            <input
+                id={id} type={type} value={form[k]} onChange={(e) => onChange(k, e.target.value)}
+                placeholder={ph} required={required}
+                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[13px] text-zinc-900 outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+            {errors[k] && <p className="text-[11px] text-red-500">{errors[k]}</p>}
+        </div>
+    );
+}
+
 /* ── Modal crear/editar ── */
 function ModalPeriodo({ open, onClose, periodo, onSaved }) {
     const isEdit = !!periodo;
@@ -70,20 +87,6 @@ function ModalPeriodo({ open, onClose, periodo, onSaved }) {
         }
     };
 
-    const Field = ({ label, id, type = 'text', k, ph = '', required = false }) => (
-        <div className="flex flex-col gap-1">
-            <label htmlFor={id} className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                {label}{required && <span className="ml-0.5 text-zinc-500">*</span>}
-            </label>
-            <input
-                id={id} type={type} value={form[k]} onChange={(e) => set(k, e.target.value)}
-                placeholder={ph} required={required}
-                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[13px] text-zinc-900 outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-            {errors[k] && <p className="text-[11px] text-red-500">{errors[k]}</p>}
-        </div>
-    );
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]" onClick={onClose} />
@@ -100,12 +103,12 @@ function ModalPeriodo({ open, onClose, periodo, onSaved }) {
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
                 <form onSubmit={guardar} className="space-y-4 px-6 pb-6 pt-4">
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Año" id="p-anio" type="number" k="anio" ph="2025" required />
-                        <Field label="Nombre" id="p-nombre" k="nombre" ph="Período 2025" required />
+                        <PeriodoField label="Año" id="p-anio" type="number" k="anio" ph="2025" required form={form} errors={errors} onChange={set} />
+                        <PeriodoField label="Nombre" id="p-nombre" k="nombre" ph="Período 2025" required form={form} errors={errors} onChange={set} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <Field label="Fecha inicio" id="p-ini" type="date" k="fecha_inicio" required />
-                        <Field label="Fecha fin"    id="p-fin" type="date" k="fecha_fin"    required />
+                        <PeriodoField label="Fecha inicio" id="p-ini" type="date" k="fecha_inicio" required form={form} errors={errors} onChange={set} />
+                        <PeriodoField label="Fecha fin"    id="p-fin" type="date" k="fecha_fin"    required form={form} errors={errors} onChange={set} />
                     </div>
                     <div className="flex flex-col gap-1">
                         <label htmlFor="p-desc" className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Descripción</label>
