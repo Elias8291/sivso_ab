@@ -1,8 +1,10 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
+import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import { route } from 'ziggy-js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function FiltroAnio({ anio, aniosDisponibles }) {
     return (
@@ -29,8 +31,93 @@ function FiltroAnio({ anio, aniosDisponibles }) {
     );
 }
 
-export default function ProductosIndex({ anio, anios_disponibles = [], licitados = [], cotizados = [] }) {
+function EditarProductoModal({ open, item, tipo, categorias, onClose, onSaved }) {
+    const [form, setForm] = useState({ clave: '', descripcion: '', categoria_id: '' });
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!open || !item) return;
+        setForm({
+            clave: item.clave ?? '',
+            descripcion: item.descripcion ?? '',
+            categoria_id: item.categoria_id ? String(item.categoria_id) : '',
+        });
+    }, [open, item]);
+
+    if (!open || !item) return null;
+
+    const submit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await axios.patch(route('productos.update', { tipo, id: item.id }), {
+                clave: form.clave,
+                descripcion: form.descripcion,
+                categoria_id: form.categoria_id ? Number(form.categoria_id) : null,
+            });
+            onSaved();
+            onClose();
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-zinc-900/40" onClick={onClose} />
+            <form onSubmit={submit} className="relative z-10 w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <h3 className="mb-3 text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">Editar producto</h3>
+                <div className="space-y-3">
+                    <input
+                        value={form.clave}
+                        onChange={(e) => setForm((p) => ({ ...p, clave: e.target.value }))}
+                        placeholder="Clave"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
+                        required
+                    />
+                    <input
+                        value={form.descripcion}
+                        onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
+                        placeholder="Descripcion"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
+                        required
+                    />
+                    <select
+                        value={form.categoria_id}
+                        onChange={(e) => setForm((p) => ({ ...p, categoria_id: e.target.value }))}
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
+                    >
+                        <option value="">Sin categoria</option>
+                        {categorias.map((c) => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                    <button type="button" onClick={onClose} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] dark:border-zinc-700">Cancelar</button>
+                    <button type="submit" disabled={saving} className="rounded-lg bg-zinc-900 px-3 py-1.5 text-[12px] text-white dark:bg-zinc-100 dark:text-zinc-900">
+                        {saving ? 'Guardando...' : 'Guardar'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}
+
+export default function ProductosIndex({ anio, anios_disponibles = [], licitados = [], cotizados = [], categorias = [] }) {
     const [tab, setTab] = useState('licitados');
+    const canGestionar = useAuthCan()('Gestionar productos');
+    const [editing, setEditing] = useState(null);
+
+    const openEdit = (item) => {
+        setEditing({
+            id: item.id,
+            tipo: tab === 'licitados' ? 'licitado' : 'cotizado',
+            clave: tab === 'licitados' ? (item.codigo_catalogo ?? '') : (item.clave ?? ''),
+            descripcion: item.descripcion ?? '',
+            categoria_id: categorias.find((c) => c.nombre === item.categoria)?.id ?? '',
+        });
+    };
 
     return (
         <>
@@ -79,6 +166,7 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                                     <th className="px-3 py-2 text-left">Clave</th>
                                     <th className="px-3 py-2 text-left">Descripción</th>
                                     <th className="px-3 py-2 text-left">Categoría</th>
+                                    {canGestionar && <th className="px-3 py-2 text-right">Acción</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -87,6 +175,11 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                                         <td className="px-3 py-2 font-mono">{item.codigo_catalogo}</td>
                                         <td className="px-3 py-2">{item.descripcion}</td>
                                         <td className="px-3 py-2">{item.categoria || '—'}</td>
+                                        {canGestionar && (
+                                            <td className="px-3 py-2 text-right">
+                                                <button type="button" onClick={() => openEdit(item)} className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700">Editar</button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -100,6 +193,7 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                                     <th className="px-3 py-2 text-left">Clave</th>
                                     <th className="px-3 py-2 text-left">Descripción</th>
                                     <th className="px-3 py-2 text-left">Categoría</th>
+                                    {canGestionar && <th className="px-3 py-2 text-right">Acción</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -108,6 +202,11 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                                         <td className="px-3 py-2 font-mono">{item.clave}</td>
                                         <td className="px-3 py-2">{item.descripcion}</td>
                                         <td className="px-3 py-2">{item.categoria || '—'}</td>
+                                        {canGestionar && (
+                                            <td className="px-3 py-2 text-right">
+                                                <button type="button" onClick={() => openEdit(item)} className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700">Editar</button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -115,6 +214,14 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                     </div>
                 )}
             </AdminPageShell>
+            <EditarProductoModal
+                open={!!editing}
+                item={editing}
+                tipo={editing?.tipo}
+                categorias={categorias}
+                onClose={() => setEditing(null)}
+                onSaved={() => router.reload({ preserveScroll: true })}
+            />
         </>
     );
 }

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Vestuario;
 
 use App\Http\Controllers\Controller;
 use App\Support\SivsoVestuario;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -106,12 +107,62 @@ final class ProductoController extends Controller
             ->values()
             ->all();
 
+        $categorias = DB::table('clasificacion_bien')
+            ->select(['id', 'codigo', 'nombre'])
+            ->orderBy('nombre')
+            ->get()
+            ->map(static fn ($row) => [
+                'id' => (int) $row->id,
+                'codigo' => $row->codigo,
+                'nombre' => $row->nombre,
+            ])
+            ->values()
+            ->all();
+
         return Inertia::render('Vestuario/Productos/Index', [
             'anio' => $anio,
             'anios_disponibles' => $anios,
             'licitados' => $licitados,
             'cotizados' => $cotizados,
+            'categorias' => $categorias,
             'filters' => $request->only(['anio']),
+        ]);
+    }
+
+    public function update(Request $request, string $tipo, int $id): JsonResponse
+    {
+        abort_unless(in_array($tipo, ['licitado', 'cotizado'], true), 404);
+
+        $data = $request->validate([
+            'clave' => ['required', 'string', 'max:120'],
+            'descripcion' => ['required', 'string', 'max:255'],
+            'categoria_id' => ['nullable', 'integer', 'exists:clasificacion_bien,id'],
+        ]);
+
+        if ($tipo === 'licitado') {
+            DB::table('producto_licitado')
+                ->where('id', $id)
+                ->update([
+                    'codigo_catalogo' => trim($data['clave']),
+                    'descripcion' => trim($data['descripcion']),
+                    'clasificacion_principal_id' => $data['categoria_id'] ?? null,
+                    'updated_at' => now(),
+                ]);
+        } else {
+            DB::table('producto_cotizado')
+                ->where('id', $id)
+                ->update([
+                    'clave' => trim($data['clave']),
+                    'descripcion' => trim($data['descripcion']),
+                    'clasificacion_principal_id' => $data['categoria_id'] ?? null,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return response()->json([
+            'data' => null,
+            'message' => 'Producto actualizado correctamente.',
+            'errors' => null,
         ]);
     }
 }
