@@ -23,7 +23,8 @@ final class IndependienteController extends Controller
 
         $stats = DB::table('empleado')
             ->select([
-                'empleado.delegacion_codigo',
+                'empleado.ur',
+                DB::raw('COUNT(DISTINCT empleado.id) as total_empleados'),
                 DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
                 DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
             ])
@@ -32,9 +33,9 @@ final class IndependienteController extends Controller
                     ->where('aep.anio', '=', $anio);
             })
             ->where('empleado.estado_delegacion', 'activo')
-            ->groupBy('empleado.delegacion_codigo')
+            ->groupBy('empleado.ur')
             ->get()
-            ->keyBy('delegacion_codigo');
+            ->keyBy('ur');
 
         $independientes = Delegacion::query()
             ->where('codigo', 'like', 'IND-%')
@@ -52,11 +53,13 @@ final class IndependienteController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(function (Delegacion $row) use ($stats): array {
-                $s = $stats->get($row->codigo);
+                $ur = $row->ur_referencia !== null ? (string) $row->ur_referencia : null;
+                $s = $ur !== null ? $stats->get($ur) : null;
                 return [
                     'codigo' => $row->codigo,
                     'ur_referencia' => $row->ur_referencia,
                     'referencia_nombre' => $row->dependenciaReferencia?->nombre,
+                    'total_empleados' => (int) ($s?->total_empleados ?? 0),
                     'actualizados' => (int) ($s?->confirmadas ?? 0),
                     'faltan' => (int) ($s?->pendientes ?? 0),
                 ];

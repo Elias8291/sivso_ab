@@ -100,6 +100,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                 <th className="px-3 py-2 text-left">Codigo</th>
                                 <th className="px-3 py-2 text-left">UR referencia</th>
                                 <th className="px-3 py-2 text-left">Dependencia</th>
+                                <th className="px-3 py-2 text-right">Empleados</th>
                                 <th className="px-3 py-2 text-right">Actualizados</th>
                                 <th className="px-3 py-2 text-right">Faltan</th>
                                 <th className="px-3 py-2 text-right">Accion</th>
@@ -111,6 +112,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                                     <td className="px-3 py-2 font-mono">{row.codigo}</td>
                                     <td className="px-3 py-2">{row.ur_referencia ?? '—'}</td>
                                     <td className="px-3 py-2">{row.referencia_nombre ?? '—'}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{row.total_empleados ?? 0}</td>
                                     <td className="px-3 py-2 text-right tabular-nums">{row.actualizados ?? 0}</td>
                                     <td className="px-3 py-2 text-right tabular-nums">{row.faltan ?? 0}</td>
                                     <td className="px-3 py-2">
@@ -138,7 +140,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                             ))}
                             {independientes.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-6 text-center text-zinc-400">Sin registros</td>
+                                    <td colSpan={7} className="px-3 py-6 text-center text-zinc-400">Sin registros</td>
                                 </tr>
                             )}
                         </tbody>
