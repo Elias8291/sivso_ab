@@ -51,11 +51,19 @@ function notifCfg(tipo, decision, tipoSol) {
         : { iconBg: 'bg-zinc-100 dark:bg-zinc-800/70', iconClr: 'text-zinc-500 dark:text-zinc-300', dot: 'bg-zinc-400 dark:bg-zinc-500', icon: <XCircle className="size-4" strokeWidth={1.8} /> };
 }
 
+function notifTipoTexto(notif) {
+    if (notif.tipo === 'solicitud_resuelta') {
+        return notif.decision === 'aprobada' ? 'Solicitud aprobada:' : 'Solicitud rechazada:';
+    }
+    return notif.tipo_sol === 'cambio' ? 'Solicitud de cambio:' : 'Solicitud de baja:';
+}
+
 /* ───────────────────────────────────────────────────────────────────
  * Fila de notificación
  * ─────────────────────────────────────────────────────────────────── */
 function NotifRow({ notif, onRead }) {
     const cfg = notifCfg(notif.tipo, notif.decision, notif.tipo_sol);
+    const tipoTexto = notifTipoTexto(notif);
     return (
         <button
             type="button"
@@ -73,7 +81,10 @@ function NotifRow({ notif, onRead }) {
                     <span className="block truncate text-[12.5px] font-semibold text-zinc-800 dark:text-zinc-100">{notif.titulo}</span>
                     <span className={`size-1.5 shrink-0 rounded-full ${cfg.dot}`} />
                 </span>
-                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">{notif.cuerpo}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-200">{tipoTexto}</span>{' '}
+                    {notif.cuerpo}
+                </span>
                 <span className="mt-1 block text-[10px] font-medium text-zinc-400 dark:text-zinc-500">{notif.created_at}</span>
             </span>
         </button>

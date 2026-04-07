@@ -62,6 +62,13 @@ function cfg(tipo, decision, tipoSol) {
           };
 }
 
+function tipoTexto(notif) {
+    if (notif.tipo === 'solicitud_resuelta') {
+        return notif.decision === 'aprobada' ? 'Solicitud aprobada:' : 'Solicitud rechazada:';
+    }
+    return notif.tipo_sol === 'cambio' ? 'Solicitud de cambio:' : 'Solicitud de baja:';
+}
+
 /* ── pestañas ────────────────────────────────────────────────────── */
 
 const TABS = [
@@ -73,6 +80,7 @@ const TABS = [
 
 function TarjetaNotificacion({ notif, onLeer }) {
     const c = cfg(notif.tipo, notif.decision, notif.tipo_sol);
+    const textoTipo = tipoTexto(notif);
 
     const handleClick = async () => {
         if (!notif.leida) await onLeer(notif.id);
@@ -101,12 +109,6 @@ function TarjetaNotificacion({ notif, onLeer }) {
                             {notif.titulo}
                         </span>
 
-                        {/* badge tipo */}
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${c.labelCls}`}>
-                            {c.icon && <span className="size-2.5 [&>svg]:size-2.5">{c.icon}</span>}
-                            {c.label}
-                        </span>
-
                         {/* badge no leída */}
                         {!notif.leida && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[9px] font-bold text-white dark:bg-zinc-200 dark:text-zinc-900">
@@ -116,6 +118,7 @@ function TarjetaNotificacion({ notif, onLeer }) {
                     </div>
 
                     <p className="text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-200">{textoTipo}</span>{' '}
                         {notif.cuerpo}
                     </p>
 
