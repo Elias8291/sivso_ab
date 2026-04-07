@@ -107,7 +107,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                     <button
                         type="button"
                         onClick={() => setShowCreate(true)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-[13px] font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
                         <Plus className="size-4" />
                         Agregar
@@ -121,7 +121,7 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Buscar codigo IND..."
-                        className="w-full border-0 bg-transparent p-0 text-[13px] outline-none"
+                        className="w-full border-0 bg-transparent p-0 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                     />
                 </div>
 
@@ -132,7 +132,6 @@ function IndependientesIndex({ independientes, dependenciasList = [], filters = 
                     emptyTitle="Sin independientes"
                     emptyDescription="No hay códigos independientes o el filtro actual no devuelve resultados."
                     footer={independientes.last_page > 1 ? <TablePagination pagination={independientes} /> : null}
-                    mobileRowStyle="divided"
                 />
             </AdminPageShell>
 
