@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\SivsoNotificacion;
 use App\Http\Controllers\Controller;
 use App\Models\PeriodoVestuario;
 use App\Models\User;
 use App\Notifications\PeriodoCambioNotification;
+use App\Notifications\PeriodoCreacionNotification;
 use App\Support\SivsoPermissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,9 +51,20 @@ class PeriodoController extends Controller
 
         $periodo = PeriodoVestuario::create([...$data, 'estado' => 'proximo']);
 
+        // Notificar a todos los usuarios con rol Delegado sobre el nuevo período
+        $delegados = User::role(SivsoPermissions::ROLE_DELEGADO)->get();
+        $notification = new PeriodoCreacionNotification($periodo);
+        foreach ($delegados as $user) {
+            $user->notify($notification);
+            $payload = array_merge($notification->toArray($user), [
+                'id' => $user->notifications()->latest()->first()?->id,
+            ]);
+            broadcast(new SivsoNotificacion($payload, $user->id));
+        }
+
         return response()->json([
             'data'    => $this->formatPeriodo($periodo),
-            'message' => 'Período creado.',
+            'message' => 'Período creado. Delegados notificados.',
             'errors'  => null,
         ], 201);
     }

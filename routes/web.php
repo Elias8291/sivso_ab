@@ -78,6 +78,9 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/mi-delegacion/empleado/{empleado}/acuse-recibo', [MiDelegacionController::class, 'acuseReciboPdf'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('my-delegation.empleado.acuse-pdf');
+    Route::get('/mi-delegacion/reporte-pdf', [MiDelegacionController::class, 'reporteDelegacionPdf'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('my-delegation.reporte-pdf');
 
     Route::get('/solicitudes-movimiento', [SolicitudMovimientoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)

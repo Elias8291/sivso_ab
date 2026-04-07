@@ -7,8 +7,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserStoreRequest;
 use App\Http\Requests\Admin\UserUpdateRequest;
+use App\Models\PeriodoVestuario;
 use App\Models\User;
+use App\Notifications\PeriodoCambioNotification;
 use App\Support\AssignableWebRoles;
+use App\Support\SivsoPermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -56,6 +59,14 @@ class UserController extends Controller
 
         $user = User::create($validated);
         $user->syncRoles($roles);
+
+        // Si el nuevo usuario tiene rol Delegado y hay un período activo, notificarle
+        if (in_array(SivsoPermissions::ROLE_DELEGADO, $roles, true)) {
+            $periodoActivo = PeriodoVestuario::activo();
+            if ($periodoActivo !== null) {
+                $user->notify(new PeriodoCambioNotification($periodoActivo, 'abierto'));
+            }
+        }
 
         return redirect()->route('users.index');
     }

@@ -1298,9 +1298,10 @@ function ResumenCategorias({ prendas = [] }) {
 
 /* ─── página principal ───────────────────────────────────────────── */
 
-function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, resumen_prendas = [], periodo = null, filters = {} }) {
+function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, resumen_prendas = [], periodo = null, filters = {}, anios_disponibles_reporte = [] }) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
+    const [anioReporte, setAnioReporte] = useState('');
     const isFirstRender       = useRef(true);
     const anioRefFallback =
         resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
@@ -1340,6 +1341,12 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
 
     const handlePerPageChange = (e) => {
         navegar({ per_page: Number(e.target.value), page: 1, preserveScroll: false });
+    };
+
+    const urlReportePdf = () => {
+        const anio = anioReporte || (anios_disponibles_reporte[0] ?? '');
+        const base = route('my-delegation.reporte-pdf');
+        return anio ? `${base}?anio=${anio}` : base;
     };
 
     return (
@@ -1442,6 +1449,40 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                 </Link>
 
                 <ResumenCategorias prendas={resumen_prendas} />
+
+                {/* ── Reporte PDF de toda la delegación ── */}
+                {anios_disponibles_reporte.length > 0 && (
+                    <div className="mb-3 flex flex-col gap-2 rounded-xl border border-zinc-200/80 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/30 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2 text-[12px] text-zinc-600 dark:text-zinc-400">
+                            <FileDown className="size-4 shrink-0 text-brand-gold/65 dark:text-brand-gold-soft/55" strokeWidth={1.75} />
+                            <span className="font-medium text-zinc-700 dark:text-zinc-300">Reporte PDF — todas las prendas</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <label className="flex items-center gap-2 text-[12px] text-zinc-600 dark:text-zinc-400">
+                                <span className="whitespace-nowrap">Año</span>
+                                <select
+                                    value={anioReporte || (anios_disponibles_reporte[0] ?? '')}
+                                    onChange={(e) => setAnioReporte(e.target.value)}
+                                    aria-label="Año del reporte PDF"
+                                    className="cursor-pointer rounded-lg border border-zinc-200 bg-zinc-50 py-1.5 pl-2.5 pr-8 text-[12px] font-medium text-zinc-800 shadow-sm outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
+                                >
+                                    {anios_disponibles_reporte.map((a) => (
+                                        <option key={a} value={a}>{a}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <a
+                                href={urlReportePdf()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-1.5 text-[12px] font-medium text-zinc-800 hover:bg-brand-gold/18 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18"
+                            >
+                                <FileDown className="size-3.5 shrink-0 text-brand-gold dark:text-brand-gold-soft" strokeWidth={1.75} />
+                                Descargar PDF
+                            </a>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mb-3 space-y-3">
                     <div className="w-full">

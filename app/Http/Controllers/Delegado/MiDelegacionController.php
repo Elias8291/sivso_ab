@@ -221,6 +221,17 @@ class MiDelegacionController extends Controller
             ->map(fn ($d) => ['codigo' => $d->codigo, 'ur' => $d->ur_referencia])
             ->all();
 
+        // Años disponibles para reporte PDF de delegación
+        $aniosDisponiblesReporte = DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->distinct()
+            ->orderByDesc('aep.anio')
+            ->pluck('aep.anio')
+            ->map(static fn ($a) => (int) $a)
+            ->values()
+            ->all();
+
         return Inertia::render('Delegado/MiDelegacion/Index', [
             'empleados' => $empleados,
             'delegaciones' => $delegaciones,
@@ -234,6 +245,7 @@ class MiDelegacionController extends Controller
             ],
             'resumen_prendas' => $this->resumenPorCategoria($codigosDelegacion),
             'periodo' => $this->periodoActual(),
+            'anios_disponibles_reporte' => $aniosDisponiblesReporte,
             'filters' => array_merge(
                 $request->only(['search']),
                 ['filtro' => $filtro, 'per_page' => $perPage],
@@ -485,6 +497,121 @@ class MiDelegacionController extends Controller
             SivsoVestuario::anioActual(),
             SivsoVestuario::anioAsignacionesVestuario(),
         );
+    }
+
+    /**
+     * PDF consolidado de todos los empleados de la delegación para un año dado.
+     * Parámetro opcional: ?anio=YYYY (por defecto el año de asignaciones vigente).
+     */
+    public function reporteDelegacionPdf(Request $request): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
+        $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
+
+        // Año solicitado (fallback al año de asignaciones vigente)
+        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+            ->when(is_array($codigosDelegacion), function ($q) use ($codigosDelegacion): void {
+                $q->join('empleado', 'empleado.id', '=', 'asignacion_empleado_producto.empleado_id')
+                    ->whereIn('empleado.delegacion_codigo', $codigosDelegacion);
+            })
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('asignacion_empleado_producto.anio')
+            ->map(static fn ($a) => (int) $a)
+            ->values()
+            ->all();
+
+        $anioSolicitado = (int) $request->input('anio', 0);
+        $anio = in_array($anioSolicitado, $aniosDisponibles, true)
+            ? $anioSolicitado
+            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
+
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
+        // Obtener empleados con asignaciones en el año solicitado
+        $empleados = Empleado::query()
+            ->with(['dependencia:ur,nombre_corto,nombre'])
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anio))
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('delegacion_codigo', $codigosDelegacion))
+            ->orderBy('apellido_paterno')
+            ->orderBy('apellido_materno')
+            ->orderBy('nombre')
+            ->get();
+
+        // Construir filas de empleados con su vestuario para el año solicitado
+        $filasEmpleados = $empleados->map(function (Empleado $e) use ($anio, $anioCatalogo): array {
+            $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
+                ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+            VestuarioCotizadoJoin::applyCotizadoResuelto($asignacionesQuery, 'aep', $anioCatalogo);
+
+            $vestuario = $asignacionesQuery
+                ->where('aep.empleado_id', $e->id)
+                ->where('aep.anio', $anio)
+                ->select([
+                    'aep.id',
+                    'aep.talla',
+                    'aep.talla_anio_actual',
+                    'aep.medida_anio_actual',
+                    'aep.estado_anio_actual',
+                    'aep.cantidad',
+                    DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
+                    DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
+                ])
+                ->orderBy('clave')
+                ->get()
+                ->map(fn ($a) => [
+                    'id'     => $a->id,
+                    'prenda' => $a->prenda,
+                    'clave'  => $a->clave,
+                    'talla'  => $a->talla_anio_actual ?? $a->talla,
+                    'estado' => $a->estado_anio_actual ?? 'pendiente',
+                    'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
+                ])
+                ->values()
+                ->all();
+
+            return [
+                'nombre_completo'    => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
+                'nue'                => $e->nue ?? '—',
+                'dependencia_nombre' => strtoupper((string) ($e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia')),
+                'delegacion_codigo'  => strtoupper((string) ($e->delegacion_codigo ?? '')),
+                'vestuario'          => $vestuario,
+            ];
+        })->values()->all();
+
+        if ($filasEmpleados === []) {
+            return response(
+                'No hay empleados con asignaciones de vestuario para el año seleccionado.',
+                422,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+            );
+        }
+
+        $licitacion = (string) config('services.sivso.acuse_licitacion', 'LPN-SA-SA-0036-08/'.$anio);
+        $generadoEn = now()->timezone(config('app.timezone', 'America/Mexico_City'))->format('d/m/Y H:i');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.reporte-delegacion-vestuario', [
+            'empleados'       => $filasEmpleados,
+            'anio'            => $anio,
+            'delegadoNombre'  => strtoupper($delegadoNombre),
+            'delegaciones'    => is_array($codigosDelegacion)
+                ? implode(', ', array_map('strtoupper', $codigosDelegacion))
+                : 'TODAS',
+            'licitacion'      => $licitacion,
+            'generadoEn'      => $generadoEn,
+            'logoDataUri'     => $this->logoDataUri(),
+        ]);
+
+        $pdf->setPaper('letter', 'portrait');
+        $pdf->setOption('defaultFont', 'DejaVu Sans');
+
+        $filename = 'reporte-delegacion-vestuario-'.$anio.'.pdf';
+
+        return $pdf->stream($filename);
     }
 
     /**
@@ -1056,5 +1183,20 @@ class MiDelegacionController extends Controller
             'estado' => $p->estado,
             'descripcion' => $p->descripcion,
         ];
+    }
+
+    private function logoDataUri(): ?string
+    {
+        $path = public_path('images/stpeidceo-logo.png');
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $raw = @file_get_contents($path);
+        if ($raw === false || $raw === '') {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode($raw);
     }
 }
