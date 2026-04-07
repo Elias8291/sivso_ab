@@ -50,7 +50,8 @@ final class ProductoController extends Controller
                 'cb.nombre as categoria',
             ])
             ->where('pl.anio', $anio)
-            ->orderBy('pl.numero_partida')
+            ->orderByRaw('COALESCE(NULLIF(TRIM(pl.codigo_catalogo), \'\'), \'ZZZZZZ\') asc')
+            ->orderBy('pl.descripcion')
             ->limit(1000)
             ->get()
             ->map(static fn ($row) => [
@@ -86,7 +87,8 @@ final class ProductoController extends Controller
                 'cb.nombre as categoria',
             ])
             ->where('pc.anio', $anio)
-            ->orderBy('pc.numero_partida')
+            ->orderByRaw('COALESCE(NULLIF(TRIM(pc.clave), \'\'), \'ZZZZZZ\') asc')
+            ->orderBy('pc.descripcion')
             ->limit(1000)
             ->get()
             ->map(static fn ($row) => [

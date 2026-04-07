@@ -146,6 +146,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
 
     const esBaja   = solicitud.tipo === 'baja';
     const esCambio = solicitud.tipo === 'cambio';
+    const vestuarioRows = Array.isArray(vestuarioData?.vestuario) ? vestuarioData.vestuario : [];
 
     return (
         <Modal open={open} onClose={onCerrar}>
@@ -228,7 +229,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(vestuarioData?.vestuario ?? []).map((v) => (
+                                        {vestuarioRows.map((v) => (
                                             <tr key={v.id} className="border-t border-zinc-100 dark:border-zinc-800">
                                                 <td className="px-2 py-1.5 text-zinc-700 dark:text-zinc-200">
                                                     <span className="font-medium">{v.prenda}</span>
@@ -239,7 +240,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                                 <td className="px-2 py-1.5 text-center capitalize text-zinc-500 dark:text-zinc-400">{v.estado}</td>
                                             </tr>
                                         ))}
-                                        {(vestuarioData?.vestuario ?? []).length === 0 ? (
+                                        {vestuarioRows.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="px-2 py-3 text-center text-zinc-400 dark:text-zinc-500">Sin prendas registradas.</td>
                                             </tr>
@@ -450,6 +451,7 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
     const [search, setSearch]     = useState(filters.search || '');
     const [modalSolicitud, setModalSolicitud] = useState(null);
     const isFirstRender           = useRef(true);
+    const solicitudesRows = Array.isArray(solicitudes?.data) ? solicitudes.data : [];
 
     const modalAbierto = modalSolicitud !== null;
 
@@ -567,11 +569,11 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
 
                 {/* Contador */}
                 <div className="mb-2 text-right text-[10px] text-zinc-400 dark:text-zinc-500">
-                    {solicitudes.data.length} de {solicitudes.total} solicitudes
+                    {solicitudesRows.length} de {solicitudes?.total ?? 0} solicitudes
                 </div>
 
                 {/* Lista */}
-                {solicitudes.data.length === 0 ? (
+                {solicitudesRows.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-2.5 rounded-xl border border-zinc-200 bg-white/80 py-16 dark:border-zinc-800 dark:bg-zinc-900/40">
                         <div className="flex size-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                             <BadgeCheck className="size-5 text-zinc-400" strokeWidth={1.5} />
@@ -583,7 +585,7 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        {solicitudes.data.map((s) => (
+                        {solicitudesRows.map((s) => (
                             <TarjetaSolicitud
                                 key={s.id}
                                 solicitud={s}
