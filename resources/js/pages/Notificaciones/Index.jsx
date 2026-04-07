@@ -91,30 +91,24 @@ function TarjetaNotificacion({ notif, onLeer }) {
     };
 
     return (
-        <div
-            className={`overflow-hidden rounded-2xl ring-1 transition-all duration-200 ${
-                notif.leida
-                    ? `bg-white/60 ${c.ring} dark:bg-zinc-900/40`
-                    : `bg-white shadow-sm ${c.ring} dark:bg-zinc-900`
-            }`}
-        >
-            <div className="flex items-start gap-4 px-5 py-4">
+        <div className="border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80">
+            <div className="flex items-start gap-4 px-1 py-4 sm:px-2">
 
                 {/* avatar */}
-                <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${c.iconBg} ${c.iconClr}`}>
+                <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${c.iconBg} ${c.iconClr}`}>
                     {c.icon}
                 </div>
 
                 {/* contenido */}
                 <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
                         <span className={`text-[13px] font-bold ${notif.leida ? 'text-zinc-500 dark:text-zinc-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
                             {notif.titulo}
                         </span>
 
                         {/* badge no leída */}
                         {!notif.leida && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[9px] font-bold text-white dark:bg-zinc-200 dark:text-zinc-900">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-300/80 bg-zinc-100 px-2 py-0.5 text-[9px] font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                 <span className={`size-1.5 rounded-full ${c.dot}`} /> Nueva
                             </span>
                         )}
@@ -139,7 +133,7 @@ function TarjetaNotificacion({ notif, onLeer }) {
                         <button
                             type="button"
                             onClick={() => onLeer(notif.id)}
-                            className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-zinc-600 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                            className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                             title="Marcar como leída"
                         >
                             <CheckCheck className="size-3.5" /> Leída
@@ -149,7 +143,7 @@ function TarjetaNotificacion({ notif, onLeer }) {
                         <button
                             type="button"
                             onClick={handleClick}
-                            className="rounded-xl bg-zinc-900 px-3.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
                             Ver
                         </button>
@@ -303,7 +297,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
             {items.length === 0 ? (
                 <EmptyState filtro={filtro} />
             ) : (
-                <div className="space-y-2.5">
+                <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white/50 dark:border-zinc-800 dark:bg-zinc-900/20">
                     {items.map((n) => (
                         <TarjetaNotificacion key={n.id} notif={n} onLeer={leerUna} />
                     ))}
