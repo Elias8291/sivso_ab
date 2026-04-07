@@ -1434,7 +1434,6 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     );
 }
 
-MiDelegacionIndex.layout = createAdminPageLayout('Mi Delegación');
 MiDelegacionIndex.layout = (page) => {
     const filtroCodigo = page?.props?.filters?.delegacion_codigo;
     const modo = page?.props?.filters?.modo;
