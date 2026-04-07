@@ -256,6 +256,11 @@ export default function NotificationBell() {
         }
     }, [items]);
 
+    useEffect(() => {
+        if (!open || items.length === 0) return;
+        void markAll();
+    }, [open, items.length, markAll]);
+
     /* ── render ─────────────────────────────────────────────────────── */
     const count = items.length;
 

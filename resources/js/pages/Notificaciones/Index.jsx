@@ -14,7 +14,7 @@ import {
     Inbox,
     XCircle,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { route } from 'ziggy-js';
 
 /* ── configuración visual ────────────────────────────────────────── */
@@ -79,7 +79,18 @@ function TarjetaNotificacion({ notif, onLeer }) {
     };
 
     return (
-        <div className="border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80">
+        <div
+            className="cursor-pointer border-b border-zinc-200/70 last:border-b-0 dark:border-zinc-800/80"
+            onClick={handleClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    void handleClick();
+                }
+            }}
+        >
             <div className="flex gap-3 px-2 py-4 sm:gap-4 sm:px-3">
 
                 {/* avatar */}
@@ -112,28 +123,6 @@ function TarjetaNotificacion({ notif, onLeer }) {
                         <span>{notif.created_at_full}</span>
                         <span className="text-zinc-300 dark:text-zinc-700">·</span>
                         <span className="italic">{notif.created_at}</span>
-                    </div>
-                    {/* acciones */}
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        {!notif.leida && (
-                            <button
-                                type="button"
-                                onClick={() => onLeer(notif.id)}
-                                className="flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10.5px] font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                                title="Marcar como leída"
-                            >
-                                <CheckCheck className="size-3.5" /> Leída
-                            </button>
-                        )}
-                        {notif.url && (
-                            <button
-                                type="button"
-                                onClick={handleClick}
-                                className="rounded-md border border-zinc-200 px-2.5 py-1 text-[10.5px] font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            >
-                                Ver
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -171,6 +160,7 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
     const { auth } = usePage().props;
     const [filtro, setFiltro] = useState(filters.filtro ?? 'no_leidas');
     const [items, setItems]  = useState(notificaciones.data);
+    const autoReadDoneRef = useRef(false);
 
     useEffect(() => {
         setItems(notificaciones.data);
@@ -218,6 +208,20 @@ function NotificacionesIndex({ notificaciones, totales = {}, filters = {} }) {
     }, []);
 
     const noLeidas = items.filter((n) => !n.leida).length;
+
+    useEffect(() => {
+        if (autoReadDoneRef.current || !auth?.user || noLeidas === 0) return;
+
+        autoReadDoneRef.current = true;
+        void (async () => {
+            try {
+                await axios.post(route('notificaciones.leer-todas'));
+                setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
+            } catch {
+                autoReadDoneRef.current = false;
+            }
+        })();
+    }, [auth?.user, noLeidas]);
 
     return (
         <>
