@@ -177,7 +177,7 @@ class MiDelegacionController extends Controller
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search, $anioVestuario);
         $total = $resumenVestuario->count();
         $listos = $resumenVestuario
             ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
@@ -529,7 +529,7 @@ class MiDelegacionController extends Controller
         $empleados = $query->get();
 
         $filas = $empleados
-            ->map(fn (Empleado $e): array => $this->mapEmpleadoParaVista($e))
+            ->map(fn (Empleado $e): array => $this->mapEmpleadoParaVista($e, $anioVestuario))
             ->filter(fn (array $fila): bool => $this->empleadoVestuarioListo($fila))
             ->map(function (array $fila): array {
                 $confirmadas = collect($fila['vestuario'] ?? [])
@@ -753,14 +753,14 @@ class MiDelegacionController extends Controller
      * @param  list<string>|null  $codigosDelegacion
      * @return Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
      */
-    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): Collection
+    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null, ?int $anio = null): Collection
     {
-        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
 
         return DB::table('empleado as e')
-            ->join('asignacion_empleado_producto as aep', function ($join) use ($anio): void {
+            ->join('asignacion_empleado_producto as aep', function ($join) use ($anioConsulta): void {
                 $join->on('aep.empleado_id', '=', 'e.id')
-                    ->where('aep.anio', $anio);
+                    ->where('aep.anio', $anioConsulta);
             })
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search): void {
