@@ -586,6 +586,7 @@ class MiDelegacionController extends Controller
             'filas' => $filas,
             'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
             'generadoEn' => now()->format('d/m/Y H:i'),
+            'logoDataUri' => $this->logoDataUri(),
         ]);
         $pdf->setPaper('letter', 'portrait');
         $pdf->setOption('defaultFont', 'DejaVu Sans');
@@ -1271,5 +1272,20 @@ class MiDelegacionController extends Controller
             'estado' => $p->estado,
             'descripcion' => $p->descripcion,
         ];
+    }
+
+    private function logoDataUri(): ?string
+    {
+        $path = public_path('images/stpeidceo-logo.png');
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+        if ($contents === false || $contents === '') {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode($contents);
     }
 }
