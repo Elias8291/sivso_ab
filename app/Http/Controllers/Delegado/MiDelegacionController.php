@@ -790,7 +790,9 @@ class MiDelegacionController extends Controller
 
         $asignacion = AsignacionEmpleadoProducto::query()->with('empleado')->findOrFail($asignacionId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $asignacion->empleado), 403);
-        $asignacion->update([
+
+        $asignacionObjetivo = $this->resolverAsignacionObjetivoParaCapturaActual($asignacion);
+        $asignacionObjetivo->update([
             'talla_anio_actual' => $validated['talla'],
             'medida_anio_actual' => $validated['medida'],
             'estado_anio_actual' => $validated['estado'],
@@ -854,7 +856,8 @@ class MiDelegacionController extends Controller
 
         $now = now();
         foreach ($validated['items'] as $item) {
-            $asignaciones[$item['id']]->update([
+            $asignacionObjetivo = $this->resolverAsignacionObjetivoParaCapturaActual($asignaciones[$item['id']]);
+            $asignacionObjetivo->update([
                 'talla_anio_actual' => $item['talla'] ?? null,
                 'medida_anio_actual' => $item['medida'] ?? null,
                 'estado_anio_actual' => 'confirmado',
@@ -1287,5 +1290,32 @@ class MiDelegacionController extends Controller
         }
 
         return 'data:image/png;base64,'.base64_encode($contents);
+    }
+
+    private function resolverAsignacionObjetivoParaCapturaActual(AsignacionEmpleadoProducto $asignacion): AsignacionEmpleadoProducto
+    {
+        $anioCaptura = (int) date('Y');
+        if ((int) $asignacion->anio === $anioCaptura) {
+            return $asignacion;
+        }
+
+        return AsignacionEmpleadoProducto::query()->firstOrCreate(
+            [
+                'anio' => $anioCaptura,
+                'empleado_id' => $asignacion->empleado_id,
+                'producto_licitado_id' => $asignacion->producto_licitado_id,
+            ],
+            [
+                'producto_cotizado_id' => $asignacion->producto_cotizado_id,
+                'clave_partida_presupuestal' => $asignacion->clave_partida_presupuestal,
+                'cantidad' => $asignacion->cantidad,
+                'talla' => $asignacion->talla,
+                'talla_anio_actual' => $asignacion->talla_anio_actual,
+                'medida_anio_actual' => $asignacion->medida_anio_actual,
+                'estado_anio_actual' => $asignacion->estado_anio_actual ?? 'pendiente',
+                'observacion_anio_actual' => $asignacion->observacion_anio_actual,
+                'talla_actualizada_at' => $asignacion->talla_actualizada_at,
+            ]
+        );
     }
 }
