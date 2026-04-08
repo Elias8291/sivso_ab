@@ -76,16 +76,16 @@ function GlobalPageLoader() {
                     }`}
                 >
                     <div className="relative grid place-items-center">
-                        <span className="size-20 animate-spin rounded-full border-[3px] border-zinc-300/70 border-t-brand-gold dark:border-zinc-700/80 dark:border-t-brand-gold-soft" />
-                        <span className="absolute size-12 rounded-full border border-brand-gold/35 dark:border-brand-gold-soft/40" />
+                        <span className="size-24 animate-spin rounded-full border-[3px] border-zinc-300/70 border-t-brand-gold dark:border-zinc-700/80 dark:border-t-brand-gold-soft" />
+                        <span className="absolute size-14 rounded-full border border-brand-gold/35 dark:border-brand-gold-soft/40" />
                     </div>
 
                     <div className="space-y-1 text-center">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-gold/90 dark:text-brand-gold-soft/90">
                             SIVSO
                         </p>
-                        <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-100">
-                            Cargando módulo...
+                        <p className="text-[17px] font-medium text-zinc-700 dark:text-zinc-100">
+                            Cargando...
                         </p>
                     </div>
                 </div>
