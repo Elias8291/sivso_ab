@@ -26,7 +26,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MiDelegacionController extends Controller
 {
@@ -567,44 +566,32 @@ class MiDelegacionController extends Controller
         return $pdf->stream('acuse-general-mi-delegacion-'.now()->format('Ymd-His').'.pdf');
     }
 
-    public function listaEmpleadosCsv(Request $request): StreamedResponse
+    public function listaEmpleadosPdf(Request $request): Response
     {
         /** @var User $user */
         $user = $request->user();
-        [$query, $resumenVestuario] = $this->buildEmpleadosQueryParaExport($request, $user);
+        [$query, , $contexto] = $this->buildEmpleadosQueryParaExport($request, $user);
         $empleados = $query->get();
-        $statsById = $resumenVestuario->keyBy('id');
 
-        return response()->streamDownload(function () use ($empleados, $statsById): void {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
-            fputcsv($out, ['NUE', 'Nombre', 'Dependencia', 'Delegacion', 'Estado delegacion', 'Prendas', 'Confirmadas', 'Bajas', 'Vestuario listo']);
+        $filas = [];
+        $n = 1;
+        foreach ($empleados as $e) {
+            $filas[] = [
+                'no' => $n++,
+                'nombre' => strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
+                'nue' => (string) ($e->nue ?? '—'),
+            ];
+        }
 
-            foreach ($empleados as $e) {
-                $s = $statsById->get($e->id);
-                $total = (int) ($s['total_prendas'] ?? 0);
-                $confirmadas = (int) ($s['confirmadas'] ?? 0);
-                $bajas = (int) ($s['bajas'] ?? 0);
-                $listo = $total > 0 && $confirmadas >= ($total - $bajas);
-                fputcsv($out, [
-                    (string) ($e->nue ?? ''),
-                    strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
-                    (string) ($e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia'),
-                    (string) ($e->delegacion_codigo ?? ''),
-                    (string) ($e->estado_delegacion ?? 'activo'),
-                    $total,
-                    $confirmadas,
-                    $bajas,
-                    $listo ? 'SI' : 'NO',
-                ]);
-            }
-            fclose($out);
-        }, 'lista-empleados-mi-delegacion-'.now()->format('Ymd-His').'.csv', [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        $pdf = Pdf::loadView('pdf.lista-empleados', [
+            'filas' => $filas,
+            'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
+            'generadoEn' => now()->format('d/m/Y H:i'),
         ]);
+        $pdf->setPaper('letter', 'portrait');
+        $pdf->setOption('defaultFont', 'DejaVu Sans');
+
+        return $pdf->stream('lista-empleados-mi-delegacion-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**

@@ -1331,11 +1331,13 @@ function MiDelegacionIndex({
                             Acuse general PDF
                         </a>
                         <a
-                            href={route('my-delegation.empleados.lista.csv', exportParams)}
+                            href={route('my-delegation.empleados.lista.pdf', exportParams)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
                             <Users className="size-3.5" />
-                            Lista de empleados
+                            Lista de empleados PDF
                         </a>
                     </div>
                 }
