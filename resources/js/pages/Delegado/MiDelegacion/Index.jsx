@@ -11,7 +11,6 @@ import {
     Clock,
     FileDown,
     Info,
-    LayoutList,
     Lock,
     Package,
     Pencil,
@@ -60,8 +59,8 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                     ? 'rounded-md bg-emerald-50/60 dark:bg-emerald-950/20'
                     : ''
         }`}>
-            <div className="flex gap-3 px-0 py-3 sm:gap-3.5">
-                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
+            <div className="flex gap-2 px-0 py-2 sm:gap-2.5 sm:py-2.5">
+                <div className={`mt-px flex size-6 shrink-0 items-center justify-center rounded-full ${
                     dirty
                         ? 'bg-brand-gold/15 dark:bg-brand-gold-soft/10'
                         : confirmado
@@ -69,56 +68,56 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                             : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}>
                     {dirty
-                        ? <Pencil className="size-3.5 text-brand-gold/70 dark:text-brand-gold-soft/60" strokeWidth={2} />
+                        ? <Pencil className="size-3 text-brand-gold/70 dark:text-brand-gold-soft/60" strokeWidth={2} />
                         : confirmado
-                            ? <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
-                            : <Clock className="size-3.5 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
+                            ? <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" strokeWidth={2} />
+                            : <Clock className="size-3 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
                     }
                 </div>
 
-                <div className="min-w-0 flex-1 space-y-2">
+                <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="min-w-0">
                         {item.clave && (
-                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
+                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
                         )}
-                        <p className={`[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-tight ${
+                        <p className={`[overflow-wrap:anywhere] break-words text-[12px] font-medium leading-snug ${
                             confirmado ? 'text-emerald-900 dark:text-emerald-200' : 'text-zinc-800 dark:text-zinc-200'
                         }`}>
                             {item.prenda}
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
+                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                            <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
                                 dirty
                                     ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8'
                                     : confirmado
-                                        ? 'border-emerald-200/80 bg-emerald-100/70 dark:border-emerald-800/50 dark:bg-emerald-900/30'
-                                        : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'
+                                        ? 'border-emerald-200/70 bg-emerald-50/90 dark:border-emerald-800/45 dark:bg-emerald-950/35'
+                                        : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
                             }`}>
-                                <span className={`text-[10px] uppercase tracking-wider ${confirmado ? 'text-emerald-500 dark:text-emerald-500' : 'text-zinc-400'}`}>T</span>
-                                <span className={`font-mono font-semibold ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
+                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${confirmado ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>T</span>
+                                <span className={`font-mono text-[9px] font-semibold leading-none ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
                             </span>
-                            <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
+                            <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
                                 dirty
                                     ? 'border-brand-gold/30 bg-brand-gold/8 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/8'
                                     : confirmado
-                                        ? 'border-emerald-200/80 bg-emerald-100/70 dark:border-emerald-800/50 dark:bg-emerald-900/30'
-                                        : 'border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-700/80 dark:bg-zinc-800/60'
+                                        ? 'border-emerald-200/70 bg-emerald-50/90 dark:border-emerald-800/45 dark:bg-emerald-950/35'
+                                        : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
                             }`}>
-                                <span className={`text-[10px] uppercase tracking-wider ${confirmado ? 'text-emerald-500 dark:text-emerald-500' : 'text-zinc-400'}`}>M</span>
-                                <span className={`font-mono font-semibold ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
+                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${confirmado ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>M</span>
+                                <span className={`font-mono text-[9px] font-semibold leading-none ${confirmado ? 'text-emerald-800 dark:text-emerald-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
                             </span>
                         </div>
                         {!editando && periodoAbierto && (
                             <button type="button" onClick={() => setEditando(true)}
-                                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium shadow-sm ${
+                                className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium ${
                                     confirmado
                                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40'
                                         : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800/80'
                                 }`}>
-                                <Pencil className="size-3" strokeWidth={2} />
+                                <Pencil className="size-2.5" strokeWidth={2} />
                                 Editar
                             </button>
                         )}
@@ -234,10 +233,10 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
     const pct   = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
 
     return (
-        <div className="border-t border-zinc-200/90 px-3.5 pb-3.5 pt-3 dark:border-zinc-800 sm:px-4">
+        <div className="border-t border-zinc-200/90 px-3 pb-3 pt-2.5 dark:border-zinc-800 sm:px-3.5">
             {/* cabecera */}
-            <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            <div className="mb-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <span className="mr-1 inline-block size-1 rounded-full bg-brand-gold/55 align-middle dark:bg-brand-gold-soft/45" aria-hidden />
                     Vestuario{' '}
                     <span className="tabular-nums text-brand-gold/80 dark:text-brand-gold-soft/75">{anioActual}</span>
@@ -970,50 +969,50 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                 : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
 
     return (
-        <div className={`overflow-hidden rounded-xl border ${cardCls}${cardRingCompleto}`}>
+        <div className={`overflow-hidden rounded-lg border ${cardCls}${cardRingCompleto}`}>
 
             {/* ── cabecera tarjeta: datos + acciones ── */}
-            <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5 sm:py-3.5">
-                <div className="flex min-w-0 flex-1 gap-3 sm:gap-3.5">
+            <div className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
+                <div className="flex min-w-0 flex-1 gap-2.5 sm:gap-3">
                     {/* avatar */}
-                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${avatarCls}`}>
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${avatarCls}`}>
                         {esBaja
-                            ? <XCircle className="size-[18px]" strokeWidth={1.5} />
+                            ? <XCircle className="size-4" strokeWidth={1.5} />
                             : esCambio
-                                ? <ArrowLeftRight className="size-[18px]" strokeWidth={1.5} />
+                                ? <ArrowLeftRight className="size-4" strokeWidth={1.5} />
                                 : empleado.nombre_completo.charAt(0)
                         }
                     </div>
 
-                    <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className={`min-w-0 break-words text-[13px] font-semibold tracking-wide ${
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span className={`min-w-0 break-words text-[12px] font-semibold leading-snug tracking-tight ${
                                 esBaja ? 'text-rose-500/80 line-through dark:text-rose-400/80' : 'text-zinc-900 dark:text-zinc-100'
                             }`}>
                                 {empleado.nombre_completo}
                             </span>
                             {esBaja && (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-400">
+                                <span className="inline-flex shrink-0 items-center rounded-full border border-rose-200/80 bg-rose-50/90 px-1.5 py-px text-[9px] font-medium text-rose-600 dark:border-rose-800/50 dark:bg-rose-950/30 dark:text-rose-400">
                                     Baja
                                 </span>
                             )}
                             {esCambio && (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                <span className="inline-flex shrink-0 items-center rounded-full border border-zinc-200/80 bg-zinc-100/90 px-1.5 py-px text-[9px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-400">
                                     Cambio
                                 </span>
                             )}
                             {!esBaja && !esCambio && (
-                                <span className={`inline-flex shrink-0 items-center gap-0.5 rounded-md border px-2 py-0.5 text-[10px] font-medium ${
+                                <span className={`inline-flex shrink-0 items-center rounded-full border px-1.5 py-px text-[9px] font-medium ${
                                     vestuarioListo
-                                        ? 'border-emerald-300/90 bg-emerald-100/90 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                        : 'border-transparent bg-zinc-100/80 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400'
+                                        ? 'border-emerald-200/80 bg-emerald-50/95 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-200'
+                                        : 'border-zinc-200/60 bg-zinc-50 text-zinc-500 dark:border-zinc-700/60 dark:bg-zinc-800/50 dark:text-zinc-400'
                                 }`}>
-                                    {vestuarioListo ? 'Completo' : `${listos}/${total} prendas`}
+                                    {vestuarioListo ? 'Listo' : `${listos}/${total}`}
                                 </span>
                             )}
                         </div>
                         {empleado.nue && (
-                            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{empleado.nue}</p>
+                            <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{empleado.nue}</p>
                         )}
                         {obsDelegacion && (
                             <p className="break-words text-[11px] italic leading-snug text-zinc-500 dark:text-zinc-400">
@@ -1024,10 +1023,10 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                 </div>
 
                 {/* acciones: fila completa en móvil, columna a la derecha en desktop */}
-                <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
+                <div className="flex w-full flex-wrap items-center justify-end gap-1.5 border-t border-zinc-100/90 pt-2 dark:border-zinc-800/70 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
                     {!solicitudPendiente && (esBaja || esCambio) && (
                         <button type="button" onClick={handleReactivar} disabled={reactivando}
-                            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1.5">
+                            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1">
                             {reactivando ? <RotateCcw className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
                             Reactivar
                         </button>
@@ -1045,7 +1044,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                 + ` ${anioActual}`
                                 + (total > 0 ? `, ${listos} de ${total} prendas` : '')
                             }
-                            className={`inline-flex min-h-[42px] max-w-full flex-1 items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-medium sm:min-h-0 sm:flex-initial sm:justify-start sm:px-3 sm:py-1.5 sm:text-[12px] ${
+                            className={`inline-flex min-h-10 max-w-full flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-medium sm:min-h-0 sm:flex-initial sm:justify-start sm:px-2.5 sm:py-1 sm:text-[11px] ${
                                 vestuarioAbierto
                                     ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
                                     : periodoAbierto && pendienteVestuario
@@ -1053,10 +1052,10 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                         : 'border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800'
                             }`}>
                             <span className="relative inline-flex shrink-0">
-                                <Shirt className="size-4 shrink-0" strokeWidth={1.75} />
+                                <Shirt className="size-3.5 shrink-0" strokeWidth={1.75} />
                                 {periodoAbierto && pendienteVestuario && (
                                     <span
-                                        className={`absolute -right-1.5 -top-1.5 flex size-[15px] items-center justify-center rounded-full border shadow-sm sm:hidden ${
+                                        className={`absolute -right-1 -top-1 flex size-3 items-center justify-center rounded-full border shadow-sm sm:hidden ${
                                             vestuarioAbierto
                                                 ? 'border-white/30 bg-zinc-100 text-zinc-900 dark:border-zinc-900/35 dark:bg-zinc-800 dark:text-white'
                                                 : 'border-zinc-200 bg-zinc-900 text-white dark:border-zinc-600 dark:bg-zinc-100 dark:text-zinc-900'
@@ -1092,7 +1091,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                             target="_blank"
                             rel="noopener noreferrer"
                             title={`Descargar acuse de recibo en PDF${acuseAnio ? ` (${acuseAnio})` : ''}`}
-                            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2 text-[11px] font-medium text-zinc-800 hover:bg-brand-gold/18 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18 sm:min-h-0 sm:py-1.5"
+                            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-md border border-brand-gold/35 bg-brand-gold/10 px-2.5 py-1.5 text-[10px] font-medium text-zinc-800 hover:bg-brand-gold/18 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18 sm:min-h-0 sm:py-1"
                         >
                             <FileDown className="size-3.5 shrink-0 text-brand-gold dark:text-brand-gold-soft" strokeWidth={1.75} />
                             <span className="hidden sm:inline">Acuse PDF</span>
@@ -1103,14 +1102,14 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                     {!esBaja && !solicitudPendiente && (
                         <>
                             <button type="button" onClick={() => setModal('cambio')} title="Solicitar cambio de delegación"
-                                className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:min-h-0 sm:flex-initial sm:py-1.5 sm:text-[12px]">
+                                className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[10px] font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 sm:min-h-0 sm:flex-initial sm:py-1 sm:text-[11px]">
                                 <ArrowLeftRight className="size-3.5 shrink-0" strokeWidth={1.8} />
                                 <span className="hidden sm:inline md:hidden">Cambio</span>
                                 <span className="hidden md:inline">Cambio delegación</span>
                             </button>
 
                             <button type="button" onClick={() => setModal('baja')} title="Solicitar baja"
-                                className="inline-flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-[11px] font-medium text-zinc-500 transition hover:border-red-200 hover:bg-red-50/80 hover:text-red-700 dark:border-zinc-700 dark:text-zinc-500 dark:hover:border-red-900/50 dark:hover:bg-red-950/30 dark:hover:text-red-400 sm:min-h-0 sm:flex-initial sm:py-1.5 sm:text-[12px]">
+                                className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1.5 text-[10px] font-medium text-zinc-500 transition hover:border-red-200 hover:bg-red-50/80 hover:text-red-700 dark:border-zinc-700 dark:text-zinc-500 dark:hover:border-red-900/50 dark:hover:bg-red-950/30 dark:hover:text-red-400 sm:min-h-0 sm:flex-initial sm:py-1 sm:text-[11px]">
                                 <XCircle className="size-3.5 shrink-0" strokeWidth={1.8} />
                                 <span className="hidden sm:inline">Baja</span>
                             </button>
@@ -1119,7 +1118,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
 
                     <button type="button" onClick={() => setVerProductos(true)}
                         title="Ver productos asignados (licitados y cotizados)"
-                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1.5">
+                        className="inline-flex min-h-10 items-center justify-center gap-1 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1">
                         <Package className="size-3.5 shrink-0" strokeWidth={1.75} />
                         <span className="hidden sm:inline">Productos</span>
                     </button>
@@ -1171,29 +1170,6 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
         </div>
     );
 }
-
-function ResumenStatCard({ icon: Icon, label, value, hint }) {
-    return (
-        <div className="rounded-xl border border-zinc-200/80 border-l-2 border-l-brand-gold/35 bg-zinc-50 px-3.5 py-3 dark:border-zinc-800 dark:border-l-brand-gold-soft/30 dark:bg-zinc-900/30">
-            <div className="flex items-center justify-between gap-2.5">
-                <div className="min-w-0">
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{label}</p>
-                    <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{value}</p>
-                    {hint ? (
-                        <p className="mt-0.5 text-[11px] leading-tight text-zinc-400 dark:text-zinc-500">{hint}</p>
-                    ) : null}
-                </div>
-                <Icon
-                    className="size-[18px] shrink-0 text-brand-gold/50 dark:text-brand-gold-soft/45"
-                    strokeWidth={1.5}
-                    aria-hidden
-                />
-            </div>
-        </div>
-    );
-}
-
-
 
 /* ─── página principal ───────────────────────────────────────────── */
 
@@ -1301,14 +1277,14 @@ function MiDelegacionIndex({
                     )
                 }
                 actions={
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                         {aniosAcuse.length > 0 && (
-                            <label className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-[12px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300">
-                                <span>Año acuse</span>
+                            <label className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200/90 bg-white px-2 py-1 text-[10px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
+                                <span className="shrink-0">Año</span>
                                 <select
                                     value={acuseAnio}
                                     onChange={(e) => setAcuseAnio(e.target.value)}
-                                    className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[12px] font-medium text-zinc-800 outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
+                                    className="rounded border border-zinc-200/80 bg-zinc-50 py-0.5 pl-1.5 pr-6 text-[10px] font-medium text-zinc-800 outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-zinc-700/50"
                                 >
                                     {aniosAcuse.map((anio) => (
                                         <option key={anio} value={String(anio)}>
@@ -1322,19 +1298,19 @@ function MiDelegacionIndex({
                             href={route('my-delegation.acuse-general.pdf', exportParams)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2 text-[12px] font-medium text-zinc-800 hover:bg-brand-gold/20 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/12 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18"
+                            className="inline-flex items-center gap-1 rounded-md border border-brand-gold/30 bg-brand-gold/8 px-2 py-1 text-[10px] font-medium text-zinc-800 hover:bg-brand-gold/15 dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/15"
                         >
-                            <FileDown className="size-3.5" />
-                            Acuse general PDF
+                            <FileDown className="size-3" strokeWidth={2} />
+                            Acuse general
                         </a>
                         <a
                             href={route('my-delegation.empleados.lista.pdf', exportParams)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/35 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
                         >
-                            <Users className="size-3.5" />
-                            Lista de empleados PDF
+                            <Users className="size-3" strokeWidth={2} />
+                            Lista PDF
                         </a>
                     </div>
                 }
@@ -1380,23 +1356,36 @@ function MiDelegacionIndex({
                     </p>
                 )}
 
-                <div className="mb-3 grid gap-2 sm:grid-cols-3">
-                    <ResumenStatCard icon={Users} label="Total" value={resumen.total ?? empleados.total} />
-                    <ResumenStatCard icon={CheckCircle2} label="Listos" value={resumen.listos ?? 0} />
-                    <ResumenStatCard icon={LayoutList} label="Sin empezar" value={resumen.sin_empezar ?? 0} />
-                </div>
-
-
-
                 <div className="mb-3 space-y-3">
                     <div className="w-full">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
-                            Filtrar lista
-                        </p>
+                        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
+                                Filtrar lista
+                            </p>
+                            <p
+                                className="flex flex-wrap items-center gap-x-2 text-[12px] tabular-nums text-zinc-600 dark:text-zinc-300"
+                                aria-live="polite"
+                            >
+                                <span>
+                                    <span className="text-zinc-500 dark:text-zinc-400">Total</span>{' '}
+                                    <span className="font-semibold text-zinc-800 dark:text-zinc-100">{resumen.total ?? empleados.total}</span>
+                                </span>
+                                <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>·</span>
+                                <span>
+                                    <span className="text-zinc-500 dark:text-zinc-400">Listos</span>{' '}
+                                    <span className="font-semibold text-zinc-800 dark:text-zinc-100">{resumen.listos ?? 0}</span>
+                                </span>
+                                <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>·</span>
+                                <span>
+                                    <span className="text-zinc-500 dark:text-zinc-400">Sin empezar</span>{' '}
+                                    <span className="font-semibold text-zinc-800 dark:text-zinc-100">{resumen.sin_empezar ?? 0}</span>
+                                </span>
+                            </p>
+                        </div>
                         <div
                             role="tablist"
                             aria-label="Filtrar empleados por estado"
-                            className="flex flex-wrap justify-start gap-2"
+                            className="flex flex-wrap justify-start gap-1"
                         >
                             {FILTROS.map((f) => {
                                 const active = filtro === f.key;
@@ -1407,10 +1396,10 @@ function MiDelegacionIndex({
                                         role="tab"
                                         aria-selected={active}
                                         onClick={() => handleFiltro(f.key)}
-                                        className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition-all ${
+                                        className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                                             active
-                                                ? 'border-brand-gold/55 bg-brand-gold/[0.12] text-zinc-900 shadow-[0_1px_0_rgba(0,0,0,0.04)] dark:border-brand-gold-soft/45 dark:bg-brand-gold-soft/[0.12] dark:text-zinc-50'
-                                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800/60'
+                                                ? 'border-brand-gold/50 bg-brand-gold/10 text-zinc-900 dark:border-brand-gold-soft/40 dark:bg-brand-gold-soft/10 dark:text-zinc-50'
+                                                : 'border-transparent bg-zinc-100/80 text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:text-zinc-400 dark:hover:bg-zinc-800'
                                         }`}
                                     >
                                         {f.label}
@@ -1420,10 +1409,10 @@ function MiDelegacionIndex({
                         </div>
                     </div>
                     <div className="w-full max-w-md">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
                             Búsqueda
                         </p>
-                        <div className="flex min-h-[44px] w-full items-center gap-2 rounded-xl border border-zinc-200/90 bg-white px-3 py-2 shadow-sm transition-[border-color,box-shadow] focus-within:border-brand-gold/45 focus-within:ring-2 focus-within:ring-brand-gold/10 dark:border-zinc-700 dark:bg-zinc-900/40 dark:focus-within:border-brand-gold-soft/40 dark:focus-within:ring-brand-gold-soft/10">
+                        <div className="flex min-h-[42px] w-full items-center gap-2 rounded-lg border border-zinc-200/90 bg-white px-3 py-2 shadow-sm transition-[border-color,box-shadow] focus-within:border-brand-gold/45 focus-within:ring-2 focus-within:ring-brand-gold/10 dark:border-zinc-700 dark:bg-zinc-900/40 dark:focus-within:border-brand-gold-soft/40 dark:focus-within:ring-brand-gold-soft/10">
                             <Search className="size-4 shrink-0 text-brand-gold/70 dark:text-brand-gold-soft/60" aria-hidden />
                             <input
                                 type="search"
