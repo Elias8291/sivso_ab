@@ -17,6 +17,11 @@ use App\Services\Delegado\AcuseReciboVestuarioPdfService;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Endroid\QrCode\Builder\Builder as QrCodeBuilder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -590,13 +595,19 @@ class MiDelegacionController extends Controller
         $acuses = $empleados
             ->map(function (Empleado $empleado) use ($anioVestuario, $delegadoNombre, $service): array {
                 $fila = $this->mapEmpleadoParaVista($empleado, $anioVestuario);
-                return $service->buildDocumentData(
+                $data = $service->buildDocumentData(
                     $empleado,
                     (string) $delegadoNombre,
                     $fila,
                     $anioVestuario,
                     $anioVestuario
                 );
+
+                $data['qrDataUri'] = $this->qrDataUri(
+                    'SIVSO|ACUSE_GENERAL|FOLIO:'.($data['folio'] ?? '').'|NUE:'.($data['nue'] ?? '').'|ANIO:'.$anioVestuario
+                );
+
+                return $data;
             })
             ->filter(fn (array $acuse): bool => count($acuse['lineas'] ?? []) > 0)
             ->values()
@@ -1349,6 +1360,23 @@ class MiDelegacionController extends Controller
         }
 
         return 'data:image/png;base64,'.base64_encode($contents);
+    }
+
+    private function qrDataUri(string $data): string
+    {
+        $builder = new QrCodeBuilder(
+            writer: new PngWriter,
+            writerOptions: [],
+            validateResult: false,
+            data: $data,
+            encoding: new Encoding('UTF-8'),
+            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+            size: 132,
+            margin: 2,
+            roundBlockSizeMode: RoundBlockSizeMode::Margin,
+        );
+
+        return $builder->build()->getDataUri();
     }
 
     private function resolverAsignacionObjetivoParaCapturaActual(AsignacionEmpleadoProducto $asignacion): AsignacionEmpleadoProducto

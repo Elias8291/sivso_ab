@@ -27,7 +27,9 @@
         .titulo-doc { text-align: center; font-size: 9.5pt; font-weight: bold; margin-top: 2px; line-height: 1.08; }
         .subtitulo { text-align: center; font-size: 7pt; margin-top: 2px; line-height: 1.06; }
         .folio-line { text-align: center; font-size: 7.5pt; font-weight: bold; margin-top: 5px; line-height: 1.08; }
-        .center-col { width: 84%; }
+        .center-col { width: 67%; }
+        .qr { text-align: right; width: 17%; }
+        .qr img { width: 76px; height: 76px; }
         .datos { margin: 8px 0 5px; }
         .datos table { width: 100%; border-collapse: collapse; }
         .datos td { padding: 2px 0; vertical-align: top; line-height: 1.08; border: 0; }
@@ -64,13 +66,18 @@
                         @endif
                     </td>
                     <td class="center-col">
-                        <div class="titulo-inst">SECRETARÍA DE PREVISIÓN SOCIAL</div>
+                        <div class="titulo-inst">SECRETARIA DE PREVISION SOCIAL</div>
                         <div class="titulo-doc">ACUSE DE RECIBO DE VESTUARIO, CALZADO Y ACCESORIOS DE VESTUARIO {{ $acuse['anioTitulo'] }}</div>
                         <div class="subtitulo">LICITACIÓN: {{ $acuse['licitacion'] }}</div>
                         @if(($acuse['codigoDelegacion'] ?? '') !== '')
                             <div class="subtitulo">{{ $acuse['codigoDelegacion'] }}</div>
                         @endif
                         <div class="folio-line">Folio {{ $acuse['folio'] }}</div>
+                    </td>
+                    <td class="qr">
+                        @if(!empty($acuse['qrDataUri']))
+                            <img src="{{ $acuse['qrDataUri'] }}" alt="QR verificacion">
+                        @endif
                     </td>
                 </tr>
             </table>
@@ -86,7 +93,7 @@
                         <td class="val">{{ $acuse['nue'] }}</td>
                     </tr>
                     <tr>
-                        <td class="lbl">SECRETARÍA / DEPENDENCIA</td>
+                        <td class="lbl">SECRETARIA / DEPENDENCIA</td>
                         <td class="val">{{ $acuse['dependenciaNombre'] }}</td>
                     </tr>
                 </table>
