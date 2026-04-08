@@ -29,8 +29,8 @@
                 <th>Empleado</th>
                 <th>Dependencia</th>
                 <th>Delegación</th>
-                <th class="num">Confirmadas</th>
-                <th class="num">Total</th>
+                <th class="num">Prendas</th>
+                <th class="num">Total asignadas</th>
             </tr>
         </thead>
         <tbody>
@@ -40,7 +40,7 @@
                     <td>{{ $row['nombre_completo'] }}</td>
                     <td>{{ $row['dependencia_nombre'] }}</td>
                     <td class="mono">{{ $row['delegacion_codigo'] }}</td>
-                    <td class="num">{{ $row['confirmadas'] }}</td>
+                    <td class="num">{{ $row['prendas_activas'] }}</td>
                     <td class="num">{{ $row['total_prendas'] }}</td>
                 </tr>
             @endforeach

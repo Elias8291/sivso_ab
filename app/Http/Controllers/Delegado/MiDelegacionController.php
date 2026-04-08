@@ -529,18 +529,17 @@ class MiDelegacionController extends Controller
 
         $filas = $empleados
             ->map(fn (Empleado $e): array => $this->mapEmpleadoParaVista($e, $anioVestuario))
-            ->filter(fn (array $fila): bool => $this->empleadoVestuarioListo($fila))
+            ->filter(fn (array $fila): bool => (int) ($fila['total_prendas'] ?? 0) > 0)
             ->map(function (array $fila): array {
-                $confirmadas = collect($fila['vestuario'] ?? [])
-                    ->whereIn('estado', ['confirmado', 'cambio'])
-                    ->count();
+                $total = (int) ($fila['total_prendas'] ?? 0);
+                $bajas = (int) ($fila['bajas_vestuario'] ?? 0);
                 return [
                     'nue' => $fila['nue'] ?? '—',
                     'nombre_completo' => $fila['nombre_completo'] ?? '—',
                     'dependencia_nombre' => $fila['dependencia_nombre'] ?? '—',
                     'delegacion_codigo' => $fila['delegacion_codigo'] ?? '—',
-                    'confirmadas' => $confirmadas,
-                    'total_prendas' => (int) ($fila['total_prendas'] ?? 0),
+                    'prendas_activas' => max(0, $total - $bajas),
+                    'total_prendas' => $total,
                 ];
             })
             ->values()
@@ -548,7 +547,7 @@ class MiDelegacionController extends Controller
 
         if ($filas === []) {
             return response(
-                'No hay empleados con vestuario completo para generar el acuse general.',
+                'No hay empleados con prendas asignadas para generar el acuse general.',
                 422,
                 ['Content-Type' => 'text/plain; charset=UTF-8'],
             );
