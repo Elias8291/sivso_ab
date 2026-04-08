@@ -16,6 +16,7 @@ use App\Notifications\NuevaSolicitudNotification;
 use App\Services\Delegado\AcuseReciboVestuarioPdfService;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MiDelegacionController extends Controller
 {
@@ -500,6 +502,173 @@ class MiDelegacionController extends Controller
             SivsoVestuario::anioActual(),
             SivsoVestuario::anioAsignacionesVestuario(),
         );
+    }
+
+    public function acuseReciboGeneralPdf(Request $request): Response
+    {
+        /** @var User $user */
+        $user = $request->user();
+        [$query, $resumenVestuario, $contexto] = $this->buildEmpleadosQueryParaExport($request, $user);
+        $empleados = $query->get();
+
+        $filas = $empleados
+            ->map(fn (Empleado $e): array => $this->mapEmpleadoParaVista($e))
+            ->filter(fn (array $fila): bool => $this->empleadoVestuarioListo($fila))
+            ->map(function (array $fila): array {
+                $confirmadas = collect($fila['vestuario'] ?? [])
+                    ->whereIn('estado', ['confirmado', 'cambio'])
+                    ->count();
+                return [
+                    'nue' => $fila['nue'] ?? '—',
+                    'nombre_completo' => $fila['nombre_completo'] ?? '—',
+                    'dependencia_nombre' => $fila['dependencia_nombre'] ?? '—',
+                    'delegacion_codigo' => $fila['delegacion_codigo'] ?? '—',
+                    'confirmadas' => $confirmadas,
+                    'total_prendas' => (int) ($fila['total_prendas'] ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
+
+        if ($filas === []) {
+            return response(
+                'No hay empleados con vestuario completo para generar el acuse general.',
+                422,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+            );
+        }
+
+        $pdf = Pdf::loadView('pdf.acuse-recibo-general', [
+            'filas' => $filas,
+            'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
+            'generadoEn' => now()->format('d/m/Y H:i'),
+            'anio' => SivsoVestuario::anioAsignacionesVestuario(),
+        ]);
+        $pdf->setPaper('letter', 'portrait');
+        $pdf->setOption('defaultFont', 'DejaVu Sans');
+
+        return $pdf->stream('acuse-general-mi-delegacion-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    public function listaEmpleadosCsv(Request $request): StreamedResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        [$query, $resumenVestuario] = $this->buildEmpleadosQueryParaExport($request, $user);
+        $empleados = $query->get();
+        $statsById = $resumenVestuario->keyBy('id');
+
+        return response()->streamDownload(function () use ($empleados, $statsById): void {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+            fputcsv($out, ['NUE', 'Nombre', 'Dependencia', 'Delegacion', 'Estado delegacion', 'Prendas', 'Confirmadas', 'Bajas', 'Vestuario listo']);
+
+            foreach ($empleados as $e) {
+                $s = $statsById->get($e->id);
+                $total = (int) ($s['total_prendas'] ?? 0);
+                $confirmadas = (int) ($s['confirmadas'] ?? 0);
+                $bajas = (int) ($s['bajas'] ?? 0);
+                $listo = $total > 0 && $confirmadas >= ($total - $bajas);
+                fputcsv($out, [
+                    (string) ($e->nue ?? ''),
+                    strtoupper(trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}")),
+                    (string) ($e->dependencia?->nombre_corto ?? $e->dependencia?->nombre ?? 'Sin dependencia'),
+                    (string) ($e->delegacion_codigo ?? ''),
+                    (string) ($e->estado_delegacion ?? 'activo'),
+                    $total,
+                    $confirmadas,
+                    $bajas,
+                    $listo ? 'SI' : 'NO',
+                ]);
+            }
+            fclose($out);
+        }, 'lista-empleados-mi-delegacion-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * @return array{0: Builder, 1: Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>, 2: array<string, mixed>}
+     */
+    private function buildEmpleadosQueryParaExport(Request $request, User $user): array
+    {
+        $search = $request->input('search');
+        $search = is_string($search) ? trim($search) : null;
+        if ($search === '') {
+            $search = null;
+        }
+
+        $filtro = $request->input('filtro', 'todos');
+        if (! is_string($filtro) || ! in_array($filtro, self::FILTROS_VISTA, true)) {
+            $filtro = 'todos';
+        }
+
+        $delegacionCodigo = $request->input('delegacion_codigo');
+        $delegacionCodigo = is_string($delegacionCodigo) ? trim($delegacionCodigo) : null;
+        if ($delegacionCodigo === '') {
+            $delegacionCodigo = null;
+        }
+
+        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosFiltro = $codigosDelegacion;
+        if ($delegacionCodigo !== null) {
+            if (is_array($codigosDelegacion)) {
+                $codigosFiltro = in_array($delegacionCodigo, $codigosDelegacion, true) ? [$delegacionCodigo] : [];
+            } else {
+                $codigosFiltro = [$delegacionCodigo];
+            }
+        }
+        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
+
+        $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
+        $vestAgg = DB::table('asignacion_empleado_producto')
+            ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
+            ->where('anio', $anioVestuario)
+            ->groupBy('empleado_id');
+
+        $empleadosQuery = Empleado::query()
+            ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
+            ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
+            ->when($search !== null, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                        ->orWhere('apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('nue', 'like', "%{$search}%");
+                });
+            })
+            ->leftJoinSub($vestAgg, 'vest_agg', 'vest_agg.empleado_id', '=', 'empleado.id')
+            ->orderByRaw("CASE WHEN empleado.estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
+            ->orderByRaw('CASE WHEN COALESCE(vest_agg.total_vest, 0) > 0 AND COALESCE(vest_agg.nok, 0) >= (COALESCE(vest_agg.total_vest, 0) - COALESCE(vest_agg.nbaja, 0)) THEN 1 ELSE 0 END ASC')
+            ->orderBy('empleado.apellido_paterno')
+            ->orderBy('empleado.apellido_materno')
+            ->orderBy('empleado.nombre')
+            ->select('empleado.*');
+
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
+        if ($filtro === 'bajas') {
+            $empleadosQuery->where('estado_delegacion', 'baja');
+        } elseif ($filtro === 'sin_nue') {
+            $empleadosQuery->whereNull('nue');
+        } elseif ($filtro === 'listos') {
+            $idsListos = $resumenVestuario
+                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+                ->pluck('id')
+                ->all();
+            $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
+        } elseif ($filtro === 'sin_empezar') {
+            $idsSinEmpezar = $resumenVestuario
+                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
+                ->pluck('id')
+                ->all();
+            $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
+        }
+
+        return [$empleadosQuery, $resumenVestuario, $contexto];
     }
 
     /**

@@ -7,8 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Events\SivsoNotificacion;
 use App\Http\Controllers\Controller;
 use App\Models\AsignacionEmpleadoProducto;
+use App\Models\Delegacion;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
+use App\Notifications\MovimientoDelegacionDestinoNotification;
 use App\Notifications\SolicitudResueltaNotification;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
@@ -46,6 +48,8 @@ class SolicitudMovimientoController extends Controller
                 'delegacion_origen' => $s->delegacion_origen,
                 'delegacion_destino' => $s->delegacion_destino,
                 'lleva_recurso' => $s->lleva_recurso,
+                'modo_prendas' => $s->modo_prendas,
+                'prendas_resueltas_total' => $s->prendas_resueltas_total,
                 'ajuste_recurso' => $s->ajuste_recurso,
                 'observacion_solicitante' => $s->observacion_solicitante,
                 'observacion_administracion' => $s->observacion_administracion,
@@ -143,6 +147,9 @@ class SolicitudMovimientoController extends Controller
         $validated = $request->validate([
             'decision' => ['required', 'string', 'in:aprobada,rechazada'],
             'lleva_recurso' => ['nullable', 'boolean'],
+            'modo_prendas' => ['nullable', 'string', 'in:todas,seleccion,ninguna'],
+            'prendas_ids' => ['nullable', 'array'],
+            'prendas_ids.*' => ['integer', 'distinct'],
             'ajuste_recurso' => ['nullable', 'string', 'max:500'],
             'observacion_administracion' => ['nullable', 'string', 'max:500'],
         ]);
@@ -157,6 +164,8 @@ class SolicitudMovimientoController extends Controller
             $solicitud->update([
                 'estado' => $validated['decision'],
                 'lleva_recurso' => $validated['lleva_recurso'] ?? null,
+                'modo_prendas' => null,
+                'prendas_resueltas_total' => null,
                 'ajuste_recurso' => $validated['ajuste_recurso'] ?? null,
                 'observacion_administracion' => $validated['observacion_administracion'] ?? null,
                 'resuelta_por' => Auth::id(),
@@ -165,6 +174,27 @@ class SolicitudMovimientoController extends Controller
 
             if ($validated['decision'] === 'aprobada') {
                 $empleado = $solicitud->empleado;
+                $anio = SivsoVestuario::anioReferencia();
+
+                $idsAsignaciones = AsignacionEmpleadoProducto::query()
+                    ->where('empleado_id', $empleado->id)
+                    ->where('anio', $anio)
+                    ->pluck('id')
+                    ->map(static fn ($id): int => (int) $id)
+                    ->values();
+
+                $modoPrendas = $validated['modo_prendas'] ?? 'todas';
+                $idsSolicitadas = collect($validated['prendas_ids'] ?? [])->map(static fn ($id): int => (int) $id)->values();
+                $idsValidas = $idsSolicitadas->intersect($idsAsignaciones)->values();
+
+                $idsConRecurso = match ($modoPrendas) {
+                    'ninguna' => collect(),
+                    'seleccion' => $idsValidas,
+                    default => $idsAsignaciones,
+                };
+
+                $idsSinRecurso = $idsAsignaciones->diff($idsConRecurso)->values();
+                $totalPrendasResueltas = (int) $idsConRecurso->count();
 
                 if ($solicitud->tipo === 'baja') {
                     /*
@@ -177,6 +207,25 @@ class SolicitudMovimientoController extends Controller
                         'observacion_delegacion' => $solicitud->observacion_solicitante,
                     ]);
 
+                    if ($idsConRecurso->isNotEmpty()) {
+                        AsignacionEmpleadoProducto::query()
+                            ->whereIn('id', $idsConRecurso->all())
+                            ->update([
+                                'estado_anio_actual' => 'pendiente',
+                                'observacion_anio_actual' => 'Disponible para reasignación tras baja aprobada.',
+                                'talla_actualizada_at' => null,
+                            ]);
+                    }
+                    if ($idsSinRecurso->isNotEmpty()) {
+                        AsignacionEmpleadoProducto::query()
+                            ->whereIn('id', $idsSinRecurso->all())
+                            ->update([
+                                'estado_anio_actual' => 'baja',
+                                'observacion_anio_actual' => 'Sin reasignación al resolver baja.',
+                                'talla_actualizada_at' => null,
+                            ]);
+                    }
+
                 } elseif ($solicitud->tipo === 'cambio') {
                     /*
                      * CAMBIO APROBADO:
@@ -187,6 +236,10 @@ class SolicitudMovimientoController extends Controller
                      *   y el empleado empieza desde cero en destino.
                      */
                     $delegacionOrigen = $empleado->delegacion_codigo;
+                    $urOrigen = Delegacion::query()->where('codigo', $delegacionOrigen)->value('ur_referencia');
+                    $urDestino = Delegacion::query()->where('codigo', $solicitud->delegacion_destino)->value('ur_referencia');
+                    $esMismaUr = $urOrigen && $urDestino && $urOrigen === $urDestino;
+                    $llevaRecurso = $esMismaUr ? true : (bool) ($validated['lleva_recurso'] ?? false);
 
                     $empleado->update([
                         'delegacion_codigo' => $solicitud->delegacion_destino,
@@ -194,21 +247,38 @@ class SolicitudMovimientoController extends Controller
                         'observacion_delegacion' => "Transferido desde {$delegacionOrigen}. ".($solicitud->observacion_solicitante ?? ''),
                     ]);
 
-                    if ($validated['lleva_recurso']) {
-                        // El recurso va con el empleado: resetear tallas para nueva asignación
+                    if ($llevaRecurso && $idsConRecurso->isNotEmpty()) {
+                        // Prendas seleccionadas: acompañan al empleado y se reinician en destino.
                         AsignacionEmpleadoProducto::where('empleado_id', $empleado->id)
-                            ->where('anio', SivsoVestuario::anioReferencia())
+                            ->where('anio', $anio)
+                            ->whereIn('id', $idsConRecurso->all())
                             ->update([
                                 'talla_anio_actual' => null,
                                 'medida_anio_actual' => null,
                                 'estado_anio_actual' => 'pendiente',
-                                'observacion_anio_actual' => 'Pendiente de vestuario nuevo (cambio de delegación aprobado).',
+                                'observacion_anio_actual' => 'Transferida en cambio de delegación aprobado; pendiente en destino.',
                                 'talla_actualizada_at' => null,
                             ]);
                     }
-                    // Si no lleva recurso: las asignaciones quedan asociadas al empleado
-                    // pero la delegación origen puede reclamarlas. Eso se gestiona aparte.
+
+                    if ($idsSinRecurso->isNotEmpty()) {
+                        AsignacionEmpleadoProducto::where('empleado_id', $empleado->id)
+                            ->where('anio', $anio)
+                            ->whereIn('id', $idsSinRecurso->all())
+                            ->update([
+                                'estado_anio_actual' => 'baja',
+                                'observacion_anio_actual' => 'Recurso no transferido; disponible en delegación origen.',
+                                'talla_actualizada_at' => null,
+                            ]);
+                    }
+
+                    $solicitud->update(['lleva_recurso' => $llevaRecurso]);
                 }
+
+                $solicitud->update([
+                    'modo_prendas' => $modoPrendas,
+                    'prendas_resueltas_total' => $totalPrendasResueltas,
+                ]);
             }
         });
 
@@ -223,6 +293,21 @@ class SolicitudMovimientoController extends Controller
                 'id' => $destinatario->notifications()->latest()->first()?->id,
             ]);
             broadcast(new SivsoNotificacion($payload, $destinatario->id));
+        }
+
+        if ($validated['decision'] === 'aprobada' && $solicitud->tipo === 'cambio' && $solicitud->delegacion_destino) {
+            $solicitud->loadMissing(['empleado']);
+            $notificationDestino = new MovimientoDelegacionDestinoNotification($solicitud);
+            User::query()
+                ->whereHas('delegado.delegaciones', fn ($q) => $q->where('delegacion.codigo', $solicitud->delegacion_destino))
+                ->get()
+                ->each(function (User $user) use ($notificationDestino) {
+                    $user->notify($notificationDestino);
+                    $payload = array_merge($notificationDestino->toArray($user), [
+                        'id' => $user->notifications()->latest()->first()?->id,
+                    ]);
+                    broadcast(new SivsoNotificacion($payload, $user->id));
+                });
         }
 
         return response()->json([

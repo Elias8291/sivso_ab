@@ -89,6 +89,8 @@ function Modal({ open, onClose, children }) {
 function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
     const [decision, setDecision]   = useState(null);   // 'aprobada' | 'rechazada'
     const [llevaRecurso, setLlevaRecurso] = useState(true);
+    const [modoPrendas, setModoPrendas] = useState('todas'); // 'todas' | 'seleccion' | 'ninguna'
+    const [prendasSeleccionadas, setPrendasSeleccionadas] = useState([]);
     const [ajuste, setAjuste]       = useState('');
     const [obs, setObs]             = useState('');
     const [saving, setSaving]       = useState(false);
@@ -101,6 +103,8 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
         if (open) {
             setDecision(null);
             setLlevaRecurso(true);
+            setModoPrendas('todas');
+            setPrendasSeleccionadas([]);
             setAjuste('');
             setObs('');
             setError('');
@@ -125,12 +129,17 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
         if (decision === 'aprobada' && solicitud?.tipo === 'cambio' && llevaRecurso === null) {
             setError('Indica si el empleado lleva el recurso presupuestal.'); return;
         }
+        if (decision === 'aprobada' && modoPrendas === 'seleccion' && prendasSeleccionadas.length === 0) {
+            setError('Selecciona al menos una prenda o cambia a "Sin prendas".'); return;
+        }
         setError('');
         setSaving(true);
         try {
             await axios.patch(route('solicitudes-movimiento.resolver', solicitud.id), {
                 decision,
                 lleva_recurso: solicitud?.tipo === 'cambio' ? llevaRecurso : null,
+                modo_prendas: decision === 'aprobada' ? modoPrendas : null,
+                prendas_ids: decision === 'aprobada' && modoPrendas === 'seleccion' ? prendasSeleccionadas : [],
                 ajuste_recurso: ajuste || null,
                 observacion_administracion: obs || null,
             });
@@ -147,6 +156,11 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
     const esBaja   = solicitud.tipo === 'baja';
     const esCambio = solicitud.tipo === 'cambio';
     const vestuarioRows = Array.isArray(vestuarioData?.vestuario) ? vestuarioData.vestuario : [];
+    const urOrigen = solicitud?.empleado?.ur ?? null;
+    const urDestino = solicitud?.delegacion_destino
+        ? String(solicitud.delegacion_destino).split('-')?.[0] ?? null
+        : null;
+    const mismaUr = esCambio && urOrigen && urDestino && String(urOrigen) === String(urDestino);
 
     return (
         <Modal open={open} onClose={onCerrar}>
@@ -281,7 +295,12 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                         <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
                             Recurso presupuestal de vestuario
                         </p>
-                        <div className="grid grid-cols-2 gap-2 mb-3">
+                        {mismaUr ? (
+                            <p className="mb-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300">
+                                Cambio dentro de la misma UR: el recurso se transfiere automáticamente.
+                            </p>
+                        ) : (
+                        <div className="mb-3 grid grid-cols-2 gap-2">
                             <button type="button" onClick={() => setLlevaRecurso(true)}
                                 className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                                     llevaRecurso === true
@@ -299,8 +318,9 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                 <X className="size-3.5" /> Queda en origen
                             </button>
                         </div>
+                        )}
                         <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            {llevaRecurso
+                            {(mismaUr || llevaRecurso)
                                 ? 'El presupuesto de vestuario acompaña al empleado. Se reasignará vestuario nuevo en la delegación destino.'
                                 : 'El presupuesto queda en la delegación origen. La delegación destino deberá asignar nuevo recurso.'
                             }
@@ -317,6 +337,75 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                 className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-[12px] text-zinc-800 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:focus:ring-zinc-800"
                             />
                         </div>
+                    </div>
+                )}
+
+                {decision === 'aprobada' && (
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 dark:border-zinc-700 dark:bg-zinc-800/30">
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
+                            Gestión de prendas / recurso
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                            {[
+                                ['todas', 'Todas las prendas'],
+                                ['seleccion', 'Seleccionar prendas'],
+                                ['ninguna', 'Sin prendas'],
+                            ].map(([val, label]) => (
+                                <button
+                                    key={val}
+                                    type="button"
+                                    onClick={() => setModoPrendas(val)}
+                                    className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
+                                        modoPrendas === val
+                                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                            Decide aquí qué prendas conservan recurso para este movimiento.
+                        </p>
+
+                        {modoPrendas === 'seleccion' && (
+                            <div className="mt-3 max-h-44 overflow-auto rounded-xl border border-zinc-200/80 dark:border-zinc-700/70">
+                                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                    {vestuarioRows.map((v) => {
+                                        const checked = prendasSeleccionadas.includes(v.id);
+                                        return (
+                                            <li key={`sel-${v.id}`} className="px-3 py-2 text-[12px]">
+                                                <label className="flex cursor-pointer items-center justify-between gap-3">
+                                                    <span className="min-w-0 truncate text-zinc-700 dark:text-zinc-200">
+                                                        {v.prenda} {v.clave ? <span className="font-mono text-zinc-400">({v.clave})</span> : null}
+                                                    </span>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setPrendasSeleccionadas((prev) => [...new Set([...prev, v.id])]);
+                                                            } else {
+                                                                setPrendasSeleccionadas((prev) => prev.filter((id) => id !== v.id));
+                                                            }
+                                                        }}
+                                                        className="size-4 rounded border-zinc-300 dark:border-zinc-600"
+                                                    />
+                                                </label>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        )}
+                        <p className="mt-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300">
+                            Resumen: {modoPrendas === 'todas'
+                                ? `se moverán todas (${vestuarioRows.length})`
+                                : modoPrendas === 'seleccion'
+                                    ? `se moverán ${prendasSeleccionadas.length} seleccionadas`
+                                    : 'no se moverá ninguna prenda'}
+                        </p>
                     </div>
                 )}
 
@@ -362,6 +451,25 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
 function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
     const esPendiente = solicitud.estado === 'pendiente';
     const esCambio    = solicitud.tipo === 'cambio';
+    const resumenPrendas = solicitud.modo_prendas === 'todas'
+        ? {
+            label: 'Todas las prendas',
+            detail: `${solicitud.prendas_resueltas_total ?? 0} prendas`,
+            className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+        }
+        : solicitud.modo_prendas === 'seleccion'
+            ? {
+                label: 'Selección de prendas',
+                detail: `${solicitud.prendas_resueltas_total ?? 0} prendas`,
+                className: 'border-brand-gold/35 bg-brand-gold/10 text-zinc-700 dark:border-brand-gold-soft/35 dark:bg-brand-gold-soft/15 dark:text-zinc-200',
+            }
+            : solicitud.modo_prendas === 'ninguna'
+                ? {
+                    label: 'Sin prendas',
+                    detail: '0 prendas',
+                    className: 'border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-300',
+                }
+                : null;
 
     return (
         <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -422,6 +530,16 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                             )}
                             {solicitud.ajuste_recurso && (
                                 <span className="block italic text-zinc-500 dark:text-zinc-400">Ajuste: {solicitud.ajuste_recurso}</span>
+                            )}
+                            {resumenPrendas && (
+                                <span className="mt-1 block">
+                                    <span className="mr-1 inline-flex items-center rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                                        Qué se hizo con prendas
+                                    </span>
+                                    <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium ${resumenPrendas.className}`}>
+                                        {resumenPrendas.label} · {resumenPrendas.detail}
+                                    </span>
+                                </span>
                             )}
                             {solicitud.observacion_administracion && (
                                 <span className="block italic text-zinc-500 dark:text-zinc-400">Nota: {solicitud.observacion_administracion}</span>

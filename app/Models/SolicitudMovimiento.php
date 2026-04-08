@@ -21,6 +21,8 @@ class SolicitudMovimiento extends Model
         'observacion_solicitante',
         'observacion_administracion',
         'lleva_recurso',
+        'modo_prendas',
+        'prendas_resueltas_total',
         'ajuste_recurso',
         'resuelta_por',
         'resuelta_at',
@@ -28,6 +30,7 @@ class SolicitudMovimiento extends Model
 
     protected $casts = [
         'lleva_recurso' => 'boolean',
+        'prendas_resueltas_total' => 'integer',
         'resuelta_at'   => 'datetime',
     ];
 

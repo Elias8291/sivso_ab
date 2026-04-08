@@ -392,7 +392,8 @@ const MODAL_CFG = {
         warn:     (
             <>
                 Se enviará una <strong className="font-semibold">solicitud de cambio</strong> a S.Administración.
-                Ellos decidirán si el recurso presupuestal acompaña al empleado.
+                Si el destino es de la misma UR, el recurso acompaña automáticamente al empleado.
+                Si cambia de UR, la decisión de recurso y prendas se toma en Solicitudes.
                 El movimiento se ejecuta hasta que sea aprobado.
             </>
         ),
@@ -405,9 +406,9 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
     const [saving, setSaving]               = useState(false);
     const [error, setError]                 = useState('');
 
-    // Delegaciones de la misma UR que el empleado, excluyendo la actual
+    // Delegaciones disponibles (misma u otra UR), excluyendo la actual.
     const delegacionesDisponibles = delegaciones.filter(
-        (d) => d.ur === empleado?.ur && d.codigo !== empleado?.delegacion_codigo,
+        (d) => d.codigo !== empleado?.delegacion_codigo,
     );
 
     useEffect(() => {
@@ -478,7 +479,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
 
                         {delegacionesDisponibles.length === 0 ? (
                             <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-[12px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-                                No hay otras delegaciones disponibles en la misma UR.
+                                No hay delegaciones destino disponibles.
                             </p>
                         ) : (
                             <select
@@ -488,7 +489,10 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                             >
                                 <option value="">— Selecciona la delegación destino —</option>
                                 {delegacionesDisponibles.map((d) => (
-                                    <option key={d.codigo} value={d.codigo}>{d.codigo}</option>
+                                    <option key={d.codigo} value={d.codigo}>
+                                        {d.codigo}
+                                        {d.ur === empleado?.ur ? ' — Misma UR' : ` — UR ${d.ur ?? 'N/D'}`}
+                                    </option>
                                 ))}
                             </select>
                         )}
@@ -1204,6 +1208,12 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     const esVistaIndependiente = filters.modo === 'independiente'
         || (typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-'));
     const moduleTitle = esVistaIndependiente ? 'Delegación independiente' : 'Mi Delegación';
+    const exportParams = {
+        search: search || undefined,
+        filtro,
+        delegacion_codigo: filters.delegacion_codigo ?? undefined,
+        modo: filters.modo ?? undefined,
+    };
 
     const navegar = (overrides = {}) => {
         const q = {
@@ -1276,6 +1286,26 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                             {anioRefFallback}
                         </span>
                     )
+                }
+                actions={
+                    <div className="flex flex-wrap items-center gap-2">
+                        <a
+                            href={route('my-delegation.acuse-general.pdf', exportParams)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2 text-[12px] font-medium text-zinc-800 hover:bg-brand-gold/20 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/12 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18"
+                        >
+                            <FileDown className="size-3.5" />
+                            Acuse general PDF
+                        </a>
+                        <a
+                            href={route('my-delegation.empleados.lista.csv', exportParams)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[12px] font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                            <Users className="size-3.5" />
+                            Lista de empleados
+                        </a>
+                    </div>
                 }
             >
                 {contexto.modo === 'sin_perfil' && (
