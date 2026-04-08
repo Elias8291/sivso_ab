@@ -1090,7 +1090,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         <span className="hidden sm:inline">Productos</span>
                     </button>
 
-                    {!esBaja && !esCambio && total > 0 && (
+                    {!esBaja && !esCambio && total > 0 && empleado.tiene_registro_anio_actual === true && (
                         <a
                             href={route('my-delegation.empleado.acuse-pdf', { empleado: empleado.id, anio: acuseAnio || undefined })}
                             target="_blank"

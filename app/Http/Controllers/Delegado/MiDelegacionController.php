@@ -190,10 +190,7 @@ class MiDelegacionController extends Controller
         } elseif ($filtro === 'sin_nue') {
             $empleadosQuery->whereNull('nue');
         } elseif ($filtro === 'listos') {
-            $idsListos = $resumenVestuario
-                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
-                ->pluck('id')
-                ->all();
+            $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
             $this->restringirEmpleadosPorIds(
                 $empleadosQuery,
                 $idsListos
@@ -215,6 +212,7 @@ class MiDelegacionController extends Controller
 
         $pageIds = $empleadosPaginator->getCollection()->pluck('id')->map(static fn ($id): int => (int) $id)->all();
         $vestStats = $this->vestuarioStatsPorEmpleadoIds($pageIds);
+        $registrosAnioActual = $this->registrosAnioActualPorEmpleadoIds($pageIds);
         $solicitudesPend = $this->solicitudesPendientesPorEmpleadoIds($pageIds);
 
         $empleadosPaginator->setCollection(
@@ -222,6 +220,7 @@ class MiDelegacionController extends Controller
                 fn (Empleado $e): array => $this->mapEmpleadoParaVistaIndex(
                     $e,
                     $vestStats[$e->id] ?? ['total' => 0, 'bajas' => 0, 'confirmadas' => 0],
+                    $registrosAnioActual[$e->id] ?? false,
                     $solicitudesPend[$e->id] ?? null,
                 ),
             ),
@@ -334,7 +333,7 @@ class MiDelegacionController extends Controller
      * @param  array{id: int, tipo: string, delegacion_destino: string|null}|null  $solicitudPendiente
      * @return array<string, mixed>
      */
-    private function mapEmpleadoParaVistaIndex(Empleado $e, array $stat, ?array $solicitudPendiente): array
+    private function mapEmpleadoParaVistaIndex(Empleado $e, array $stat, bool $tieneRegistroAnioActual, ?array $solicitudPendiente): array
     {
         $total = $stat['total'];
         $bajas = $stat['bajas'];
@@ -355,6 +354,7 @@ class MiDelegacionController extends Controller
             'total_prendas' => $total,
             'bajas_vestuario' => $bajas,
             'vestuario_listo' => $vestuarioListo,
+            'tiene_registro_anio_actual' => $tieneRegistroAnioActual,
             'solicitud_pendiente' => $solicitudPendiente,
         ];
     }
@@ -388,6 +388,59 @@ class MiDelegacionController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<int>  $empleadoIds
+     * @return array<int, bool>
+     */
+    private function registrosAnioActualPorEmpleadoIds(array $empleadoIds): array
+    {
+        if ($empleadoIds === []) {
+            return [];
+        }
+
+        $anioActual = SivsoVestuario::anioActual();
+        $idsConRegistro = DB::table('asignacion_empleado_producto')
+            ->where('anio', $anioActual)
+            ->whereIn('empleado_id', $empleadoIds)
+            ->distinct()
+            ->pluck('empleado_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+
+        return collect($idsConRegistro)
+            ->mapWithKeys(static fn (int $id): array => [$id => true])
+            ->all();
+    }
+
+    /**
+     * @param  list<string>|null  $codigosDelegacion
+     * @return list<int>
+     */
+    private function empleadosListosAnioActualIds(?array $codigosDelegacion, ?string $search = null): array
+    {
+        $anioActual = SivsoVestuario::anioActual();
+
+        return DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->where('aep.anio', $anioActual)
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('e.nombre', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('e.nue', 'like', "%{$search}%");
+                });
+            })
+            ->groupBy('aep.empleado_id')
+            ->havingRaw('COUNT(*) > 0')
+            ->havingRaw("SUM(CASE WHEN aep.estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) >= (COUNT(*) - SUM(CASE WHEN aep.estado_anio_actual = 'baja' THEN 1 ELSE 0 END))")
+            ->pluck('aep.empleado_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->values()
+            ->all();
     }
 
     /**
@@ -671,10 +724,7 @@ class MiDelegacionController extends Controller
         } elseif ($filtro === 'sin_nue') {
             $empleadosQuery->whereNull('nue');
         } elseif ($filtro === 'listos') {
-            $idsListos = $resumenVestuario
-                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
-                ->pluck('id')
-                ->all();
+            $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
             $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
         } elseif ($filtro === 'sin_empezar') {
             $idsSinEmpezar = $resumenVestuario
