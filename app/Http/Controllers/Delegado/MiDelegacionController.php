@@ -270,8 +270,9 @@ class MiDelegacionController extends Controller
      */
     private function vestuarioListaParaEmpleado(Empleado $e, ?int $anio = null): array
     {
-        $anioConsulta = $anio ?? SivsoVestuario::anioActual();
-        $esAnioVigente = $anioConsulta === SivsoVestuario::anioActual();
+        $anioActual = $this->anioOperacionActual();
+        $anioConsulta = $anio ?? $this->resolverAnioConsultaVestuario($e, $anioActual);
+        $esAnioVigente = $anioConsulta === $anioActual;
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
@@ -312,6 +313,29 @@ class MiDelegacionController extends Controller
             ->all();
     }
 
+    private function anioOperacionActual(): int
+    {
+        return SivsoVestuario::anioActual();
+    }
+
+    private function resolverAnioConsultaVestuario(Empleado $empleado, int $anioActual): int
+    {
+        $tieneAnioActual = DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleado->id)
+            ->where('anio', $anioActual)
+            ->exists();
+
+        if ($tieneAnioActual) {
+            return $anioActual;
+        }
+
+        $anioPrevio = DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleado->id)
+            ->max('anio');
+
+        return $anioPrevio !== null ? (int) $anioPrevio : $anioActual;
+    }
+
     /**
      * JSON al abrir «Ver vestuario»: misma resolución por clave que la página (catálogo actual).
      */
@@ -323,7 +347,7 @@ class MiDelegacionController extends Controller
         return response()->json([
             'data' => [
                 'vestuario' => $this->vestuarioListaParaEmpleado($empleado),
-                'anio_asignacion' => SivsoVestuario::anioActual(),
+                'anio_asignacion' => $this->anioOperacionActual(),
                 'anio_catalogo' => SivsoVestuario::anioCatalogoResuelto(),
             ],
             'message' => null,
@@ -374,7 +398,7 @@ class MiDelegacionController extends Controller
             return [];
         }
 
-        $anio = SivsoVestuario::anioActual();
+        $anio = $this->anioOperacionActual();
         $rows = DB::table('asignacion_empleado_producto')
             ->where('anio', $anio)
             ->whereIn('empleado_id', $empleadoIds)
@@ -405,7 +429,7 @@ class MiDelegacionController extends Controller
             return [];
         }
 
-        $anioActual = SivsoVestuario::anioActual();
+        $anioActual = $this->anioOperacionActual();
         $idsConRegistro = DB::table('asignacion_empleado_producto')
             ->where('anio', $anioActual)
             ->whereIn('empleado_id', $empleadoIds)
@@ -425,7 +449,7 @@ class MiDelegacionController extends Controller
      */
     private function empleadosListosAnioActualIds(?array $codigosDelegacion, ?string $search = null): array
     {
-        $anioActual = SivsoVestuario::anioActual();
+        $anioActual = $this->anioOperacionActual();
 
         return DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
