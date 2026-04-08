@@ -524,7 +524,12 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        [$query, $resumenVestuario, $contexto, $anioVestuario] = $this->buildEmpleadosQueryParaExport($request, $user);
+        $anioVestuario = SivsoVestuario::anioActual();
+        $requestAnioActual = $request->duplicate(
+            array_merge($request->query(), ['anio' => $anioVestuario]),
+            $request->request->all()
+        );
+        [$query, $resumenVestuario, $contexto, ] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
         $empleados = $query->get();
 
         $filas = $empleados
