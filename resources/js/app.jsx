@@ -65,7 +65,7 @@ function GlobalPageLoader() {
     return (
         <div className="pointer-events-auto fixed inset-0 z-[9999]">
             <div
-                className={`absolute inset-0 bg-zinc-950/16 backdrop-blur-[1px] transition-opacity duration-300 ease-out dark:bg-black/35 ${
+                className={`absolute inset-0 bg-gradient-to-br from-[#f7f4eb]/86 via-white/80 to-[#eef4ff]/82 backdrop-blur-[2px] transition-opacity duration-300 ease-out dark:bg-black/35 ${
                     active ? 'opacity-100' : 'opacity-0'
                 }`}
             />
@@ -76,14 +76,14 @@ function GlobalPageLoader() {
                     }`}
                 >
                     <div className="relative grid place-items-center">
-                        <span className="size-16 animate-spin rounded-full border-[2.5px] border-white/80 border-t-brand-gold shadow-[0_0_20px_rgba(255,255,255,0.22)] dark:border-zinc-300/85 dark:border-t-brand-gold-soft dark:shadow-[0_0_16px_rgba(255,255,255,0.12)]" />
-                        <span className="absolute size-10 rounded-full border border-white/55 dark:border-zinc-400/60" />
+                        <span className="size-16 animate-spin rounded-full border-[2.5px] border-zinc-300/80 border-t-[#3b82f6] shadow-[0_0_20px_rgba(59,130,246,0.20)] dark:border-zinc-300/85 dark:border-t-brand-gold-soft dark:shadow-[0_0_16px_rgba(255,255,255,0.12)]" />
+                        <span className="absolute size-10 rounded-full border border-zinc-200/80 dark:border-zinc-400/60" />
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/95 dark:text-zinc-100">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-700 dark:text-zinc-100">
                             SIVSO
                         </p>
-                        <p className="mt-0.5 text-[13px] font-medium text-white/95 dark:text-zinc-100">
+                        <p className="mt-0.5 text-[13px] font-medium text-zinc-700 dark:text-zinc-100">
                             Cargando...
                         </p>
                     </div>
