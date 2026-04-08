@@ -41,11 +41,18 @@ final class SivsoVestuario
     }
 
     /**
-     * Año actual de operación/UI: usar siempre el año calendario vigente.
+     * Etiquetas / PDF: si hubo fallback de año, alinear con el año de datos reales.
      */
     public static function anioActual(): int
     {
-        return (int) date('Y');
+        $configuredRef = (int) config('sivso.vestuario.anio_referencia');
+        $ref = self::anioReferencia();
+
+        if ($ref !== $configuredRef) {
+            return $ref;
+        }
+
+        return (int) config('sivso.vestuario.anio_actual');
     }
 
     public static function resetCache(): void

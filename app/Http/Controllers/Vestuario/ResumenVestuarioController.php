@@ -21,7 +21,7 @@ class ResumenVestuarioController extends Controller
     /** @return list<int> */
     private function aniosDisponibles(): array
     {
-        $ref = SivsoVestuario::anioActual();
+        $ref = (int) config('sivso.vestuario.anio_referencia');
 
         return [$ref - 2, $ref - 1, $ref, $ref + 1];
     }
@@ -32,7 +32,7 @@ class ResumenVestuarioController extends Controller
         $user = Auth::user();
         abort_unless($user->can(SivsoPermissions::VER_COTEJO_VESTUARIO), 403);
 
-        $anioDefault = SivsoVestuario::anioActual();
+        $anioDefault = SivsoVestuario::anioReferencia();
         $anio = (int) $request->input('anio', $anioDefault);
         $delegacion = $request->input('delegacion'); // null = todas
 

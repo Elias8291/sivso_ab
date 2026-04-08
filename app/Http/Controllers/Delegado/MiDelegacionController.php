@@ -63,7 +63,7 @@ class MiDelegacionController extends Controller
                 'bajas' => $bajas,
                 'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
                 'anio_actual' => SivsoVestuario::anioActual(),
-                'anio_ref' => SivsoVestuario::anioActual(),
+                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
             ],
             'contexto' => $contexto,
             'periodo' => $this->periodoActual(),
@@ -149,7 +149,7 @@ class MiDelegacionController extends Controller
 
         $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
 
-        $anioVestuario = SivsoVestuario::anioActual();
+        $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
         $vestAgg = DB::table('asignacion_empleado_producto')
             ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
             ->where('anio', $anioVestuario)
@@ -245,7 +245,7 @@ class MiDelegacionController extends Controller
                 'total' => $total,
                 'listos' => $listos,
                 'sin_empezar' => $sinEmpezar,
-                'anio_ref' => SivsoVestuario::anioActual(),
+                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
                 'anio_actual' => SivsoVestuario::anioActual(),
             ],
             'resumen_prendas' => $this->resumenPorCategoria($codigosFiltro),
@@ -255,7 +255,7 @@ class MiDelegacionController extends Controller
                 ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo, 'modo' => $modoVista],
             ),
             'acuse_anios_disponibles' => $this->aniosAcuseDisponibles($codigosFiltro, $search),
-            'acuse_anio_default' => SivsoVestuario::anioActual(),
+            'acuse_anio_default' => SivsoVestuario::anioAsignacionesVestuario(),
         ]);
     }
 
@@ -266,8 +266,8 @@ class MiDelegacionController extends Controller
      */
     private function vestuarioListaParaEmpleado(Empleado $e, ?int $anio = null): array
     {
-        $anioConsulta = $anio ?? SivsoVestuario::anioActual();
-        $esAnioVigente = $anioConsulta === SivsoVestuario::anioActual();
+        $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
+        $esAnioVigente = $anioConsulta === SivsoVestuario::anioAsignacionesVestuario();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
@@ -319,7 +319,7 @@ class MiDelegacionController extends Controller
         return response()->json([
             'data' => [
                 'vestuario' => $this->vestuarioListaParaEmpleado($empleado),
-                'anio_asignacion' => SivsoVestuario::anioActual(),
+                'anio_asignacion' => SivsoVestuario::anioAsignacionesVestuario(),
                 'anio_catalogo' => SivsoVestuario::anioCatalogoResuelto(),
             ],
             'message' => null,
@@ -369,7 +369,7 @@ class MiDelegacionController extends Controller
             return [];
         }
 
-        $anio = SivsoVestuario::anioActual();
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
         $rows = DB::table('asignacion_empleado_producto')
             ->where('anio', $anio)
             ->whereIn('empleado_id', $empleadoIds)
@@ -483,7 +483,7 @@ class MiDelegacionController extends Controller
         $anioSolicitado = $request->integer('anio');
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? SivsoVestuario::anioActual());
+            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
 
         $fila = $this->mapEmpleadoParaVista($empleadoModel, $anioConsulta);
 
@@ -629,7 +629,7 @@ class MiDelegacionController extends Controller
 
         $anioVestuario = $request->integer('anio');
         if ($anioVestuario < 2000 || $anioVestuario > 2100) {
-            $anioVestuario = SivsoVestuario::anioActual();
+            $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
         }
         $vestAgg = DB::table('asignacion_empleado_producto')
             ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
@@ -742,7 +742,7 @@ class MiDelegacionController extends Controller
      */
     private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null, ?int $anio = null): Collection
     {
-        $anioConsulta = $anio ?? SivsoVestuario::anioActual();
+        $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
 
         return DB::table('empleado as e')
             ->join('asignacion_empleado_producto as aep', function ($join) use ($anioConsulta): void {
@@ -982,7 +982,7 @@ class MiDelegacionController extends Controller
 
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? SivsoVestuario::anioActual());
+            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
@@ -1181,7 +1181,7 @@ class MiDelegacionController extends Controller
      */
     private function resumenPorCategoria(?array $codigosDelegacion): array
     {
-        $anio = SivsoVestuario::anioActual();
+        $anio = SivsoVestuario::anioAsignacionesVestuario();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $query = DB::table('asignacion_empleado_producto as aep')
