@@ -90,17 +90,26 @@ final class AcuseReciboVestuarioPdfService
         return [
             'folio' => $folio,
             'licitacion' => $licitacion,
-            'codigoDelegacion' => strtoupper((string) ($empleado->delegacion_codigo ?? '')),
+            'codigoDelegacion' => $this->upperUtf8((string) ($empleado->delegacion_codigo ?? '')),
             'anioTitulo' => $anioTitulo,
             'anioEjercicioDatos' => $anioEjercicioDatos,
-            'nombreEmpleado' => strtoupper((string) ($fila['nombre_completo'] ?? '—')),
+            'nombreEmpleado' => $this->upperUtf8((string) ($fila['nombre_completo'] ?? '—')),
             'nue' => (string) ($empleado->nue ?? '—'),
-            'dependenciaNombre' => strtoupper((string) ($fila['dependencia_nombre'] ?? '—')),
-            'delegadoNombre' => strtoupper($delegadoNombre),
+            'dependenciaNombre' => $this->upperUtf8((string) ($fila['dependencia_nombre'] ?? '—')),
+            'delegadoNombre' => $this->upperUtf8($delegadoNombre),
             'lineas' => $lineas,
             'totalPiezas' => $totalPiezas,
             'generadoEn' => now()->timezone(config('app.timezone', 'America/Mexico_City'))->format('d/m/Y H:i'),
         ];
+    }
+
+    private function upperUtf8(string $value): string
+    {
+        if (function_exists('mb_strtoupper')) {
+            return mb_strtoupper($value, 'UTF-8');
+        }
+
+        return strtoupper($value);
     }
 
     private function generarFolio(Empleado $empleado): string
