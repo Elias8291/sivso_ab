@@ -358,7 +358,7 @@ class MiDelegacionController extends Controller
                 'talla' => $a->talla ?? $a->talla_anterior ?? '',
                 'medida' => $a->medida,
                 'estado' => $a->estado,
-                'observacion' => null,
+                'observacion' => null, // No se muestran observaciones en la vista de delegación.
                 'talla_actualizada_at' => $a->talla_actualizada_at,
                 'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
             ])
@@ -463,6 +463,8 @@ class MiDelegacionController extends Controller
             $eid = (int) $row->empleado_id;
             $out[$eid] = [
                 'total' => (int) $row->total,
+                // bajas = 0: la nueva lógica basada en año no rastrea "baja" de prenda individual.
+                // "Confirmada" significa que existe un registro del año de captura para esa prenda.
                 'bajas' => 0,
                 'confirmadas' => (int) $row->confirmadas,
             ];
@@ -820,6 +822,8 @@ class MiDelegacionController extends Controller
             $empleadosQuery->whereNull('nue');
         }
 
+        // bajas = 0: la lógica basada en año no rastrea "bajas" de prenda individual;
+        // "confirmada" = existe registro del año actual para esa prenda.
         return [$empleadosQuery, collect(), $contexto, $anioVestuario];
     }
 
@@ -924,6 +928,7 @@ class MiDelegacionController extends Controller
                 'estado_delegacion' => (string) ($row->estado_delegacion ?? 'activo'),
                 'total_prendas' => (int) $row->total_prendas,
                 'confirmadas' => (int) $row->confirmadas,
+                // bajas = 0: la nueva lógica basada en año no rastrea "baja" de prenda individual.
                 'bajas' => 0,
             ]);
     }
