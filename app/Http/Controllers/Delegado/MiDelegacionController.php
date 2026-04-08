@@ -526,7 +526,7 @@ class MiDelegacionController extends Controller
         $user = $request->user();
         $anioVestuario = SivsoVestuario::anioActual();
         $requestAnioActual = $request->duplicate(
-            array_merge($request->query(), ['anio' => $anioVestuario]),
+            array_merge($request->query(), ['anio' => $anioVestuario, 'filtro' => 'todos']),
             $request->request->all()
         );
         [$query, $resumenVestuario, $contexto, ] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
@@ -574,7 +574,11 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        [$query, , $contexto] = $this->buildEmpleadosQueryParaExport($request, $user);
+        $requestLista = $request->duplicate(
+            array_merge($request->query(), ['filtro' => 'todos']),
+            $request->request->all()
+        );
+        [$query, , $contexto] = $this->buildEmpleadosQueryParaExport($requestLista, $user);
         $empleados = $query->get();
 
         $filas = [];
@@ -661,7 +665,7 @@ class MiDelegacionController extends Controller
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search, $anioVestuario);
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
         } elseif ($filtro === 'sin_nue') {
