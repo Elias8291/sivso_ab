@@ -329,11 +329,13 @@ class MiDelegacionController extends Controller
             return $anioActual;
         }
 
-        $anioPrevio = DB::table('asignacion_empleado_producto')
+        $anioAnterior = $anioActual - 1;
+        $tieneAnioAnterior = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleado->id)
-            ->max('anio');
+            ->where('anio', $anioAnterior)
+            ->exists();
 
-        return $anioPrevio !== null ? (int) $anioPrevio : $anioActual;
+        return $tieneAnioAnterior ? $anioAnterior : $anioActual;
     }
 
     /**
