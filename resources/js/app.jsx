@@ -5,87 +5,95 @@ import { useEffect, useRef, useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function GlobalPageLoader() {
-    const [visible, setVisible] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [active, setActive] = useState(false);
     const timerRef = useRef(null);
     const hideRef = useRef(null);
 
     useEffect(() => {
-        const clearTimer = () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
-        };
-        const clearHideTimer = () => {
-            if (hideRef.current) {
-                clearTimeout(hideRef.current);
-                hideRef.current = null;
-            }
+        const clearTimers = () => {
+            [timerRef, hideRef].forEach(ref => {
+                if (ref.current) {
+                    clearTimeout(ref.current);
+                    ref.current = null;
+                }
+            });
         };
 
         const onStart = () => {
-            clearTimer();
-            clearHideTimer();
-            // Evita parpadeo en navegaciones muy rápidas.
+            clearTimers();
+            // Retraso de 150ms para no mostrar nada en conexiones ultra rápidas
             timerRef.current = setTimeout(() => {
                 setMounted(true);
                 requestAnimationFrame(() => setActive(true));
-                setVisible(true);
-            }, 120);
-        };
-        const onDone = () => {
-            clearTimer();
-            setActive(false);
-            setVisible(false);
-            clearHideTimer();
-            hideRef.current = setTimeout(() => setMounted(false), 180);
+            }, 150);
         };
 
-        const unbindStart = router.on('start', onStart);
-        const unbindFinish = router.on('finish', onDone);
-        const unbindError = router.on('error', onDone);
-        const unbindInvalid = router.on('invalid', onDone);
-        const unbindException = router.on('exception', onDone);
+        const onDone = () => {
+            clearTimers();
+            setActive(false);
+            // Esperamos a que la transición de opacidad termine antes de desmontar
+            hideRef.current = setTimeout(() => setMounted(false), 400);
+        };
+
+        const unbindEvents = [
+            router.on('start', onStart),
+            router.on('finish', onDone),
+            router.on('error', onDone),
+            router.on('invalid', onDone),
+            router.on('exception', onDone),
+        ];
 
         return () => {
-            clearTimer();
-            clearHideTimer();
-            unbindStart();
-            unbindFinish();
-            unbindError();
-            unbindInvalid();
-            unbindException();
+            clearTimers();
+            unbindEvents.forEach(unbind => unbind());
         };
     }, []);
 
     if (!mounted) return null;
 
     return (
-        <div className="pointer-events-auto fixed inset-0 z-[9999]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden pointer-events-none">
+            {/* Fondo con desenfoque cinematográfico */}
             <div
-                className={`absolute inset-0 bg-zinc-950/16 backdrop-blur-[1px] transition-opacity duration-300 ease-out dark:bg-black/35 ${
+                className={`absolute inset-0 bg-white/40 backdrop-blur-md transition-opacity duration-500 ease-in-out dark:bg-zinc-950/60 ${
                     active ? 'opacity-100' : 'opacity-0'
                 }`}
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-                <div
-                    className={`flex flex-col items-center gap-3 transition-all duration-300 ease-out ${
-                        active ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-95 opacity-0'
-                    }`}
-                >
-                    <div className="relative grid place-items-center">
-                        <span className="size-16 animate-spin rounded-full border-[2.5px] border-white/80 border-t-brand-gold shadow-[0_0_20px_rgba(255,255,255,0.22)] dark:border-zinc-300/85 dark:border-t-brand-gold-soft dark:shadow-[0_0_16px_rgba(255,255,255,0.12)]" />
-                        <span className="absolute size-10 rounded-full border border-white/55 dark:border-zinc-400/60" />
+
+            {/* Contenedor Principal */}
+            <div
+                className={`relative flex flex-col items-center transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                    active ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+                }`}
+            >
+                {/* Spinner Elegante */}
+                <div className="relative h-20 w-20 mb-6">
+                    {/* Aro exterior tenue */}
+                    <div className="absolute inset-0 rounded-full border-[1.5px] border-zinc-200 dark:border-zinc-800" />
+                    
+                    {/* Aro de carga animado */}
+                    <div className="absolute inset-0 rounded-full border-[1.5px] border-transparent border-t-brand-gold animate-spin shadow-[0_-4px_12px_-4px_rgba(212,175,55,0.3)]" />
+                    
+                    {/* Logo o inicial central sutil */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-[10px] font-light tracking-tighter text-zinc-400 dark:text-zinc-500 uppercase">
+                            S
+                        </span>
                     </div>
-                    <div className="text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/95 dark:text-zinc-100">
-                            SIVSO
+                </div>
+
+                {/* Texto Refinado */}
+                <div className="text-center space-y-1.5">
+                    <h2 className="text-[11px] font-light uppercase tracking-[0.4em] text-zinc-900 dark:text-zinc-100 antialiased">
+                        SIVSO
+                    </h2>
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="h-[1px] w-4 bg-brand-gold/40" />
+                        <p className="text-[12px] italic font-serif text-zinc-500 dark:text-zinc-400">
+                            Cargando experiencia
                         </p>
-                        <p className="mt-0.5 text-[13px] font-medium text-white/95 dark:text-zinc-100">
-                            Cargando...
-                        </p>
+                        <span className="h-[1px] w-4 bg-brand-gold/40" />
                     </div>
                 </div>
             </div>
@@ -98,23 +106,19 @@ createInertiaApp({
     resolve: (name) => {
         const pages = import.meta.glob('./pages/**/*.jsx', { eager: true });
         const page = pages[`./pages/${name}.jsx`];
-        if (!page) {
-            throw new Error(`Página Inertia no encontrada: ${name}`);
-        }
+        if (!page) throw new Error(`Página Inertia no encontrada: ${name}`);
         return page.default;
     },
     setup({ el, App, props }) {
-        const root = createRoot(el);
-        root.render(
+        createRoot(el).render(
             <ThemeProvider>
-                <>
-                    <App {...props} />
-                    <GlobalPageLoader />
-                </>
+                <App {...props} />
+                <GlobalPageLoader />
             </ThemeProvider>,
         );
     },
     progress: {
         color: '#d4af37',
+        showSpinner: false, // Desactivamos el spinner por defecto de Inertia ya que tenemos el nuestro
     },
 });
