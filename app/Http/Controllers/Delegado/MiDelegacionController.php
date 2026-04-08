@@ -584,38 +584,38 @@ class MiDelegacionController extends Controller
         );
         [$query, $resumenVestuario, $contexto, ] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
         $empleados = $query->get();
+        $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
+        $service = new AcuseReciboVestuarioPdfService;
 
-        $filas = $empleados
-            ->map(fn (Empleado $e): array => $this->mapEmpleadoParaVista($e, $anioVestuario))
-            ->filter(fn (array $fila): bool => (int) ($fila['total_prendas'] ?? 0) > 0)
-            ->map(function (array $fila): array {
-                $total = (int) ($fila['total_prendas'] ?? 0);
-                $bajas = (int) ($fila['bajas_vestuario'] ?? 0);
-                return [
-                    'nue' => $fila['nue'] ?? '—',
-                    'nombre_completo' => $fila['nombre_completo'] ?? '—',
-                    'dependencia_nombre' => $fila['dependencia_nombre'] ?? '—',
-                    'delegacion_codigo' => $fila['delegacion_codigo'] ?? '—',
-                    'prendas_activas' => max(0, $total - $bajas),
-                    'total_prendas' => $total,
-                ];
+        $acuses = $empleados
+            ->map(function (Empleado $empleado) use ($anioVestuario, $delegadoNombre, $service): array {
+                $fila = $this->mapEmpleadoParaVista($empleado, $anioVestuario);
+                return $service->buildDocumentData(
+                    $empleado,
+                    (string) $delegadoNombre,
+                    $fila,
+                    $anioVestuario,
+                    $anioVestuario
+                );
             })
+            ->filter(fn (array $acuse): bool => count($acuse['lineas'] ?? []) > 0)
             ->values()
             ->all();
 
-        if ($filas === []) {
+        if ($acuses === []) {
             return response(
-                'No hay empleados con prendas asignadas para generar el acuse general.',
+                'No hay empleados con prendas confirmadas en el año actual para generar el acuse general.',
                 422,
                 ['Content-Type' => 'text/plain; charset=UTF-8'],
             );
         }
 
         $pdf = Pdf::loadView('pdf.acuse-recibo-general', [
-            'filas' => $filas,
-            'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
+            'acuses' => $acuses,
+            'delegadoNombre' => $delegadoNombre,
             'generadoEn' => now()->format('d/m/Y H:i'),
             'anio' => $anioVestuario,
+            'logoDataUri' => $this->logoDataUri(),
         ]);
         $pdf->setPaper('letter', 'portrait');
         $pdf->setOption('defaultFont', 'DejaVu Sans');
