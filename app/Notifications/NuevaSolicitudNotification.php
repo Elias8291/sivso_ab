@@ -22,21 +22,24 @@ class NuevaSolicitudNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $empleado = $this->solicitud->empleado;
-        $nombre   = $empleado
+        $nombre = $empleado
             ? strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}"))
             : 'Empleado';
 
         $esBaja = $this->solicitud->tipo === 'baja';
+        $bajaEsSust = $esBaja && ($this->solicitud->baja_modo ?? 'definitiva') === 'sustitucion';
 
         return [
-            'tipo'    => 'nueva_solicitud',
-            'titulo'  => $esBaja ? 'Solicitud de baja' : 'Solicitud de cambio',
-            'cuerpo'  => $esBaja
-                ? "{$nombre} — baja solicitada en delegación {$this->solicitud->delegacion_origen}."
+            'tipo' => 'nueva_solicitud',
+            'titulo' => $esBaja ? ($bajaEsSust ? 'Solicitud de baja con sustituto' : 'Solicitud de baja') : 'Solicitud de cambio',
+            'cuerpo' => $esBaja
+                ? ($bajaEsSust
+                    ? "{$nombre} — baja con alta de sustituto solicitada en delegación {$this->solicitud->delegacion_origen}."
+                    : "{$nombre} — baja solicitada en delegación {$this->solicitud->delegacion_origen}.")
                 : "{$nombre} — cambio a delegación {$this->solicitud->delegacion_destino} solicitado.",
-            'url'     => '/solicitudes-movimiento',
-            'decision'=> null,
-            'tipo_sol'=> $this->solicitud->tipo,
+            'url' => '/solicitudes-movimiento',
+            'decision' => null,
+            'tipo_sol' => $this->solicitud->tipo,
         ];
     }
 }

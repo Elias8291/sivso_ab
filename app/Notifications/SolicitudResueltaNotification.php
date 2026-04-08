@@ -22,33 +22,36 @@ class SolicitudResueltaNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $empleado = $this->solicitud->empleado;
-        $nombre   = $empleado
+        $nombre = $empleado
             ? strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}"))
             : 'Empleado';
         $resueltaPor = $this->solicitud->resueltaPor?->name ?? 'S.Administración';
 
         $aprobada = $this->solicitud->estado === 'aprobada';
-        $esBaja   = $this->solicitud->tipo   === 'baja';
+        $esBaja = $this->solicitud->tipo === 'baja';
+        $bajaSust = $esBaja && ($this->solicitud->baja_modo ?? 'definitiva') === 'sustitucion';
 
         $titulo = $aprobada
-            ? ($esBaja ? 'Baja aprobada' : 'Cambio aprobado')
+            ? ($esBaja ? ($bajaSust ? 'Baja con sustituto aprobada' : 'Baja aprobada') : 'Cambio aprobado')
             : ($esBaja ? 'Baja rechazada' : 'Cambio rechazado');
 
         $cuerpo = $aprobada
             ? ($esBaja
-                ? "La baja de {$nombre} fue aprobada por {$resueltaPor}."
+                ? ($bajaSust
+                    ? "La baja de {$nombre} fue aprobada y se dio de alta al sustituto indicado (revisa Mi delegación). Aprobó {$resueltaPor}."
+                    : "La baja de {$nombre} fue aprobada por {$resueltaPor}.")
                 : "El cambio de {$nombre} a delegación {$this->solicitud->delegacion_destino} fue aprobado por {$resueltaPor}.")
             : ($esBaja
                 ? "La solicitud de baja para {$nombre} fue rechazada por {$resueltaPor}."
                 : "La solicitud de cambio para {$nombre} fue rechazada por {$resueltaPor}.");
 
         return [
-            'tipo'    => 'solicitud_resuelta',
-            'titulo'  => $titulo,
-            'cuerpo'  => $cuerpo,
-            'url'     => '/mi-delegacion',
-            'decision'=> $this->solicitud->estado,
-            'tipo_sol'=> $this->solicitud->tipo,
+            'tipo' => 'solicitud_resuelta',
+            'titulo' => $titulo,
+            'cuerpo' => $cuerpo,
+            'url' => '/mi-delegacion',
+            'decision' => $this->solicitud->estado,
+            'tipo_sol' => $this->solicitud->tipo,
             'resuelta_por' => $resueltaPor,
         ];
     }

@@ -12,6 +12,7 @@ use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Notifications\MovimientoDelegacionDestinoNotification;
 use App\Notifications\SolicitudResueltaNotification;
+use App\Services\Solicitudes\AltaSustitutoPorBajaService;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +53,8 @@ class SolicitudMovimientoController extends Controller
                 'prendas_resueltas_total' => $s->prendas_resueltas_total,
                 'ajuste_recurso' => $s->ajuste_recurso,
                 'observacion_solicitante' => $s->observacion_solicitante,
+                'baja_modo' => $s->baja_modo,
+                'sustituto' => $s->sustituto,
                 'observacion_administracion' => $s->observacion_administracion,
                 'resuelta_por' => $s->resueltaPor?->name,
                 'resuelta_at' => $s->resuelta_at?->format('d/m/Y H:i'),
@@ -224,6 +227,14 @@ class SolicitudMovimientoController extends Controller
                                 'observacion_anio_actual' => 'Sin reasignación al resolver baja.',
                                 'talla_actualizada_at' => null,
                             ]);
+                    }
+
+                    if (($solicitud->baja_modo ?? 'definitiva') === 'sustitucion' && is_array($solicitud->sustituto)) {
+                        app(AltaSustitutoPorBajaService::class)->ejecutar(
+                            $solicitud,
+                            $empleado,
+                            $idsConRecurso,
+                        );
                     }
 
                 } elseif ($solicitud->tipo === 'cambio') {

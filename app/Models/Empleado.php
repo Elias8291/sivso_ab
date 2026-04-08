@@ -20,6 +20,7 @@ class Empleado extends Model
         'nombre',
         'apellido_paterno',
         'apellido_materno',
+        'sexo',
         'ur',
         'delegacion_codigo',
         'estado_delegacion',

@@ -19,6 +19,8 @@ class SolicitudMovimiento extends Model
         'tipo',
         'estado',
         'observacion_solicitante',
+        'baja_modo',
+        'sustituto',
         'observacion_administracion',
         'lleva_recurso',
         'modo_prendas',
@@ -31,7 +33,8 @@ class SolicitudMovimiento extends Model
     protected $casts = [
         'lleva_recurso' => 'boolean',
         'prendas_resueltas_total' => 'integer',
-        'resuelta_at'   => 'datetime',
+        'resuelta_at' => 'datetime',
+        'sustituto' => 'array',
     ];
 
     public function empleado(): BelongsTo
@@ -41,12 +44,12 @@ class SolicitudMovimiento extends Model
 
     public function solicitadaPor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'solicitada_por');
+        return $this->belongsTo(User::class, 'solicitada_por');
     }
 
     public function resueltaPor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'resuelta_por');
+        return $this->belongsTo(User::class, 'resuelta_por');
     }
 
     public function isPendiente(): bool

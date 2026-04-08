@@ -366,9 +366,8 @@ const MODAL_CFG = {
         btnLbl:   'Enviar solicitud',
         warn:     (
             <>
-                Se enviará una <strong className="font-semibold">solicitud de baja</strong> a S.Administración para revisión.
-                El presupuesto de vestuario asignado <strong className="font-semibold">quedará disponible para la delegación</strong>.
-                El movimiento se ejecuta hasta que sea aprobado.
+                Elige si la baja es <strong className="font-semibold">definitiva</strong> o si <strong className="font-semibold">llega una persona en su lugar</strong>.
+                En ambos casos se envía una <strong className="font-semibold">solicitud</strong> a S.Administración; con sustituto incluye nombre y sexo (hombre/mujer) para el vestuario del nuevo empleado.
             </>
         ),
     },
@@ -400,6 +399,11 @@ const MODAL_CFG = {
 function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerrar, onGuardado }) {
     const [obs, setObs]                     = useState('');
     const [nuevaDelegacion, setNuevaDelegacion] = useState('');
+    const [bajaModo, setBajaModo]           = useState('definitiva');
+    const [sustNombre, setSustNombre]       = useState('');
+    const [sustApPat, setSustApPat]         = useState('');
+    const [sustApMat, setSustApMat]         = useState('');
+    const [sustSexo, setSustSexo]           = useState('M');
     const [saving, setSaving]               = useState(false);
     const [error, setError]                 = useState('');
 
@@ -409,7 +413,16 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
     );
 
     useEffect(() => {
-        if (open) { setObs(''); setNuevaDelegacion(''); setError(''); }
+        if (open) {
+            setObs('');
+            setNuevaDelegacion('');
+            setError('');
+            setBajaModo('definitiva');
+            setSustNombre('');
+            setSustApPat('');
+            setSustApMat('');
+            setSustSexo('M');
+        }
     }, [open]);
 
     const cfg = MODAL_CFG[accion] ?? MODAL_CFG.baja;
@@ -419,15 +432,33 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
             setError('Debes seleccionar la delegación destino.');
             return;
         }
+        if (accion === 'baja' && bajaModo === 'sustitucion') {
+            if (!sustNombre.trim() || !sustApPat.trim()) {
+                setError('Indica nombre y primer apellido de quien llega en su lugar.');
+                return;
+            }
+        }
         setError('');
         setSaving(true);
         try {
-            const { data } = await axios.post(route('my-delegation.solicitar', empleado?.id), {
+            const payload = {
                 tipo: accion,
                 observacion: obs || null,
                 nueva_delegacion: accion === 'cambio' ? nuevaDelegacion : undefined,
-            });
-            onGuardado(accion, obs, nuevaDelegacion, data.data?.solicitud_id);
+            };
+            if (accion === 'baja') {
+                payload.baja_modo = bajaModo;
+                if (bajaModo === 'sustitucion') {
+                    payload.sustituto = {
+                        nombre: sustNombre.trim(),
+                        apellido_paterno: sustApPat.trim(),
+                        apellido_materno: sustApMat.trim() || '',
+                        sexo: sustSexo,
+                    };
+                }
+            }
+            const { data } = await axios.post(route('my-delegation.solicitar', empleado?.id), payload);
+            onGuardado(accion, obs, nuevaDelegacion, data.data?.solicitud_id, { baja_modo: accion === 'baja' ? bajaModo : undefined });
         } catch (e) {
             setError(e?.response?.data?.message ?? 'No se pudo enviar la solicitud.');
         } finally {
@@ -466,6 +497,102 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                     <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${cfg.iconClr}`} />
                     <p className={`text-[12px] leading-snug ${cfg.warnTxt}`}>{cfg.warn}</p>
                 </div>
+
+                {/* Tipo de baja — solo baja */}
+                {accion === 'baja' && (
+                    <div className="mb-5 space-y-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Modalidad</p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={() => { setBajaModo('definitiva'); setError(''); }}
+                                className={`rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition ${
+                                    bajaModo === 'definitiva'
+                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                }`}
+                            >
+                                Baja definitiva
+                                <span className="mt-0.5 block text-[10px] font-normal opacity-90">No hay relevo en el puesto</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setBajaModo('sustitucion'); setError(''); }}
+                                className={`rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition ${
+                                    bajaModo === 'sustitucion'
+                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                }`}
+                            >
+                                Llega otra persona
+                                <span className="mt-0.5 block text-[10px] font-normal opacity-90">Se solicita alta del sustituto</span>
+                            </button>
+                        </div>
+
+                        {bajaModo === 'sustitucion' && (
+                            <div className="space-y-3 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/30">
+                                <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
+                                    <Users className="size-3.5 shrink-0" strokeWidth={2} />
+                                    Datos de quien llega (van a la solicitud)
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Nombre <span className="text-zinc-800 dark:text-zinc-200">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={sustNombre}
+                                            onChange={(e) => setSustNombre(e.target.value)}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Primer apellido <span className="text-zinc-800 dark:text-zinc-200">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={sustApPat}
+                                            onChange={(e) => setSustApPat(e.target.value)}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Segundo apellido</label>
+                                        <input
+                                            type="text"
+                                            value={sustApMat}
+                                            onChange={(e) => setSustApMat(e.target.value)}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <p className="mb-2 text-[10px] font-medium text-zinc-500">Sexo (vestuario) <span className="text-zinc-800 dark:text-zinc-200">*</span></p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                ['M', 'Hombre'],
+                                                ['F', 'Mujer'],
+                                            ].map(([val, label]) => (
+                                                <button
+                                                    key={val}
+                                                    type="button"
+                                                    onClick={() => setSustSexo(val)}
+                                                    className={`rounded-full border px-4 py-1.5 text-[12px] font-medium transition ${
+                                                        sustSexo === val
+                                                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                                                    }`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Selector de delegación destino — solo para cambio */}
                 {accion === 'cambio' && (
@@ -886,8 +1013,13 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
         ));
     }, []);
 
-    const handleSolicitudEnviada = useCallback((tipo, obs, destino, solicitudId) => {
-        setSolicitudPendiente({ id: solicitudId, tipo, delegacion_destino: destino });
+    const handleSolicitudEnviada = useCallback((tipo, obs, destino, solicitudId, meta = {}) => {
+        setSolicitudPendiente({
+            id: solicitudId,
+            tipo,
+            delegacion_destino: destino,
+            baja_modo: meta.baja_modo ?? null,
+        });
         cerrarModal();
     }, []);
 
@@ -1122,7 +1254,13 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                     <div className="flex min-w-0 items-start gap-2.5 text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-400 sm:items-center">
                         <Clock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500 sm:mt-0" strokeWidth={1.5} />
                         <span className="min-w-0 break-words">
-                            Solicitud de <span className="font-medium text-zinc-800 dark:text-zinc-200">{solicitudPendiente.tipo}</span> en revisión
+                            Solicitud de{' '}
+                            <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                                {solicitudPendiente.tipo === 'baja' && solicitudPendiente.baja_modo === 'sustitucion'
+                                    ? 'baja con sustituto'
+                                    : solicitudPendiente.tipo}
+                            </span>{' '}
+                            en revisión
                             {solicitudPendiente.delegacion_destino && (
                                 <> · <span className="break-all font-mono text-[11px] text-zinc-600 dark:text-zinc-400 sm:break-normal">{solicitudPendiente.delegacion_destino}</span></>
                             )}

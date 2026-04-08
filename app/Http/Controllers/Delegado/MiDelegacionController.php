@@ -342,7 +342,7 @@ class MiDelegacionController extends Controller
                 'aep.id',
                 'aep.talla as talla_anterior',
                 'aep.cantidad',
-                DB::raw("COALESCE(aep_new.talla_anio_actual, aep_new.talla, aep.talla) as talla"),
+                DB::raw('COALESCE(aep_new.talla_anio_actual, aep_new.talla, aep.talla) as talla'),
                 DB::raw('aep_new.medida_anio_actual as medida'),
                 DB::raw("CASE WHEN aep_new.id IS NOT NULL THEN 'confirmado' ELSE 'pendiente' END as estado"),
                 DB::raw('aep_new.talla_actualizada_at as talla_actualizada_at'),
@@ -404,7 +404,7 @@ class MiDelegacionController extends Controller
      * Payload ligero para la lista de Mi delegación: sin detalle de prendas (se carga al abrir el panel).
      *
      * @param  array{total: int, bajas: int, confirmadas: int}  $stat
-     * @param  array{id: int, tipo: string, delegacion_destino: string|null}|null  $solicitudPendiente
+     * @param  array{id: int, tipo: string, delegacion_destino: string|null, baja_modo: string|null}|null  $solicitudPendiente
      * @return array<string, mixed>
      */
     private function mapEmpleadoParaVistaIndex(Empleado $e, array $stat, bool $tieneRegistroAnioActual, ?array $solicitudPendiente): array
@@ -637,7 +637,7 @@ class MiDelegacionController extends Controller
 
     /**
      * @param  list<int>  $empleadoIds
-     * @return array<int, array{id: int, tipo: string, delegacion_destino: string|null}>
+     * @return array<int, array{id: int, tipo: string, delegacion_destino: string|null, baja_modo: string|null}>
      */
     private function solicitudesPendientesPorEmpleadoIds(array $empleadoIds): array
     {
@@ -649,7 +649,7 @@ class MiDelegacionController extends Controller
             ->whereIn('empleado_id', $empleadoIds)
             ->where('estado', 'pendiente')
             ->orderBy('id')
-            ->get(['id', 'empleado_id', 'tipo', 'delegacion_destino'])
+            ->get(['id', 'empleado_id', 'tipo', 'delegacion_destino', 'baja_modo'])
             ->unique('empleado_id')
             ->mapWithKeys(static function (SolicitudMovimiento $s): array {
                 return [
@@ -657,6 +657,7 @@ class MiDelegacionController extends Controller
                         'id' => (int) $s->id,
                         'tipo' => (string) $s->tipo,
                         'delegacion_destino' => $s->delegacion_destino,
+                        'baja_modo' => $s->baja_modo,
                     ],
                 ];
             })
@@ -676,7 +677,7 @@ class MiDelegacionController extends Controller
 
         $solicitudPendiente = SolicitudMovimiento::where('empleado_id', $e->id)
             ->where('estado', 'pendiente')
-            ->select(['id', 'tipo', 'delegacion_destino'])
+            ->select(['id', 'tipo', 'delegacion_destino', 'baja_modo'])
             ->first();
 
         $fila = [
@@ -696,6 +697,7 @@ class MiDelegacionController extends Controller
                 'id' => $solicitudPendiente->id,
                 'tipo' => $solicitudPendiente->tipo,
                 'delegacion_destino' => $solicitudPendiente->delegacion_destino,
+                'baja_modo' => $solicitudPendiente->baja_modo,
             ] : null,
         ];
         $fila['vestuario_listo'] = $this->empleadoVestuarioListo($fila);
@@ -774,7 +776,7 @@ class MiDelegacionController extends Controller
             array_merge($request->query(), ['anio' => $anioVestuario, 'filtro' => 'todos']),
             $request->request->all()
         );
-        [$query, $resumenVestuario, $contexto, ] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
+        [$query, $resumenVestuario, $contexto] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
         $empleados = $query->get();
         $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
         $service = new AcuseReciboVestuarioPdfService;
@@ -1152,7 +1154,27 @@ class MiDelegacionController extends Controller
             'tipo' => ['required', 'string', 'in:baja,cambio'],
             'observacion' => ['nullable', 'string', 'max:500'],
             'nueva_delegacion' => ['required_if:tipo,cambio', 'nullable', 'string', 'exists:delegacion,codigo'],
+            'baja_modo' => ['nullable', 'string', 'in:definitiva,sustitucion'],
         ]);
+
+        if ($validated['tipo'] === 'baja') {
+            $modo = $validated['baja_modo'] ?? 'definitiva';
+            $validated['baja_modo'] = $modo;
+            if ($modo === 'sustitucion') {
+                $validated = array_merge($validated, $request->validate([
+                    'sustituto' => ['required', 'array'],
+                    'sustituto.nombre' => ['required', 'string', 'max:80'],
+                    'sustituto.apellido_paterno' => ['required', 'string', 'max:80'],
+                    'sustituto.apellido_materno' => ['nullable', 'string', 'max:80'],
+                    'sustituto.sexo' => ['required', 'string', 'in:M,F'],
+                ]));
+            } else {
+                $validated['sustituto'] = null;
+            }
+        } else {
+            $validated['baja_modo'] = null;
+            $validated['sustituto'] = null;
+        }
 
         $empleado = Empleado::findOrFail($empleadoId);
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
@@ -1170,6 +1192,17 @@ class MiDelegacionController extends Controller
             ], 422);
         }
 
+        $sustitutoPayload = null;
+        if ($validated['tipo'] === 'baja' && ($validated['baja_modo'] ?? 'definitiva') === 'sustitucion' && isset($validated['sustituto']) && is_array($validated['sustituto'])) {
+            $s = $validated['sustituto'];
+            $sustitutoPayload = [
+                'nombre' => $s['nombre'],
+                'apellido_paterno' => $s['apellido_paterno'],
+                'apellido_materno' => $s['apellido_materno'] ?? '',
+                'sexo' => $s['sexo'],
+            ];
+        }
+
         $solicitud = SolicitudMovimiento::create([
             'empleado_id' => $empleadoId,
             'solicitada_por' => Auth::id(),
@@ -1178,6 +1211,8 @@ class MiDelegacionController extends Controller
             'tipo' => $validated['tipo'],
             'estado' => 'pendiente',
             'observacion_solicitante' => $validated['observacion'] ?? null,
+            'baja_modo' => $validated['tipo'] === 'baja' ? ($validated['baja_modo'] ?? 'definitiva') : null,
+            'sustituto' => $sustitutoPayload,
         ]);
 
         // Notificar a todos los administradores (super_admin) de la nueva solicitud.

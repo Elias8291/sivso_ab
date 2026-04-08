@@ -33,14 +33,24 @@ const TABS = [
 
 /* ─── helpers visuales ───────────────────────────────────────────── */
 
-function BadgeTipo({ tipo }) {
-    return tipo === 'baja' ? (
+function BadgeTipo({ tipo, bajaModo }) {
+    if (tipo === 'cambio') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                <ArrowLeftRight className="size-3" strokeWidth={2} /> Cambio
+            </span>
+        );
+    }
+    if (bajaModo === 'sustitucion') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                <XCircle className="size-3" strokeWidth={2} /> Baja · Sustituto
+            </span>
+        );
+    }
+    return (
         <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             <XCircle className="size-3" strokeWidth={2} /> Baja
-        </span>
-    ) : (
-        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-            <ArrowLeftRight className="size-3" strokeWidth={2} /> Cambio
         </span>
     );
 }
@@ -155,6 +165,10 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
 
     const esBaja   = solicitud.tipo === 'baja';
     const esCambio = solicitud.tipo === 'cambio';
+    const sust = solicitud.sustituto && typeof solicitud.sustituto === 'object' ? solicitud.sustituto : null;
+    const nombreSustituto = sust
+        ? [sust.apellido_paterno, sust.apellido_materno, sust.nombre].filter(Boolean).join(' ').trim()
+        : '';
     const vestuarioRows = Array.isArray(vestuarioData?.vestuario) ? vestuarioData.vestuario : [];
     const urOrigen = solicitud?.empleado?.ur ?? null;
     const urDestino = solicitud?.delegacion_destino
@@ -168,7 +182,7 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
             <div className="flex items-start justify-between gap-3 px-4 pb-3.5 pt-4 sm:px-5 sm:pt-5">
                 <div>
                     <div className="mb-1 flex items-center gap-2">
-                        <BadgeTipo tipo={solicitud.tipo} />
+                        <BadgeTipo tipo={solicitud.tipo} bajaModo={solicitud.baja_modo} />
                         <BadgeEstado estado={solicitud.estado} />
                     </div>
                     <h2 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">
@@ -198,6 +212,15 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                         <div className="flex justify-between">
                             <span className="text-zinc-500">Delegación destino</span>
                             <span className="font-mono font-semibold text-zinc-700 dark:text-zinc-300">{solicitud.delegacion_destino}</span>
+                        </div>
+                    )}
+                    {esBaja && solicitud.baja_modo === 'sustitucion' && sust && (
+                        <div className="border-t border-zinc-200/60 pt-2 dark:border-zinc-700/40">
+                            <span className="mb-0.5 block text-[10px] uppercase tracking-wider text-zinc-400">Sustituto propuesto</span>
+                            <span className="font-medium text-zinc-800 dark:text-zinc-200">{nombreSustituto || '—'}</span>
+                            <span className="ml-2 text-zinc-500">
+                                · {sust.sexo === 'F' ? 'Mujer' : sust.sexo === 'M' ? 'Hombre' : '—'}
+                            </span>
                         </div>
                     )}
                     {solicitud.observacion_solicitante && (
@@ -451,6 +474,10 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
 function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
     const esPendiente = solicitud.estado === 'pendiente';
     const esCambio    = solicitud.tipo === 'cambio';
+    const sustCard = solicitud.sustituto && typeof solicitud.sustituto === 'object' ? solicitud.sustituto : null;
+    const nombreSustCard = sustCard
+        ? [sustCard.apellido_paterno, sustCard.apellido_materno, sustCard.nombre].filter(Boolean).join(' ').trim()
+        : '';
     const resumenPrendas = solicitud.modo_prendas === 'todas'
         ? {
             label: 'Todas las prendas',
@@ -489,7 +516,7 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                         <span className="text-[12px] font-semibold text-zinc-900 dark:text-zinc-100">
                             {solicitud.empleado?.nombre_completo}
                         </span>
-                        <BadgeTipo tipo={solicitud.tipo} />
+                        <BadgeTipo tipo={solicitud.tipo} bajaModo={solicitud.baja_modo} />
                         <BadgeEstado estado={solicitud.estado} />
                     </div>
 
@@ -508,6 +535,14 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                         </span>
                         <span className="text-zinc-400">{solicitud.created_at}</span>
                     </div>
+
+                    {solicitud.tipo === 'baja' && solicitud.baja_modo === 'sustitucion' && sustCard && (
+                        <p className="mt-1 text-[10px] text-zinc-600 dark:text-zinc-400">
+                            Sustituto: <strong className="font-medium text-zinc-800 dark:text-zinc-200">{nombreSustCard || '—'}</strong>
+                            {' · '}
+                            {sustCard.sexo === 'F' ? 'Mujer' : sustCard.sexo === 'M' ? 'Hombre' : '—'}
+                        </p>
+                    )}
 
                     {solicitud.observacion_solicitante && (
                         <p className="mt-1 text-[10px] italic text-zinc-400 dark:text-zinc-500">
@@ -635,7 +670,7 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
                 <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-3 dark:border-zinc-800 dark:bg-zinc-900/30">
                     <Info className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
                     <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
-                        <strong className="font-semibold text-zinc-700 dark:text-zinc-300">Baja</strong> — el presupuesto queda en la delegación origen.{' '}
+                        <strong className="font-semibold text-zinc-700 dark:text-zinc-300">Baja</strong> — el presupuesto queda en la delegación origen. Si es <strong className="font-semibold text-zinc-700 dark:text-zinc-300">baja con sustituto</strong>, al aprobar se crea el nuevo empleado y las prendas con recurso pasan a su cargo (pendientes de talla).{' '}
                         <strong className="font-semibold text-zinc-700 dark:text-zinc-300">Cambio</strong> — define si el recurso presupuestal acompaña al empleado a la delegación destino o queda en la delegación de origen.
                     </p>
                 </div>
