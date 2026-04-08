@@ -29,9 +29,15 @@ final class AuthenticatedSessionController extends Controller
         /** @var User|null $user */
         $user = User::query()->where('rfc', $rfc)->first();
 
-        if ($user === null || ! Hash::check((string) $request->validated('password'), (string) $user->password)) {
+        if ($user === null) {
             throw ValidationException::withMessages([
-                'rfc' => __('Las credenciales no coinciden con nuestros registros.'),
+                'rfc' => __('El RFC no existe en nuestros registros.'),
+            ]);
+        }
+
+        if (! Hash::check((string) $request->validated('password'), (string) $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => __('La contraseña es incorrecta.'),
             ]);
         }
 
