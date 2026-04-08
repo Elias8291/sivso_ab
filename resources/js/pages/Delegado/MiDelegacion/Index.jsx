@@ -854,7 +854,7 @@ function ModalProductos({ empleado, open, onClose }) {
 
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
-function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true }) {
+function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
@@ -1090,12 +1090,12 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         <span className="hidden sm:inline">Productos</span>
                     </button>
 
-                    {completo && !esBaja && !esCambio && (
+                    {!esBaja && !esCambio && total > 0 && (
                         <a
-                            href={route('my-delegation.empleado.acuse-pdf', empleado.id)}
+                            href={route('my-delegation.empleado.acuse-pdf', { empleado: empleado.id, anio: acuseAnio || undefined })}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title="Descargar acuse de recibo en PDF (con código QR)"
+                            title={`Descargar acuse de recibo en PDF${acuseAnio ? ` (${acuseAnio})` : ''}`}
                             className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-brand-gold/35 bg-brand-gold/10 px-3 py-2 text-[11px] font-medium text-zinc-800 hover:bg-brand-gold/18 dark:border-brand-gold-soft/30 dark:bg-brand-gold-soft/10 dark:text-zinc-100 dark:hover:bg-brand-gold-soft/18 sm:min-h-0 sm:py-1.5"
                         >
                             <FileDown className="size-3.5 shrink-0 text-brand-gold dark:text-brand-gold-soft" strokeWidth={1.75} />
@@ -1194,7 +1194,16 @@ function ResumenStatCard({ icon: Icon, label, value, hint }) {
 
 /* ─── página principal ───────────────────────────────────────────── */
 
-function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resumen = {}, periodo = null, filters = {} }) {
+function MiDelegacionIndex({
+    empleados,
+    delegaciones = [],
+    contexto = {},
+    resumen = {},
+    periodo = null,
+    filters = {},
+    acuse_anios_disponibles = [],
+    acuse_anio_default = null,
+}) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
     const isFirstRender       = useRef(true);
@@ -1208,11 +1217,18 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
     const esVistaIndependiente = filters.modo === 'independiente'
         || (typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-'));
     const moduleTitle = esVistaIndependiente ? 'Delegación independiente' : 'Mi Delegación';
+    const aniosAcuse = Array.isArray(acuse_anios_disponibles) ? acuse_anios_disponibles : [];
+    const [acuseAnio, setAcuseAnio] = useState(
+        aniosAcuse.length > 0
+            ? String(acuse_anio_default && aniosAcuse.includes(acuse_anio_default) ? acuse_anio_default : aniosAcuse[0])
+            : '',
+    );
     const exportParams = {
         search: search || undefined,
         filtro,
         delegacion_codigo: filters.delegacion_codigo ?? undefined,
         modo: filters.modo ?? undefined,
+        anio: acuseAnio ? Number(acuseAnio) : undefined,
     };
 
     const navegar = (overrides = {}) => {
@@ -1289,6 +1305,22 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                 }
                 actions={
                     <div className="flex flex-wrap items-center gap-2">
+                        {aniosAcuse.length > 0 && (
+                            <label className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-[12px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-300">
+                                <span>Año acuse</span>
+                                <select
+                                    value={acuseAnio}
+                                    onChange={(e) => setAcuseAnio(e.target.value)}
+                                    className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-[12px] font-medium text-zinc-800 outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
+                                >
+                                    {aniosAcuse.map((anio) => (
+                                        <option key={anio} value={String(anio)}>
+                                            {anio}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        )}
                         <a
                             href={route('my-delegation.acuse-general.pdf', exportParams)}
                             target="_blank"
@@ -1451,7 +1483,14 @@ function MiDelegacionIndex({ empleados, delegaciones = [], contexto = {}, resume
                 ) : (
                     <div className="space-y-2">
                         {empleados.data.map((emp) => (
-                            <EmpleadoRow key={emp.id} empleado={emp} delegaciones={delegaciones} anioActual={anioVestuario} periodoAbierto={periodo?.estado === 'abierto'} />
+                            <EmpleadoRow
+                                key={emp.id}
+                                empleado={emp}
+                                delegaciones={delegaciones}
+                                anioActual={anioVestuario}
+                                periodoAbierto={periodo?.estado === 'abierto'}
+                                acuseAnio={acuseAnio ? Number(acuseAnio) : null}
+                            />
                         ))}
                     </div>
                 )}

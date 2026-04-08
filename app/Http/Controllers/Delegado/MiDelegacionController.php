@@ -255,6 +255,8 @@ class MiDelegacionController extends Controller
                 $request->only(['search']),
                 ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo, 'modo' => $modoVista],
             ),
+            'acuse_anios_disponibles' => $this->aniosAcuseDisponibles($codigosFiltro, $search),
+            'acuse_anio_default' => SivsoVestuario::anioAsignacionesVestuario(),
         ]);
     }
 
@@ -263,9 +265,9 @@ class MiDelegacionController extends Controller
      *
      * @return list<array<string, mixed>>
      */
-    private function vestuarioListaParaEmpleado(Empleado $e): array
+    private function vestuarioListaParaEmpleado(Empleado $e, ?int $anio = null): array
     {
-        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
@@ -274,7 +276,7 @@ class MiDelegacionController extends Controller
 
         return $asignacionesQuery
             ->where('aep.empleado_id', $e->id)
-            ->where('aep.anio', $anio)
+            ->where('aep.anio', $anioConsulta)
             ->select([
                 'aep.id',
                 'aep.talla',
@@ -420,9 +422,9 @@ class MiDelegacionController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function mapEmpleadoParaVista(Empleado $e): array
+    private function mapEmpleadoParaVista(Empleado $e, ?int $anio = null): array
     {
-        $asignaciones = $this->vestuarioListaParaEmpleado($e);
+        $asignaciones = $this->vestuarioListaParaEmpleado($e, $anio);
 
         $confirmadas = collect($asignaciones)->whereIn('estado', ['confirmado', 'cambio'])->count();
 
@@ -469,7 +471,20 @@ class MiDelegacionController extends Controller
 
         abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleadoModel), 403);
 
-        $fila = $this->mapEmpleadoParaVista($empleadoModel);
+        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleadoModel->id)
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('anio')
+            ->map(static fn ($anio) => (int) $anio)
+            ->values()
+            ->all();
+        $anioSolicitado = $request->integer('anio');
+        $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
+            ? $anioSolicitado
+            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
+
+        $fila = $this->mapEmpleadoParaVista($empleadoModel, $anioConsulta);
 
         if (! $this->empleadoVestuarioListo($fila)) {
             return response(
@@ -499,8 +514,8 @@ class MiDelegacionController extends Controller
             $empleadoModel,
             $delegadoNombre,
             $fila,
-            SivsoVestuario::anioActual(),
-            SivsoVestuario::anioAsignacionesVestuario(),
+            $anioConsulta,
+            $anioConsulta,
         );
     }
 
@@ -508,7 +523,7 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        [$query, $resumenVestuario, $contexto] = $this->buildEmpleadosQueryParaExport($request, $user);
+        [$query, $resumenVestuario, $contexto, $anioVestuario] = $this->buildEmpleadosQueryParaExport($request, $user);
         $empleados = $query->get();
 
         $filas = $empleados
@@ -542,7 +557,7 @@ class MiDelegacionController extends Controller
             'filas' => $filas,
             'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
             'generadoEn' => now()->format('d/m/Y H:i'),
-            'anio' => SivsoVestuario::anioAsignacionesVestuario(),
+            'anio' => $anioVestuario,
         ]);
         $pdf->setPaper('letter', 'portrait');
         $pdf->setOption('defaultFont', 'DejaVu Sans');
@@ -591,7 +606,7 @@ class MiDelegacionController extends Controller
     }
 
     /**
-     * @return array{0: Builder, 1: Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>, 2: array<string, mixed>}
+     * @return array{0: Builder, 1: Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>, 2: array<string, mixed>, 3: int}
      */
     private function buildEmpleadosQueryParaExport(Request $request, User $user): array
     {
@@ -623,7 +638,10 @@ class MiDelegacionController extends Controller
         }
         $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
 
-        $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
+        $anioVestuario = $request->integer('anio');
+        if ($anioVestuario < 2000 || $anioVestuario > 2100) {
+            $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
+        }
         $vestAgg = DB::table('asignacion_empleado_producto')
             ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
             ->where('anio', $anioVestuario)
@@ -668,7 +686,32 @@ class MiDelegacionController extends Controller
             $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
         }
 
-        return [$empleadosQuery, $resumenVestuario, $contexto];
+        return [$empleadosQuery, $resumenVestuario, $contexto, $anioVestuario];
+    }
+
+    /**
+     * @param  list<string>|null  $codigosDelegacion
+     * @return list<int>
+     */
+    private function aniosAcuseDisponibles(?array $codigosDelegacion, ?string $search = null): array
+    {
+        return DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('e.nombre', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('e.nue', 'like', "%{$search}%");
+                });
+            })
+            ->distinct()
+            ->orderByDesc('aep.anio')
+            ->pluck('aep.anio')
+            ->map(static fn ($anio) => (int) $anio)
+            ->values()
+            ->all();
     }
 
     /**
