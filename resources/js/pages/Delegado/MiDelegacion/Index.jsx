@@ -565,6 +565,9 @@ function ModalProductos({ empleado, open, onClose }) {
                 if (payload?.anio != null && !anioSeleccionado) {
                     setAnioSeleccionado(String(payload.anio));
                 }
+                if (!payload?.licitados?.length && payload?.cotizados?.length) {
+                    setTab('cotizados');
+                }
             })
             .catch(() => setError('No se pudieron cargar los productos.'))
             .finally(() => setLoading(false));
@@ -628,10 +631,10 @@ function ModalProductos({ empleado, open, onClose }) {
             {data?.anios_disponibles?.length > 0 && (
                 <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-3 dark:border-zinc-800">
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        Mostrando productos del a\u00f1o <span className="font-semibold text-zinc-800 dark:text-zinc-200">{data.anio}</span>
+                        Mostrando productos del año <span className="font-semibold text-zinc-800 dark:text-zinc-200">{data.anio}</span>
                     </p>
                     <label className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                        <span>A\u00f1o</span>
+                        <span>Año</span>
                         <select
                             value={anioSeleccionado}
                             onChange={(e) => setAnioSeleccionado(e.target.value)}
@@ -1083,13 +1086,6 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         </button>
                     )}
 
-                    <button type="button" onClick={() => setVerProductos(true)}
-                        title="Ver productos asignados (licitados y cotizados)"
-                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1.5">
-                        <Package className="size-3.5 shrink-0" strokeWidth={1.75} />
-                        <span className="hidden sm:inline">Productos</span>
-                    </button>
-
                     {!esBaja && !esCambio && total > 0 && empleado.tiene_registro_anio_actual === true && (
                         <a
                             href={route('my-delegation.empleado.acuse-pdf', { empleado: empleado.id, anio: acuseAnio || undefined })}
@@ -1120,6 +1116,13 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                             </button>
                         </>
                     )}
+
+                    <button type="button" onClick={() => setVerProductos(true)}
+                        title="Ver productos asignados (licitados y cotizados)"
+                        className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-[11px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:min-h-0 sm:py-1.5">
+                        <Package className="size-3.5 shrink-0" strokeWidth={1.75} />
+                        <span className="hidden sm:inline">Productos</span>
+                    </button>
                 </div>
             </div>
 
@@ -1287,12 +1290,6 @@ function MiDelegacionIndex({
                             <p className="mt-1 text-[12px] leading-tight text-zinc-500 dark:text-zinc-400">
                                 <span className="font-mono text-[11px] [overflow-wrap:anywhere] break-all text-zinc-600 dark:text-zinc-300 sm:break-normal sm:text-[12px]">
                                     {contexto.delegaciones.join(' · ')}
-                                </span>
-                                <span className="mx-1.5 text-zinc-300 dark:text-zinc-600" aria-hidden>
-                                    ·
-                                </span>
-                                <span className="whitespace-nowrap tabular-nums">
-                                    {anioVestuario} · ref. {anioRefFallback}
                                 </span>
                             </p>
                         </>
