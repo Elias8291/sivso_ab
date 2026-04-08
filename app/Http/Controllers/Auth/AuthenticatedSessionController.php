@@ -31,7 +31,7 @@ final class AuthenticatedSessionController extends Controller
 
         if ($user === null) {
             throw ValidationException::withMessages([
-                'rfc' => __('El RFC no existe en nuestros registros.'),
+                'rfc' => __('No existe el RFC.'),
             ]);
         }
 
