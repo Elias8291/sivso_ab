@@ -94,8 +94,8 @@ final class SivsoVestuario
 
     /**
      * Año de asignaciones a usar en Mi delegación / vestuario: si hay filas en
-     * asignacion_empleado_producto para el año de catálogo resuelto (p. ej. 2026 con DPPP),
-     * se usa ese año; si no, el mismo criterio que anioReferencia() (asignaciones existentes).
+     * varios ejercicios, usar el año con mayor volumen de filas para evitar que
+     * unos pocos registros del año nuevo oculten la mayoría del padrón.
      */
     public static function anioAsignacionesVestuario(): int
     {
@@ -103,13 +103,15 @@ final class SivsoVestuario
             return self::$cachedAnioAsignacionesVestuario;
         }
 
-        $cat = self::anioCatalogoResuelto();
-        $hayAsignacionesCatalogo = DB::table('asignacion_empleado_producto')
-            ->where('anio', $cat)
-            ->exists();
+        $anioMasPoblado = DB::table('asignacion_empleado_producto')
+            ->select('anio', DB::raw('COUNT(*) as total'))
+            ->groupBy('anio')
+            ->orderByDesc('total')
+            ->orderByDesc('anio')
+            ->value('anio');
 
-        if ($hayAsignacionesCatalogo) {
-            return self::$cachedAnioAsignacionesVestuario = $cat;
+        if ($anioMasPoblado !== null) {
+            return self::$cachedAnioAsignacionesVestuario = (int) $anioMasPoblado;
         }
 
         return self::$cachedAnioAsignacionesVestuario = self::anioReferencia();
