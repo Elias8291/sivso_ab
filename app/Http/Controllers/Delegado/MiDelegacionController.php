@@ -160,8 +160,11 @@ class MiDelegacionController extends Controller
         $anioBase = $this->anioBase();
         $anioCaptura = $this->anioCaptura();
 
-        // Listado: sin join agregado global (muy costoso en COUNT + OFFSET de paginación).
-        // El estado de vestuario por empleado se calcula solo para la página actual (pageStats).
+        // Orden: bajas al final; luego quienes ya tienen vestuario completo (año base → captura) al final;
+        // alfabético entre iguales. Subquery acotado (misma lógica que el resumen). Los totales por fila
+        // siguen calculándose solo para la página actual (pageStats).
+        $vestOrdenSub = $this->subqueryVestuarioListoParaOrden($codigosFiltro, $search);
+
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
             ->whereExists(function ($q) use ($anioBase): void {
@@ -179,7 +182,9 @@ class MiDelegacionController extends Controller
                         ->orWhere('nue', 'like', "%{$search}%");
                 });
             })
+            ->leftJoinSub($vestOrdenSub, 'vest_orden', 'vest_orden.empleado_id', '=', 'empleado.id')
             ->orderByRaw("CASE WHEN empleado.estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
+            ->orderByRaw('COALESCE(vest_orden.vest_listo, 0) ASC')
             ->orderBy('empleado.apellido_paterno')
             ->orderBy('empleado.apellido_materno')
             ->orderBy('empleado.nombre')
@@ -592,6 +597,42 @@ class MiDelegacionController extends Controller
             'listos' => (int) ($agg->listos ?? 0),
             'sin_empezar' => (int) ($agg->sin_empezar ?? 0),
         ];
+    }
+
+    /**
+     * Una fila por empleado: vest_listo = 1 si todas las prendas del año base tienen registro en el año de captura (misma regla que el resumen).
+     *
+     * @param  list<string>|null  $codigosDelegacion
+     * @return \Illuminate\Database\Query\Builder
+     */
+    private function subqueryVestuarioListoParaOrden(?array $codigosDelegacion, ?string $search)
+    {
+        $anioBase = $this->anioBase();
+        $anioCaptura = $this->anioCaptura();
+
+        $porEmpleado = DB::table('asignacion_empleado_producto as aep_base')
+            ->join('empleado as e', 'e.id', '=', 'aep_base.empleado_id')
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep_base.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep_base.producto_licitado_id')
+                    ->where('aep_new.anio', '=', $anioCaptura);
+            })
+            ->where('aep_base.anio', $anioBase)
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('e.nombre', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('e.apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('e.nue', 'like', "%{$search}%");
+                });
+            })
+            ->groupBy('aep_base.empleado_id')
+            ->selectRaw('aep_base.empleado_id, COUNT(aep_base.id) as total_prendas, SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) as confirmadas');
+
+        return DB::query()
+            ->fromSub($porEmpleado, 't')
+            ->selectRaw('t.empleado_id, CASE WHEN t.total_prendas > 0 AND t.confirmadas >= t.total_prendas THEN 1 ELSE 0 END as vest_listo');
     }
 
     /**
