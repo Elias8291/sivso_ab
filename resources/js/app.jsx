@@ -76,14 +76,14 @@ function GlobalPageLoader() {
                     }`}
                 >
                     <div className="relative grid place-items-center">
-                        <span className="size-16 animate-spin rounded-full border-[2.5px] border-brand-gold/45 border-t-brand-gold shadow-[0_0_24px_rgba(212,175,55,0.45)] dark:border-brand-gold-soft/40 dark:border-t-brand-gold-soft dark:shadow-[0_0_22px_rgba(212,175,55,0.35)]" />
-                        <span className="absolute size-10 rounded-full border border-brand-gold/40 dark:border-brand-gold-soft/45" />
+                        <span className="size-16 animate-spin rounded-full border-[2.5px] border-white/75 border-t-brand-gold shadow-[0_0_24px_rgba(212,175,55,0.45)] dark:border-white/70 dark:border-t-brand-gold-soft dark:shadow-[0_0_22px_rgba(212,175,55,0.35)]" />
+                        <span className="absolute size-10 rounded-full border border-white/55 dark:border-white/50" />
                     </div>
                     <div className="text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-gold/95 dark:text-brand-gold-soft/90">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/95 dark:text-white/95">
                             SIVSO
                         </p>
-                        <p className="mt-0.5 text-[13px] font-medium text-brand-gold/95 dark:text-brand-gold-soft/90">
+                        <p className="mt-0.5 text-[13px] font-medium text-white/95 dark:text-white/95">
                             Cargando...
                         </p>
                     </div>
