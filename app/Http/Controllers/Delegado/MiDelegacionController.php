@@ -656,7 +656,7 @@ class MiDelegacionController extends Controller
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search, $anioVestuario);
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
         } elseif ($filtro === 'sin_nue') {
