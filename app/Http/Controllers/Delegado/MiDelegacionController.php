@@ -268,6 +268,7 @@ class MiDelegacionController extends Controller
     private function vestuarioListaParaEmpleado(Empleado $e, ?int $anio = null): array
     {
         $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
+        $esAnioVigente = $anioConsulta === SivsoVestuario::anioAsignacionesVestuario();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
@@ -296,9 +297,10 @@ class MiDelegacionController extends Controller
                 'prenda' => $a->prenda,
                 'clave' => $a->clave,
                 'talla_anterior' => $a->talla,
-                'talla' => $a->talla_anio_actual ?? $a->talla,
-                'medida' => $a->medida_anio_actual,
-                'estado' => $a->estado_anio_actual ?? 'pendiente',
+                'talla' => $esAnioVigente ? ($a->talla_anio_actual ?? $a->talla) : $a->talla,
+                'medida' => $esAnioVigente ? $a->medida_anio_actual : null,
+                // Para años históricos, tomar lo registrado como definitivo.
+                'estado' => $esAnioVigente ? ($a->estado_anio_actual ?? 'pendiente') : 'confirmado',
                 'observacion' => $a->observacion_anio_actual,
                 'talla_actualizada_at' => $a->talla_actualizada_at,
                 'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
