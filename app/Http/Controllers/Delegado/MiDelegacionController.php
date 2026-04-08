@@ -51,7 +51,7 @@ class MiDelegacionController extends Controller
         $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion);
         $total = $resumenVestuario->count();
         $listos = $resumenVestuario
-            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= $fila['total_prendas'])
             ->count();
         $sinEmpezar = $resumenVestuario
             ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
@@ -67,8 +67,8 @@ class MiDelegacionController extends Controller
                 'sin_empezar' => $sinEmpezar,
                 'bajas' => $bajas,
                 'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
-                'anio_actual' => SivsoVestuario::anioActual(),
-                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
+                'anio_actual' => $this->anioCaptura(),
+                'anio_ref' => $this->anioBase(),
             ],
             'contexto' => $contexto,
             'periodo' => $this->periodoActual(),
@@ -154,18 +154,29 @@ class MiDelegacionController extends Controller
 
         $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
 
-        $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
-        $vestAgg = DB::table('asignacion_empleado_producto')
-            ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
-            ->where('anio', $anioVestuario)
-            ->groupBy('empleado_id');
+        // Año base: el año anterior (donde ya hay prendas asignadas).
+        // Año captura: el año actual (donde se crean los registros actualizados).
+        $anioBase = $this->anioBase();
+        $anioCaptura = $this->anioCaptura();
+
+        // Subquery: por cada empleado con prendas en el año base,
+        // contar cuántas de esas prendas ya tienen registro en el año de captura.
+        $vestAgg = DB::table('asignacion_empleado_producto as aep_base')
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep_base.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep_base.producto_licitado_id')
+                    ->where('aep_new.anio', '=', $anioCaptura);
+            })
+            ->where('aep_base.anio', $anioBase)
+            ->selectRaw('aep_base.empleado_id, COUNT(aep_base.id) AS total_vest, SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) AS nok')
+            ->groupBy('aep_base.empleado_id');
 
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
-            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
+            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioBase))
             ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
-            ->when($search !== null, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('apellido_paterno', 'like', "%{$search}%")
                         ->orWhere('apellido_materno', 'like', "%{$search}%")
@@ -173,18 +184,18 @@ class MiDelegacionController extends Controller
                 });
             })
             ->leftJoinSub($vestAgg, 'vest_agg', 'vest_agg.empleado_id', '=', 'empleado.id')
-            // En vista general: bajas de delegación al final; dentro de cada grupo, vestuario completo al final.
+            // Bajas de delegación al final; dentro de cada grupo, vestuario completo al final.
             ->orderByRaw("CASE WHEN empleado.estado_delegacion = 'baja' THEN 1 ELSE 0 END ASC")
-            ->orderByRaw('CASE WHEN COALESCE(vest_agg.total_vest, 0) > 0 AND COALESCE(vest_agg.nok, 0) >= (COALESCE(vest_agg.total_vest, 0) - COALESCE(vest_agg.nbaja, 0)) THEN 1 ELSE 0 END ASC')
+            ->orderByRaw('CASE WHEN COALESCE(vest_agg.total_vest, 0) > 0 AND COALESCE(vest_agg.nok, 0) >= COALESCE(vest_agg.total_vest, 0) THEN 1 ELSE 0 END ASC')
             ->orderBy('empleado.apellido_paterno')
             ->orderBy('empleado.apellido_materno')
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search, $anioVestuario);
+        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search);
         $total = $resumenVestuario->count();
         $listos = $resumenVestuario
-            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= ($fila['total_prendas'] - $fila['bajas']))
+            ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= $fila['total_prendas'])
             ->count();
         $sinEmpezar = $resumenVestuario
             ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
@@ -196,19 +207,13 @@ class MiDelegacionController extends Controller
             $empleadosQuery->whereNull('nue');
         } elseif ($filtro === 'listos') {
             $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
-            $this->restringirEmpleadosPorIds(
-                $empleadosQuery,
-                $idsListos
-            );
+            $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
         } elseif ($filtro === 'sin_empezar') {
             $idsSinEmpezar = $resumenVestuario
                 ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
                 ->pluck('id')
                 ->all();
-            $this->restringirEmpleadosPorIds(
-                $empleadosQuery,
-                $idsSinEmpezar
-            );
+            $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
         }
 
         $empleadosPaginator = $empleadosQuery
@@ -231,9 +236,7 @@ class MiDelegacionController extends Controller
             ),
         );
 
-        $empleados = $empleadosPaginator;
-
-        // Delegaciones disponibles para transferencias (agrupadas por UR)
+        // Delegaciones disponibles para transferencias
         $delegaciones = Delegacion::query()
             ->select(['codigo', 'ur_referencia'])
             ->orderBy('codigo')
@@ -242,15 +245,15 @@ class MiDelegacionController extends Controller
             ->all();
 
         return Inertia::render('Delegado/MiDelegacion/Index', [
-            'empleados' => $empleados,
+            'empleados' => $empleadosPaginator,
             'delegaciones' => $delegaciones,
             'contexto' => $contexto,
             'resumen' => [
                 'total' => $total,
                 'listos' => $listos,
                 'sin_empezar' => $sinEmpezar,
-                'anio_ref' => SivsoVestuario::anioAsignacionesVestuario(),
-                'anio_actual' => SivsoVestuario::anioActual(),
+                'anio_ref' => $anioBase,
+                'anio_actual' => $anioCaptura,
             ],
             'resumen_prendas' => $this->resumenPorCategoria($codigosFiltro),
             'periodo' => $this->periodoActual(),
@@ -259,38 +262,89 @@ class MiDelegacionController extends Controller
                 ['filtro' => $filtro, 'per_page' => $perPage, 'delegacion_codigo' => $delegacionCodigo, 'modo' => $modoVista],
             ),
             'acuse_anios_disponibles' => $this->aniosAcuseDisponibles($codigosFiltro, $search),
-            'acuse_anio_default' => SivsoVestuario::anioAsignacionesVestuario(),
+            'acuse_anio_default' => $anioCaptura,
         ]);
     }
 
     /**
-     * Listado de prendas para la vista (clave/descripción resueltos al catálogo vigente por clave).
+     * Listado de prendas para la vista.
+     *
+     * Sin año explícito (vista de delegación): muestra las prendas del año anterior
+     * y marca como "confirmado" aquellas que ya tienen registro en el año actual.
+     * De este modo el delegado ve qué prendas del padrón anterior ya fueron
+     * actualizadas para el ejercicio en curso.
+     *
+     * Con año explícito (PDFs, historial): muestra los registros de ese año directamente.
      *
      * @return list<array<string, mixed>>
      */
     private function vestuarioListaParaEmpleado(Empleado $e, ?int $anio = null): array
     {
-        $anioActual = $this->anioOperacionActual();
-        $anioConsulta = $anio ?? $this->resolverAnioConsultaVestuario($e, $anioActual);
-        $esAnioVigente = $anioConsulta === $anioActual;
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
-        $asignacionesQuery = DB::table('asignacion_empleado_producto as aep')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
-        VestuarioCotizadoJoin::applyCotizadoResuelto($asignacionesQuery, 'aep', $anioCatalogo);
+        // ── Modo histórico / PDF: mostrar el año solicitado directamente ────────
+        if ($anio !== null) {
+            $q = DB::table('asignacion_empleado_producto as aep')
+                ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+            VestuarioCotizadoJoin::applyCotizadoResuelto($q, 'aep', $anioCatalogo);
 
-        return $asignacionesQuery
+            return $q
+                ->where('aep.empleado_id', $e->id)
+                ->where('aep.anio', $anio)
+                ->select([
+                    'aep.id',
+                    'aep.talla as talla_anterior',
+                    'aep.talla_anio_actual as talla',
+                    'aep.medida_anio_actual as medida',
+                    'aep.estado_anio_actual as estado',
+                    'aep.observacion_anio_actual as observacion',
+                    'aep.talla_actualizada_at',
+                    'aep.cantidad',
+                    DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
+                    DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
+                ])
+                ->orderBy('clave')
+                ->get()
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'prenda' => $a->prenda,
+                    'clave' => $a->clave,
+                    'talla_anterior' => $a->talla_anterior,
+                    'talla' => $a->talla ?? $a->talla_anterior,
+                    'medida' => $a->medida,
+                    'estado' => $a->estado ?? 'pendiente',
+                    'observacion' => $a->observacion,
+                    'talla_actualizada_at' => $a->talla_actualizada_at,
+                    'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
+                ])
+                ->values()
+                ->all();
+        }
+
+        // ── Modo delegación: año anterior como base, año actual como destino ───
+        $anioCaptura = $this->anioCaptura();
+        $anioBase = $anioCaptura - 1;
+
+        $q = DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep.producto_licitado_id')
+                    ->where('aep_new.anio', '=', $anioCaptura);
+            });
+        VestuarioCotizadoJoin::applyCotizadoResuelto($q, 'aep', $anioCatalogo);
+
+        return $q
             ->where('aep.empleado_id', $e->id)
-            ->where('aep.anio', $anioConsulta)
+            ->where('aep.anio', $anioBase)
             ->select([
                 'aep.id',
-                'aep.talla',
-                'aep.talla_anio_actual',
-                'aep.medida_anio_actual',
-                'aep.estado_anio_actual',
-                'aep.observacion_anio_actual',
-                'aep.talla_actualizada_at',
+                'aep.talla as talla_anterior',
                 'aep.cantidad',
+                DB::raw("COALESCE(aep_new.talla_anio_actual, aep_new.talla, aep.talla) as talla"),
+                DB::raw('aep_new.medida_anio_actual as medida'),
+                DB::raw("CASE WHEN aep_new.id IS NOT NULL THEN 'confirmado' ELSE 'pendiente' END as estado"),
+                DB::raw('aep_new.talla_actualizada_at as talla_actualizada_at'),
                 DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
                 DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
             ])
@@ -300,12 +354,11 @@ class MiDelegacionController extends Controller
                 'id' => $a->id,
                 'prenda' => $a->prenda,
                 'clave' => $a->clave,
-                'talla_anterior' => $a->talla,
-                'talla' => $esAnioVigente ? ($a->talla_anio_actual ?? $a->talla) : $a->talla,
-                'medida' => $esAnioVigente ? $a->medida_anio_actual : null,
-                // Para años históricos, tomar lo registrado como definitivo.
-                'estado' => $esAnioVigente ? ($a->estado_anio_actual ?? 'pendiente') : 'confirmado',
-                'observacion' => $a->observacion_anio_actual,
+                'talla_anterior' => $a->talla_anterior,
+                'talla' => $a->talla ?? $a->talla_anterior ?? '',
+                'medida' => $a->medida,
+                'estado' => $a->estado,
+                'observacion' => null,
                 'talla_actualizada_at' => $a->talla_actualizada_at,
                 'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
             ])
@@ -313,33 +366,21 @@ class MiDelegacionController extends Controller
             ->all();
     }
 
-    private function anioOperacionActual(): int
+    /** Año de captura: el ejercicio en curso (donde se crean los registros definitivos). */
+    private function anioCaptura(): int
     {
-        return SivsoVestuario::anioActual();
+        return (int) date('Y');
     }
 
-    private function resolverAnioConsultaVestuario(Empleado $empleado, int $anioActual): int
+    /** Año base: el ejercicio anterior (fuente de prendas a actualizar). */
+    private function anioBase(): int
     {
-        $tieneAnioActual = DB::table('asignacion_empleado_producto')
-            ->where('empleado_id', $empleado->id)
-            ->where('anio', $anioActual)
-            ->exists();
-
-        if ($tieneAnioActual) {
-            return $anioActual;
-        }
-
-        $anioAnterior = $anioActual - 1;
-        $tieneAnioAnterior = DB::table('asignacion_empleado_producto')
-            ->where('empleado_id', $empleado->id)
-            ->where('anio', $anioAnterior)
-            ->exists();
-
-        return $tieneAnioAnterior ? $anioAnterior : $anioActual;
+        return $this->anioCaptura() - 1;
     }
 
     /**
-     * JSON al abrir «Ver vestuario»: misma resolución por clave que la página (catálogo actual).
+     * JSON al abrir «Ver vestuario»: devuelve las prendas del año anterior con
+     * estado basado en la existencia de registros en el año actual.
      */
     public function vestuarioEmpleado(Request $request, int $empleadoId): JsonResponse
     {
@@ -349,7 +390,8 @@ class MiDelegacionController extends Controller
         return response()->json([
             'data' => [
                 'vestuario' => $this->vestuarioListaParaEmpleado($empleado),
-                'anio_asignacion' => $this->anioOperacionActual(),
+                'anio_base' => $this->anioBase(),
+                'anio_captura' => $this->anioCaptura(),
                 'anio_catalogo' => SivsoVestuario::anioCatalogoResuelto(),
             ],
             'message' => null,
@@ -400,12 +442,20 @@ class MiDelegacionController extends Controller
             return [];
         }
 
-        $anio = $this->anioOperacionActual();
-        $rows = DB::table('asignacion_empleado_producto')
-            ->where('anio', $anio)
-            ->whereIn('empleado_id', $empleadoIds)
-            ->selectRaw("empleado_id, COUNT(*) as total, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) as bajas, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) as confirmadas")
-            ->groupBy('empleado_id')
+        $anioBase = $this->anioBase();
+        $anioCaptura = $this->anioCaptura();
+
+        // Contar prendas del año anterior y cuántas ya tienen registro en el año actual.
+        $rows = DB::table('asignacion_empleado_producto as aep_base')
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep_base.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep_base.producto_licitado_id')
+                    ->where('aep_new.anio', '=', $anioCaptura);
+            })
+            ->where('aep_base.anio', $anioBase)
+            ->whereIn('aep_base.empleado_id', $empleadoIds)
+            ->selectRaw('aep_base.empleado_id, COUNT(aep_base.id) as total, SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) as confirmadas')
+            ->groupBy('aep_base.empleado_id')
             ->get();
 
         $out = [];
@@ -413,7 +463,7 @@ class MiDelegacionController extends Controller
             $eid = (int) $row->empleado_id;
             $out[$eid] = [
                 'total' => (int) $row->total,
-                'bajas' => (int) $row->bajas,
+                'bajas' => 0,
                 'confirmadas' => (int) $row->confirmadas,
             ];
         }
@@ -431,9 +481,9 @@ class MiDelegacionController extends Controller
             return [];
         }
 
-        $anioActual = $this->anioOperacionActual();
+        $anioCaptura = $this->anioCaptura();
         $idsConRegistro = DB::table('asignacion_empleado_producto')
-            ->where('anio', $anioActual)
+            ->where('anio', $anioCaptura)
             ->whereIn('empleado_id', $empleadoIds)
             ->distinct()
             ->pluck('empleado_id')
@@ -446,16 +496,25 @@ class MiDelegacionController extends Controller
     }
 
     /**
+     * Empleados "listos": todas las prendas del año anterior ya tienen
+     * registro en el año actual.
+     *
      * @param  list<string>|null  $codigosDelegacion
      * @return list<int>
      */
     private function empleadosListosAnioActualIds(?array $codigosDelegacion, ?string $search = null): array
     {
-        $anioActual = $this->anioOperacionActual();
+        $anioBase = $this->anioBase();
+        $anioCaptura = $this->anioCaptura();
 
-        return DB::table('asignacion_empleado_producto as aep')
-            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->where('aep.anio', $anioActual)
+        return DB::table('asignacion_empleado_producto as aep_base')
+            ->join('empleado as e', 'e.id', '=', 'aep_base.empleado_id')
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep_base.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep_base.producto_licitado_id')
+                    ->where('aep_new.anio', '=', $anioCaptura);
+            })
+            ->where('aep_base.anio', $anioBase)
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search): void {
                 $query->where(function ($q) use ($search): void {
@@ -465,10 +524,10 @@ class MiDelegacionController extends Controller
                         ->orWhere('e.nue', 'like', "%{$search}%");
                 });
             })
-            ->groupBy('aep.empleado_id')
-            ->havingRaw('COUNT(*) > 0')
-            ->havingRaw("SUM(CASE WHEN aep.estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) >= (COUNT(*) - SUM(CASE WHEN aep.estado_anio_actual = 'baja' THEN 1 ELSE 0 END))")
-            ->pluck('aep.empleado_id')
+            ->groupBy('aep_base.empleado_id')
+            ->havingRaw('COUNT(aep_base.id) > 0')
+            ->havingRaw('SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) >= COUNT(aep_base.id)')
+            ->pluck('aep_base.empleado_id')
             ->map(static fn ($id): int => (int) $id)
             ->values()
             ->all();
@@ -567,7 +626,7 @@ class MiDelegacionController extends Controller
         $anioSolicitado = $request->integer('anio');
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
+            : ($aniosDisponibles[0] ?? $this->anioCaptura());
 
         $fila = $this->mapEmpleadoParaVista($empleadoModel, $anioConsulta);
 
@@ -608,7 +667,7 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $anioVestuario = SivsoVestuario::anioActual();
+        $anioVestuario = $this->anioCaptura();
         $requestAnioActual = $request->duplicate(
             array_merge($request->query(), ['anio' => $anioVestuario, 'filtro' => 'todos']),
             $request->request->all()
@@ -728,7 +787,7 @@ class MiDelegacionController extends Controller
 
         $anioVestuario = $request->integer('anio');
         if ($anioVestuario < 2000 || $anioVestuario > 2100) {
-            $anioVestuario = SivsoVestuario::anioAsignacionesVestuario();
+            $anioVestuario = $this->anioCaptura();
         }
         $vestAgg = DB::table('asignacion_empleado_producto')
             ->selectRaw("empleado_id, COUNT(*) AS total_vest, SUM(CASE WHEN estado_anio_actual = 'baja' THEN 1 ELSE 0 END) AS nbaja, SUM(CASE WHEN estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) AS nok")
@@ -739,8 +798,8 @@ class MiDelegacionController extends Controller
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
             ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
             ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
-            ->when($search !== null, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
                     $q->where('nombre', 'like', "%{$search}%")
                         ->orWhere('apellido_paterno', 'like', "%{$search}%")
                         ->orWhere('apellido_materno', 'like', "%{$search}%")
@@ -755,23 +814,13 @@ class MiDelegacionController extends Controller
             ->orderBy('empleado.nombre')
             ->select('empleado.*');
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosFiltro, $search, $anioVestuario);
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
         } elseif ($filtro === 'sin_nue') {
             $empleadosQuery->whereNull('nue');
-        } elseif ($filtro === 'listos') {
-            $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
-            $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
-        } elseif ($filtro === 'sin_empezar') {
-            $idsSinEmpezar = $resumenVestuario
-                ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] === 0)
-                ->pluck('id')
-                ->all();
-            $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
         }
 
-        return [$empleadosQuery, $resumenVestuario, $contexto, $anioVestuario];
+        return [$empleadosQuery, collect(), $contexto, $anioVestuario];
     }
 
     /**
@@ -801,6 +850,7 @@ class MiDelegacionController extends Controller
 
     /**
      * Vestuario completo: hay prendas y todas las que no están en baja quedaron confirmadas o en cambio.
+     * Usado por los métodos PDF que consultan el año explícito con estado_anio_actual.
      *
      * @param  array{vestuario: list<array<string, mixed>>, confirmadas: int, total_prendas: int}  $fila
      */
@@ -832,18 +882,25 @@ class MiDelegacionController extends Controller
 
     /**
      * Resumen de vestuario por empleado para evitar N+1 al calcular métricas globales.
+     * Usa el año anterior como base y el año actual como destino de actualización.
      *
      * @param  list<string>|null  $codigosDelegacion
      * @return Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
      */
-    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null, ?int $anio = null): Collection
+    private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): Collection
     {
-        $anioConsulta = $anio ?? SivsoVestuario::anioAsignacionesVestuario();
+        $anioBase = $this->anioBase();
+        $anioCaptura = $this->anioCaptura();
 
         return DB::table('empleado as e')
-            ->join('asignacion_empleado_producto as aep', function ($join) use ($anioConsulta): void {
-                $join->on('aep.empleado_id', '=', 'e.id')
-                    ->where('aep.anio', $anioConsulta);
+            ->join('asignacion_empleado_producto as aep_base', function ($join) use ($anioBase): void {
+                $join->on('aep_base.empleado_id', '=', 'e.id')
+                    ->where('aep_base.anio', $anioBase);
+            })
+            ->leftJoin('asignacion_empleado_producto as aep_new', function ($join) use ($anioCaptura): void {
+                $join->on('aep_new.empleado_id', '=', 'aep_base.empleado_id')
+                    ->on('aep_new.producto_licitado_id', '=', 'aep_base.producto_licitado_id')
+                    ->where('aep_new.anio', $anioCaptura);
             })
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
             ->when($search !== null, function ($query) use ($search): void {
@@ -857,9 +914,8 @@ class MiDelegacionController extends Controller
             ->select([
                 'e.id',
                 'e.estado_delegacion',
-                DB::raw('COUNT(*) as total_prendas'),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual IN ('confirmado','cambio') THEN 1 ELSE 0 END) as confirmadas"),
-                DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja' THEN 1 ELSE 0 END) as bajas"),
+                DB::raw('COUNT(aep_base.id) as total_prendas'),
+                DB::raw('SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) as confirmadas'),
             ])
             ->groupBy('e.id', 'e.estado_delegacion')
             ->get()
@@ -868,7 +924,7 @@ class MiDelegacionController extends Controller
                 'estado_delegacion' => (string) ($row->estado_delegacion ?? 'activo'),
                 'total_prendas' => (int) $row->total_prendas,
                 'confirmadas' => (int) $row->confirmadas,
-                'bajas' => (int) $row->bajas,
+                'bajas' => 0,
             ]);
     }
 
@@ -1081,7 +1137,7 @@ class MiDelegacionController extends Controller
 
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? SivsoVestuario::anioAsignacionesVestuario());
+            : ($aniosDisponibles[0] ?? $this->anioCaptura());
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
@@ -1280,7 +1336,7 @@ class MiDelegacionController extends Controller
      */
     private function resumenPorCategoria(?array $codigosDelegacion): array
     {
-        $anio = SivsoVestuario::anioAsignacionesVestuario();
+        $anio = $this->anioBase();
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
         $query = DB::table('asignacion_empleado_producto as aep')
