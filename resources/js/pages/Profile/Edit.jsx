@@ -1,40 +1,28 @@
+import FormField from '@/components/admin/FormField';
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import PasswordInput from '@/components/ui/PasswordInput';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { KeyRound, LogOut, Save, ShieldCheck, User } from 'lucide-react';
 import { route } from 'ziggy-js';
 
-function Field({ label, id, type = 'text', error, autoComplete, value, onChange, placeholder }) {
+function SectionLabel({ icon: Icon, children }) {
     return (
-        <div className="space-y-1.5">
-            <label htmlFor={id} className="block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
-                {label}
-            </label>
-            <input
-                id={id}
-                type={type}
-                value={value}
-                onChange={onChange}
-                autoComplete={autoComplete}
-                placeholder={placeholder}
-                className={`w-full rounded-lg border bg-white px-3 py-2 text-[14px] leading-normal text-zinc-900 shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:ring-1 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 ${
-                    error
-                        ? 'border-red-300/90 focus:border-red-400 focus:ring-red-400/25 dark:border-red-800 dark:focus:border-red-600'
-                        : 'border-zinc-200/95 focus:border-zinc-400 focus:ring-zinc-400/20 dark:border-zinc-700/90 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/25'
-                }`}
+        <div className="flex items-center gap-2.5">
+            <span
+                className="h-3 w-px shrink-0 rounded-full bg-gradient-to-b from-brand-gold/70 to-brand-gold/25 dark:from-brand-gold-soft/65 dark:to-brand-gold-soft/20"
+                aria-hidden
             />
-            {error ? <p className="text-[12px] leading-snug text-red-600 dark:text-red-400/95">{error}</p> : null}
+            {Icon && <Icon className="size-3.5 text-brand-gold/50 dark:text-brand-gold-soft/45" strokeWidth={1.75} aria-hidden />}
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{children}</p>
         </div>
     );
 }
 
-function SectionTitle({ children }) {
+function InfoBox({ children }) {
     return (
-        <div className="mb-3 flex items-center gap-2">
-            <h2 className="shrink-0 text-[12px] font-semibold tracking-wide text-zinc-900 dark:text-zinc-100">
-                {children}
-            </h2>
-            <span className="h-px min-w-0 flex-1 bg-gradient-to-r from-zinc-300/70 to-transparent dark:from-zinc-600/45" aria-hidden />
+        <div className="rounded-xl border border-zinc-200/75 border-l-2 border-l-brand-gold/40 bg-zinc-50/40 px-4 py-3.5 dark:border-zinc-800 dark:border-l-brand-gold-soft/35 dark:bg-zinc-900/25">
+            {children}
         </div>
     );
 }
@@ -70,11 +58,12 @@ export default function ProfileEdit({ profile }) {
                         : 'Datos de acceso. Los identificadores institucionales solo los modifica administración.'
                 }
             >
-                <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-900/50 dark:ring-white/10">
-                    <div className="px-5 py-5 sm:px-6 sm:py-6">
+                <div className="mx-auto w-full max-w-2xl">
+                    <div className="space-y-7 rounded-3xl border border-zinc-200/80 bg-white px-4 py-6 shadow-sm shadow-zinc-200/50 sm:px-6 sm:py-8 dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-none">
+
                         {(flash?.status || recentlySuccessful) && (
                             <output
-                                className="mb-5 block border-l-2 border-brand-gold/60 bg-brand-gold/[0.06] py-2 pl-3 pr-3 text-[13px] leading-snug text-zinc-800 dark:border-brand-gold-soft/50 dark:bg-brand-gold-soft/[0.07] dark:text-zinc-200"
+                                className="block rounded-xl border-l-2 border-l-brand-gold/60 bg-brand-gold/[0.06] py-2.5 pl-3.5 pr-3.5 text-[13px] leading-snug text-zinc-800 dark:border-l-brand-gold-soft/50 dark:bg-brand-gold-soft/[0.07] dark:text-zinc-200"
                                 aria-live="polite"
                             >
                                 {flash?.status || 'Los cambios se guardaron correctamente.'}
@@ -82,100 +71,104 @@ export default function ProfileEdit({ profile }) {
                         )}
 
                         {mustChangePassword && (
-                            <output className="mb-5 block border-l-2 border-amber-500/60 bg-amber-50/90 py-2 pl-3 pr-3 text-[13px] leading-snug text-amber-950 dark:border-amber-500/45 dark:bg-amber-950/35 dark:text-amber-100/95">
+                            <output className="block rounded-xl border-l-2 border-l-amber-500/60 bg-amber-50/90 py-2.5 pl-3.5 pr-3.5 text-[13px] leading-snug text-amber-950 dark:border-l-amber-500/45 dark:bg-amber-950/35 dark:text-amber-100/95">
                                 Establezca una contraseña nueva abajo para continuar.
                             </output>
                         )}
 
                         {!mustChangePassword && (
-                            <div className="mb-6 space-y-2 border-b border-zinc-100 pb-5 dark:border-zinc-800/80">
-                            <p className="text-base font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
-                                {profile.name}
-                            </p>
-                            <p className="break-all font-mono text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
-                                {profile.email}
-                            </p>
-                            <ul className="flex flex-wrap gap-1.5 pt-0.5">
-                                {profile.is_super_admin && (
-                                    <li className="rounded border border-brand-gold/30 bg-brand-gold/[0.07] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-gold dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/[0.09] dark:text-brand-gold-soft">
-                                        Super admin
-                                    </li>
-                                )}
-                                {(profile.roles ?? []).map((r) => (
-                                    <li
-                                        key={r}
-                                        className="rounded border border-zinc-200/90 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400"
-                                    >
-                                        {r}
-                                    </li>
-                                ))}
-                            </ul>
-                            </div>
+                            <>
+                                <header className="space-y-4">
+                                    <div className="flex items-start gap-3.5">
+                                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800/70">
+                                            <User className="size-5 text-zinc-500 dark:text-zinc-400" strokeWidth={1.6} />
+                                        </div>
+                                        <div className="min-w-0 flex-1 space-y-1">
+                                            <p className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                                                {profile.name}
+                                            </p>
+                                            <p className="break-all font-mono text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                                {profile.email}
+                                            </p>
+                                            {(profile.is_super_admin || (profile.roles ?? []).length > 0) && (
+                                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                                    {profile.is_super_admin && (
+                                                        <span className="inline-flex items-center gap-1 rounded-md border border-brand-gold/30 bg-brand-gold/[0.07] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-gold dark:border-brand-gold-soft/25 dark:bg-brand-gold-soft/[0.09] dark:text-brand-gold-soft">
+                                                            <ShieldCheck className="size-2.5" strokeWidth={2} /> Super admin
+                                                        </span>
+                                                    )}
+                                                    {(profile.roles ?? []).map((r) => (
+                                                        <span
+                                                            key={r}
+                                                            className="rounded-md border border-zinc-200/90 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400"
+                                                        >
+                                                            {r}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/90 to-transparent dark:via-zinc-700/70" aria-hidden />
+                                </header>
+                            </>
                         )}
 
                         <form className="space-y-7" onSubmit={submit}>
                             {!mustChangePassword && (
-                                <section aria-labelledby="section-datos">
-                                <SectionTitle>
-                                    <span id="section-datos">Datos generales</span>
-                                </SectionTitle>
-                                <div className="space-y-4">
-                                    <Field
-                                        label="Nombre completo"
-                                        id="profile-name"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        error={errors.name}
-                                        autoComplete="name"
-                                    />
-                                    <Field
-                                        label="Correo electrónico"
-                                        id="profile-email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        error={errors.email}
-                                        autoComplete="email"
-                                    />
-                                    {(profile.rfc || profile.nue) && (
-                                        <div className="border border-zinc-200/85 bg-zinc-50/40 px-3 py-3 dark:border-zinc-800/90 dark:bg-zinc-900/25">
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
-                                                Identificadores
-                                            </p>
-                                            <dl className="grid gap-3 sm:grid-cols-2">
-                                                {profile.rfc ? (
-                                                    <div>
-                                                        <dt className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                                                            RFC
-                                                        </dt>
-                                                        <dd className="mt-0.5 font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
-                                                            {profile.rfc}
-                                                        </dd>
-                                                    </div>
-                                                ) : null}
-                                                {profile.nue ? (
-                                                    <div>
-                                                        <dt className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                                                            NUE
-                                                        </dt>
-                                                        <dd className="mt-0.5 font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
-                                                            {profile.nue}
-                                                        </dd>
-                                                    </div>
-                                                ) : null}
-                                            </dl>
-                                        </div>
-                                    )}
-                                </div>
+                                <section className="space-y-3" aria-labelledby="section-datos">
+                                    <SectionLabel icon={User}>
+                                        <span id="section-datos">Datos generales</span>
+                                    </SectionLabel>
+                                    <div className="space-y-4">
+                                        <FormField
+                                            label="Nombre completo"
+                                            id="profile-name"
+                                            value={data.name}
+                                            onChange={(e) => setData('name', e.target.value)}
+                                            error={errors.name}
+                                            autoComplete="name"
+                                        />
+                                        <FormField
+                                            label="Correo electrónico"
+                                            id="profile-email"
+                                            type="email"
+                                            value={data.email}
+                                            onChange={(e) => setData('email', e.target.value)}
+                                            error={errors.email}
+                                            autoComplete="email"
+                                        />
+                                        {(profile.rfc || profile.nue) && (
+                                            <InfoBox>
+                                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
+                                                    Identificadores
+                                                </p>
+                                                <dl className="grid gap-3 sm:grid-cols-2">
+                                                    {profile.rfc ? (
+                                                        <div>
+                                                            <dt className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">RFC</dt>
+                                                            <dd className="mt-0.5 font-mono text-[13px] text-zinc-900 dark:text-zinc-100">{profile.rfc}</dd>
+                                                        </div>
+                                                    ) : null}
+                                                    {profile.nue ? (
+                                                        <div>
+                                                            <dt className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">NUE</dt>
+                                                            <dd className="mt-0.5 font-mono text-[13px] text-zinc-900 dark:text-zinc-100">{profile.nue}</dd>
+                                                        </div>
+                                                    ) : null}
+                                                </dl>
+                                            </InfoBox>
+                                        )}
+                                    </div>
                                 </section>
                             )}
 
                             {!mustChangePassword && delegado && (
-                                <section aria-labelledby="section-delegado">
-                                    <SectionTitle>
+                                <section className="space-y-3" aria-labelledby="section-delegado">
+                                    <SectionLabel icon={ShieldCheck}>
                                         <span id="section-delegado">Vinculación institucional</span>
-                                    </SectionTitle>
-                                    <div className="border border-zinc-200/85 bg-white px-3 py-3 dark:border-zinc-800/90 dark:bg-zinc-950/40">
+                                    </SectionLabel>
+                                    <InfoBox>
                                         <p className="text-[14px] font-medium leading-snug text-zinc-900 dark:text-zinc-100">
                                             {delegado.nombre_completo}
                                         </p>
@@ -192,15 +185,15 @@ export default function ProfileEdit({ profile }) {
                                                 </span>
                                             </p>
                                         ) : null}
-                                    </div>
+                                    </InfoBox>
                                 </section>
                             )}
 
-                            <section aria-labelledby="section-clave">
-                                <SectionTitle>
+                            <section className="space-y-3" aria-labelledby="section-clave">
+                                <SectionLabel icon={KeyRound}>
                                     <span id="section-clave">Contraseña</span>
-                                </SectionTitle>
-                                <p className="mb-3 text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                </SectionLabel>
+                                <p className="text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
                                     {mustChangePassword
                                         ? 'Requerida. Debe tener mínimo 8 caracteres.'
                                         : (
@@ -210,13 +203,7 @@ export default function ProfileEdit({ profile }) {
                                         )}
                                 </p>
                                 <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label
-                                            htmlFor="profile-password"
-                                            className="block text-[12px] font-medium text-zinc-700 dark:text-zinc-300"
-                                        >
-                                            Nueva contraseña
-                                        </label>
+                                    <FormField label="Nueva contraseña" id="profile-password" error={errors.password}>
                                         <PasswordInput
                                             id="profile-password"
                                             variant="panel"
@@ -225,16 +212,10 @@ export default function ProfileEdit({ profile }) {
                                             error={errors.password}
                                             autoComplete="new-password"
                                             placeholder={mustChangePassword ? 'Nueva contraseña' : 'Opcional'}
-                                            className="bg-white text-[14px] shadow-sm dark:bg-zinc-950"
+                                            className="block w-full rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[13px] text-zinc-800 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 dark:border-zinc-700 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20"
                                         />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label
-                                            htmlFor="profile-password-confirmation"
-                                            className="block text-[12px] font-medium text-zinc-700 dark:text-zinc-300"
-                                        >
-                                            Confirmación
-                                        </label>
+                                    </FormField>
+                                    <FormField label="Confirmación" id="profile-password-confirmation" error={errors.password_confirmation}>
                                         <PasswordInput
                                             id="profile-password-confirmation"
                                             variant="panel"
@@ -243,18 +224,21 @@ export default function ProfileEdit({ profile }) {
                                             error={errors.password_confirmation}
                                             autoComplete="new-password"
                                             placeholder="Repetir"
-                                            className="bg-white text-[14px] shadow-sm dark:bg-zinc-950"
+                                            className="block w-full rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[13px] text-zinc-800 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 dark:border-zinc-700 dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-zinc-500/20"
                                         />
-                                    </div>
+                                    </FormField>
                                 </div>
                             </section>
 
-                            <footer className="flex flex-col gap-3 border-t border-zinc-200/90 pt-6 dark:border-zinc-800/90 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/90 to-transparent dark:via-zinc-700/70" aria-hidden />
+
+                            <footer className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="inline-flex min-h-10 min-w-[11rem] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 px-6 text-[13px] font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-45 dark:border-zinc-200 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-brand-gold/35 bg-brand-gold/15 px-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 transition-[background-color,border-color,opacity] duration-200 ease-out enabled:hover:border-brand-gold/50 enabled:hover:bg-brand-gold/22 disabled:cursor-not-allowed disabled:opacity-45 dark:border-brand-gold-soft/30 dark:bg-brand-gold/10 dark:text-zinc-100 dark:enabled:hover:border-brand-gold-soft/45 dark:enabled:hover:bg-brand-gold/16"
                                 >
+                                    <Save className="size-3.5" strokeWidth={2} />
                                     {processing ? 'Guardando…' : mustChangePassword ? 'Actualizar contraseña' : 'Guardar cambios'}
                                 </button>
                                 {!mustChangePassword && (
@@ -262,8 +246,9 @@ export default function ProfileEdit({ profile }) {
                                         href={route('logout')}
                                         method="post"
                                         as="button"
-                                        className="text-left text-[12px] font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-200"
+                                        className="inline-flex items-center gap-1.5 text-left text-[12px] font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:decoration-zinc-600 dark:hover:text-zinc-200"
                                     >
+                                        <LogOut className="size-3" strokeWidth={2} />
                                         Cerrar sesión
                                     </Link>
                                 )}
