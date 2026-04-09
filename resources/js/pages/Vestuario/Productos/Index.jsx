@@ -105,30 +105,37 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-zinc-900/40" onClick={onClose} />
-            <form onSubmit={submit} className="relative z-10 w-full max-w-lg rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <h3 className="mb-3 text-[14px] font-semibold text-zinc-900 dark:text-zinc-100">Editar producto</h3>
-                <div className="space-y-3">
-                    <input
-                        value={form.clave}
-                        onChange={(e) => setForm((p) => ({ ...p, clave: e.target.value }))}
-                        placeholder="Clave"
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
-                        required
-                    />
-                    <textarea
-                        value={form.descripcion}
-                        onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
-                        placeholder="Descripción"
-                        rows={4}
-                        className="w-full resize-y rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
-                        required
-                    />
+            <form onSubmit={submit} className="relative z-10 w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
+                <h3 className="mb-4 text-[16px] font-semibold text-zinc-900 dark:text-zinc-100">Editar producto</h3>
+                <div className="space-y-4">
                     <div>
-                        <div className="flex items-center gap-2">
+                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Clave</label>
+                        <input
+                            value={form.clave}
+                            onChange={(e) => setForm((p) => ({ ...p, clave: e.target.value }))}
+                            placeholder="Clave"
+                            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[13px] dark:border-zinc-700 dark:bg-zinc-800"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Descripción</label>
+                        <textarea
+                            value={form.descripcion}
+                            onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
+                            placeholder="Descripción del producto"
+                            rows={6}
+                            className="w-full resize-y rounded-lg border border-zinc-200 px-3 py-2 text-[13px] leading-relaxed dark:border-zinc-700 dark:bg-zinc-800"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                             <select
                                 value={form.categoria_id}
                                 onChange={(e) => setForm((p) => ({ ...p, categoria_id: e.target.value }))}
-                                className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-[12px] dark:border-zinc-700 dark:bg-zinc-800"
+                                className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-[13px] dark:border-zinc-700 dark:bg-zinc-800"
                             >
                                 <option value="">Sin categoría</option>
                                 {categorias.map((c) => (
@@ -138,47 +145,57 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
                             <button
                                 type="button"
                                 onClick={() => { setShowNuevaCat((v) => !v); setCatError(''); }}
-                                className="rounded-lg border border-zinc-200 px-2 py-2 text-[11px] leading-none dark:border-zinc-700 dark:text-zinc-300"
+                                className="rounded-lg border border-zinc-200 px-3 py-2 text-[12px] font-medium whitespace-nowrap dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                 title="Agregar nueva categoría"
                             >
-                                {showNuevaCat ? '✕' : '+ Cat.'}
+                                {showNuevaCat ? '✕ Cancelar' : '+ Nueva Categoría'}
                             </button>
                         </div>
                         {showNuevaCat && (
-                            <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/60">
-                                <p className="mb-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Nueva categoría</p>
-                                <div className="flex gap-2">
+                            <div className="mt-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-800/60">
+                                <p className="mb-3 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">Nueva categoría</p>
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <input
                                         value={nuevaCat.codigo}
                                         onChange={(e) => setNuevaCat((p) => ({ ...p, codigo: e.target.value }))}
                                         placeholder="Código"
                                         maxLength={40}
-                                        className="w-24 rounded-md border border-zinc-200 px-2 py-1.5 text-[12px] dark:border-zinc-600 dark:bg-zinc-800"
+                                        className="w-full sm:w-32 rounded-md border border-zinc-300 px-3 py-2 text-[13px] dark:border-zinc-600 dark:bg-zinc-800"
                                     />
                                     <input
                                         value={nuevaCat.nombre}
                                         onChange={(e) => setNuevaCat((p) => ({ ...p, nombre: e.target.value }))}
                                         placeholder="Nombre"
                                         maxLength={120}
-                                        className="flex-1 rounded-md border border-zinc-200 px-2 py-1.5 text-[12px] dark:border-zinc-600 dark:bg-zinc-800"
+                                        className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-[13px] dark:border-zinc-600 dark:bg-zinc-800"
                                     />
                                     <button
                                         type="button"
                                         disabled={savingCat || !nuevaCat.codigo.trim() || !nuevaCat.nombre.trim()}
                                         onClick={guardarCategoria}
-                                        className="rounded-md bg-zinc-900 px-3 py-1.5 text-[12px] text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                                        className="rounded-md bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 whitespace-nowrap"
                                     >
-                                        {savingCat ? '...' : 'Agregar'}
+                                        {savingCat ? 'Guardando...' : 'Agregar'}
                                     </button>
                                 </div>
-                                {catError && <p className="mt-1.5 text-[11px] text-red-500">{catError}</p>}
+                                {catError && <p className="mt-2 text-[12px] text-red-600 dark:text-red-400">{catError}</p>}
                             </div>
                         )}
                     </div>
                 </div>
-                <div className="mt-4 flex justify-end gap-2">
-                    <button type="button" onClick={onClose} className="rounded-lg border border-zinc-200 px-3 py-1.5 text-[12px] dark:border-zinc-700">Cancelar</button>
-                    <button type="submit" disabled={saving} className="rounded-lg bg-zinc-900 px-3 py-1.5 text-[12px] text-white dark:bg-zinc-100 dark:text-zinc-900">
+                <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2">
+                    <button 
+                        type="button" 
+                        onClick={onClose} 
+                        className="rounded-lg border border-zinc-300 px-4 py-2 text-[13px] font-medium hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-800"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit" 
+                        disabled={saving} 
+                        className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    >
                         {saving ? 'Guardando...' : 'Guardar'}
                     </button>
                 </div>
