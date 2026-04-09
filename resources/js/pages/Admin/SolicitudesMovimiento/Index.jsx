@@ -519,15 +519,15 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
 
                 {/* Datos */}
                 <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="text-[12px] font-semibold text-zinc-900 dark:text-zinc-100">
-                            {solicitud.empleado?.nombre_completo}
-                        </span>
+                    <p className="text-[13px] font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100">
+                        {solicitud.empleado?.nombre_completo}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                         <BadgeTipo tipo={solicitud.tipo} bajaModo={solicitud.baja_modo} />
                         <BadgeEstado estado={solicitud.estado} />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
                         {solicitud.empleado?.nue && (
                             <span className="font-mono">{solicitud.empleado.nue}</span>
                         )}

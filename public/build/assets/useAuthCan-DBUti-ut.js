@@ -1,1 +1,0 @@
-import{r as e}from"./chunk-7ZXdHUL4.js";import{c as t,o as n}from"./app-DJ43xHum.js";var r=e(t(),1);function i(){let{auth:e}=n().props,t=!!e?.is_super_admin,i=!!e?.is_sivso_administrator,a=Array.isArray(e?.permissions)?e.permissions:[];return(0,r.useCallback)(e=>t||i||a.includes(e),[t,i,a])}export{i as t};
