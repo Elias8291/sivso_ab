@@ -221,6 +221,11 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                             <span className="ml-2 text-zinc-500">
                                 · {sust.sexo === 'F' ? 'Mujer' : sust.sexo === 'M' ? 'Hombre' : '—'}
                             </span>
+                            {sust.nue ? (
+                                <span className="mt-1 block font-mono text-[11px] text-zinc-600 dark:text-zinc-400">
+                                    NUE <span className="font-semibold text-zinc-800 dark:text-zinc-200">{sust.nue}</span>
+                                </span>
+                            ) : null}
                         </div>
                     )}
                     {solicitud.observacion_solicitante && (
@@ -294,18 +299,18 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                     <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Decisión</p>
                     <div className="grid grid-cols-2 gap-2">
                         <button type="button" onClick={() => setDecision('aprobada')}
-                            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[12px] font-medium transition ${
+                            className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-medium transition ${
                                 decision === 'aprobada'
-                                    ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-                                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/70'
+                                    ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                    : 'border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/70'
                             }`}>
                             <CheckCircle2 className="size-4" strokeWidth={2} /> Aprobar
                         </button>
                         <button type="button" onClick={() => setDecision('rechazada')}
-                            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[12px] font-medium transition ${
+                            className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-medium transition ${
                                 decision === 'rechazada'
-                                    ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-                                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/70'
+                                    ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                    : 'border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/70'
                             }`}>
                             <XCircle className="size-4" strokeWidth={2} /> Rechazar
                         </button>
@@ -325,18 +330,18 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                         ) : (
                         <div className="mb-3 grid grid-cols-2 gap-2">
                             <button type="button" onClick={() => setLlevaRecurso(true)}
-                                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
+                                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium transition ${
                                     llevaRecurso === true
-                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-                                        : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'
+                                        ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                        : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600'
                                 }`}>
                                 <ArrowLeftRight className="size-3.5" /> Lleva el recurso
                             </button>
                             <button type="button" onClick={() => setLlevaRecurso(false)}
-                                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
+                                className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium transition ${
                                     llevaRecurso === false
-                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-                                        : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400'
+                                        ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                        : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600'
                                 }`}>
                                 <X className="size-3.5" /> Queda en origen
                             </button>
@@ -378,10 +383,10 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                                     key={val}
                                     type="button"
                                     onClick={() => setModoPrendas(val)}
-                                    className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
+                                    className={`rounded-lg px-3 py-2 text-[12px] font-medium transition ${
                                         modoPrendas === val
-                                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                            ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                            : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600'
                                     }`}
                                 >
                                     {label}
@@ -453,8 +458,10 @@ function ModalResolver({ open, solicitud, onCerrar, onResuelta }) {
                 {/* Botones finales */}
                 <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
                     <button type="button" onClick={resolver} disabled={saving || !decision}
-                        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-medium text-white transition disabled:opacity-40 ${
-                            decision === 'rechazada' ? 'bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300' : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
+                        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl border-2 px-4 py-2.5 text-[12px] font-medium transition disabled:opacity-40 ${
+                            decision === 'rechazada'
+                                ? 'border-zinc-500/80 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-500 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50'
+                                : 'border-zinc-500/80 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50'
                         }`}>
                         {saving ? <RotateCcw className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
                         {saving ? 'Guardando…' : 'Confirmar resolución'}
@@ -541,6 +548,12 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                             Sustituto: <strong className="font-medium text-zinc-800 dark:text-zinc-200">{nombreSustCard || '—'}</strong>
                             {' · '}
                             {sustCard.sexo === 'F' ? 'Mujer' : sustCard.sexo === 'M' ? 'Hombre' : '—'}
+                            {sustCard.nue ? (
+                                <>
+                                    {' · '}
+                                    <span className="font-mono">NUE {sustCard.nue}</span>
+                                </>
+                            ) : null}
                         </p>
                     )}
 
@@ -682,16 +695,16 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
                         const active = estado === tab.key;
                         return (
                             <button key={tab.key} type="button" onClick={() => handleTabChange(tab.key)}
-                                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition ${
+                                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-medium transition ${
                                     active
-                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                        : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                        ? 'border-2 border-zinc-500/80 bg-white text-zinc-800 dark:border-zinc-400/90 dark:bg-zinc-950/50 dark:text-zinc-100'
+                                        : 'border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600'
                                 }`}>
                                 {tab.label}
                                 {tab.key !== 'todas' && count > 0 && (
                                     <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold tabular-nums ${
                                         active
-                                            ? 'bg-white/20 text-white dark:bg-black/20 dark:text-zinc-800'
+                                            ? 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
                                             : {
                                                 pendiente: 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400',
                                                 aprobada: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400',

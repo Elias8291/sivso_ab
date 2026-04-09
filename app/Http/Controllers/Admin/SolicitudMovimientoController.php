@@ -96,37 +96,7 @@ class SolicitudMovimientoController extends Controller
             ], 404);
         }
 
-        $anio = SivsoVestuario::anioAsignacionesVestuario();
-        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
-
-        $vestuario = DB::table('asignacion_empleado_producto as aep')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
-        VestuarioCotizadoJoin::applyCotizadoResuelto($vestuario, 'aep', $anioCatalogo);
-        $vestuario->where('aep.empleado_id', $empleado->id)
-            ->where('aep.anio', $anio)
-            ->select([
-                'aep.id',
-                'aep.cantidad',
-                'aep.talla',
-                'aep.talla_anio_actual',
-                'aep.medida_anio_actual',
-                'aep.estado_anio_actual',
-                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
-                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
-            ])
-            ->orderBy('clave')
-            ->get()
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'prenda' => $a->prenda,
-                'clave' => $a->clave,
-                'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
-                'talla' => $a->talla_anio_actual ?? $a->talla,
-                'medida' => $a->medida_anio_actual,
-                'estado' => $a->estado_anio_actual ?? 'pendiente',
-            ])
-            ->values()
-            ->all();
+        $pack = $this->vestuarioAnioParaVistaResolver((int) $empleado->id);
 
         return response()->json([
             'data' => [
@@ -137,8 +107,8 @@ class SolicitudMovimientoController extends Controller
                     'ur' => $empleado->ur,
                     'delegacion' => $empleado->delegacion_codigo,
                 ],
-                'anio' => SivsoVestuario::anioAsignacionesVestuario(),
-                'vestuario' => $vestuario,
+                'anio' => $pack['anio'],
+                'vestuario' => $pack['vestuario'],
             ],
             'message' => null,
             'errors' => null,
@@ -177,7 +147,7 @@ class SolicitudMovimientoController extends Controller
 
             if ($validated['decision'] === 'aprobada') {
                 $empleado = $solicitud->empleado;
-                $anio = SivsoVestuario::anioReferencia();
+                $anio = $this->anioResolverCoincideConVistaEmpleado((int) $empleado->id);
 
                 $idsAsignaciones = AsignacionEmpleadoProducto::query()
                     ->where('empleado_id', $empleado->id)
@@ -328,5 +298,99 @@ class SolicitudMovimientoController extends Controller
                 : 'Solicitud rechazada.',
             'errors' => null,
         ]);
+    }
+
+    /**
+     * Años con filas en `asignacion_empleado_producto` para el empleado (más reciente primero).
+     *
+     * @return list<int>
+     */
+    private function aniosAsignacionesEmpleadoDesc(int $empleadoId): array
+    {
+        return DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleadoId)
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('anio')
+            ->map(static fn ($a): int => (int) $a)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Listado de prendas como en el modal Resolver (joins a catálogo / cotizado).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mapearVestuarioEmpleadoParaAnio(int $empleadoId, int $anio): array
+    {
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+
+        $query = DB::table('asignacion_empleado_producto as aep')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
+        VestuarioCotizadoJoin::applyCotizadoResuelto($query, 'aep', $anioCatalogo);
+
+        return $query->where('aep.empleado_id', $empleadoId)
+            ->where('aep.anio', $anio)
+            ->select([
+                'aep.id',
+                'aep.cantidad',
+                'aep.talla',
+                'aep.talla_anio_actual',
+                'aep.medida_anio_actual',
+                'aep.estado_anio_actual',
+                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
+                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
+            ])
+            ->orderBy('clave')
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'prenda' => $a->prenda,
+                'clave' => $a->clave,
+                'cantidad' => max(1, (int) ($a->cantidad ?? 1)),
+                'talla' => $a->talla_anio_actual ?? $a->talla,
+                'medida' => $a->medida_anio_actual,
+                'estado' => $a->estado_anio_actual ?? 'pendiente',
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * El año mostrado y las filas deben coincidir: se usa el ejercicio más reciente del empleado
+     * que devuelve al menos una prenda con la consulta completa. Si no hay asignaciones en ningún año,
+     * `anio` es null. Si hay filas crudas pero ninguna pasa el join, se devuelve el año más reciente y lista vacía.
+     *
+     * @return array{anio: int|null, vestuario: list<array<string, mixed>>}
+     */
+    private function vestuarioAnioParaVistaResolver(int $empleadoId): array
+    {
+        $anios = $this->aniosAsignacionesEmpleadoDesc($empleadoId);
+        if ($anios === []) {
+            return ['anio' => null, 'vestuario' => []];
+        }
+
+        foreach ($anios as $y) {
+            $filas = $this->mapearVestuarioEmpleadoParaAnio($empleadoId, $y);
+            if ($filas !== []) {
+                return ['anio' => $y, 'vestuario' => $filas];
+            }
+        }
+
+        return ['anio' => $anios[0], 'vestuario' => []];
+    }
+
+    /**
+     * Mismo criterio de año que el modal, para que los IDs de prenda al aprobar coincidan con la vista.
+     */
+    private function anioResolverCoincideConVistaEmpleado(int $empleadoId): int
+    {
+        $pack = $this->vestuarioAnioParaVistaResolver($empleadoId);
+        if ($pack['anio'] !== null) {
+            return $pack['anio'];
+        }
+
+        return SivsoVestuario::anioAsignacionesVestuario();
     }
 }

@@ -9,7 +9,6 @@ export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
         rfc: '',
         password: '',
-        remember: false,
     });
 
     const handleSubmit = (e) => {
@@ -84,32 +83,22 @@ export default function Login() {
                         error={errors.password}
                     />
                 </div>
-                <label className="animate-auth-fade-up flex cursor-pointer items-center gap-2 text-xs text-zinc-600 transition-colors delay-[480ms] hover:text-brand-gold/90 dark:text-zinc-400 dark:hover:text-brand-gold/80">
-                    <input
-                        type="checkbox"
-                        name="remember"
-                        checked={data.remember}
-                        onChange={(e) => setData('remember', e.target.checked)}
-                        className="h-4 w-4 cursor-pointer rounded border border-brand-gold/30 bg-white text-brand-gold transition-transform hover:scale-105 focus:ring-2 focus:ring-brand-gold/20 dark:border-brand-gold/20 dark:bg-zinc-800 dark:text-brand-gold"
-                    />
-                    Recordarme
-                </label>
-                <div className="animate-auth-fade-up delay-[600ms]">
+                <div className="animate-auth-fade-up delay-[480ms]">
                     <button
                         type="submit"
                         disabled={loading || processing}
-                        className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-gold/90 to-brand-gold/75 py-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_10px_28px_rgba(212,175,55,0.32)] transition-[transform,box-shadow,background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_14px_36px_rgba(212,175,55,0.42),0_0_0_1px_rgba(212,175,55,0.2)] enabled:active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none dark:border dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:shadow-[0_10px_24px_rgba(0,0,0,0.35)] dark:enabled:hover:bg-zinc-800 dark:enabled:hover:shadow-[0_12px_28px_rgba(0,0,0,0.45),0_0_0_1px_rgba(82,82,91,0.85)]"
+                        className="relative w-full overflow-hidden rounded-xl border border-brand-gold/35 bg-brand-gold/15 py-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 transition-[background-color,border-color,color,opacity] duration-200 ease-out enabled:hover:border-brand-gold/50 enabled:hover:bg-brand-gold/22 enabled:active:bg-brand-gold/18 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-gold-soft/30 dark:bg-brand-gold/10 dark:text-zinc-100 dark:enabled:hover:border-brand-gold-soft/45 dark:enabled:hover:bg-brand-gold/16"
                     >
                         Iniciar Sesión
                     </button>
                 </div>
             </form>
 
-            <footer className="animate-auth-fade-up mt-10 space-y-1 border-t border-brand-gold/10 pt-6 text-center delay-[720ms] dark:border-brand-gold/10">
+            <footer className="animate-auth-fade-up mt-10 space-y-1 border-t border-brand-gold/10 pt-6 text-center delay-[600ms] dark:border-brand-gold/10">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:text-zinc-400">
                     Secretaría de Administración Oaxaca
                 </p>
-                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-red-700 dark:text-red-500">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-700 dark:text-white">
                     Gobierno de Oaxaca
                 </p>
             </footer>

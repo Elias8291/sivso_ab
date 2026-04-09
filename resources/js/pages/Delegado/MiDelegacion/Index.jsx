@@ -314,7 +314,7 @@ function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual 
 
 /* ─── Modal base ─────────────────────────────────────────────────── */
 
-function Modal({ open, onClose, children, maxWidthClass = 'max-w-md' }) {
+function Modal({ open, onClose, children, maxWidthClass = 'max-w-md', tone = 'default' }) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => e.key === 'Escape' && onClose();
@@ -328,11 +328,19 @@ function Modal({ open, onClose, children, maxWidthClass = 'max-w-md' }) {
 
     if (!open) return null;
 
+    const shellTone = tone === 'bajaSoft'
+        ? 'border-stone-200/50 bg-white shadow-sm shadow-stone-900/[0.04] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none'
+        : 'border-zinc-200/70 bg-zinc-50 shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-zinc-900';
+
+    const backdropTone = tone === 'bajaSoft'
+        ? 'bg-stone-900/25 backdrop-blur-[3px] dark:bg-zinc-900/40'
+        : 'bg-zinc-900/40 backdrop-blur-[2px]';
+
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]" onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className={`absolute inset-0 ${backdropTone}`} onClick={onClose} />
             <div
-                className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-zinc-900`}
+                className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-2xl border ${shellTone}`}
                 style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}
             >
                 {children}
@@ -352,13 +360,13 @@ function Modal({ open, onClose, children, maxWidthClass = 'max-w-md' }) {
 
 const MODAL_CFG = {
     baja: {
-        iconBg:   'bg-zinc-100 dark:bg-zinc-800',
-        iconClr:  'text-zinc-600 dark:text-zinc-400',
-        warnBg:   'bg-zinc-50 dark:bg-zinc-900/50',
-        warnRing: 'ring-zinc-200/80 dark:ring-zinc-700/80',
-        warnTxt:  'text-zinc-600 dark:text-zinc-400',
-        inputCls: 'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-200/40 dark:border-zinc-700 dark:focus:border-zinc-500',
-        btnCls:   'border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200',
+        iconBg:   'bg-stone-100/80 dark:bg-zinc-800',
+        iconClr:  'text-stone-500 dark:text-zinc-400',
+        warnBg:   'bg-stone-50/95 dark:bg-zinc-900/50',
+        warnRing: 'ring-stone-200/45 dark:ring-zinc-700/80',
+        warnTxt:  'text-stone-600 dark:text-zinc-400',
+        inputCls: 'border-stone-200/80 bg-white focus:border-stone-400/90 focus:ring-stone-200/30 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-500',
+        btnCls:   'border-2 border-stone-500/75 bg-white text-stone-800 hover:bg-stone-50/90 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50',
         icon:     <XCircle className="size-5" strokeWidth={1.8} />,
         title:    'Solicitar baja',
         label:    'Motivo de baja',
@@ -366,8 +374,8 @@ const MODAL_CFG = {
         btnLbl:   'Enviar solicitud',
         warn:     (
             <>
-                Elige si la baja es <strong className="font-semibold">definitiva</strong> o si <strong className="font-semibold">llega una persona en su lugar</strong>.
-                En ambos casos se envía una <strong className="font-semibold">solicitud</strong> a S.Administración; con sustituto incluye nombre y sexo (hombre/mujer) para el vestuario del nuevo empleado.
+                Elige si la baja es <strong className="font-semibold text-stone-700 dark:text-zinc-200">definitiva</strong> o si <strong className="font-semibold text-stone-700 dark:text-zinc-200">llega una persona en su lugar</strong>.
+                En ambos casos se envía una <strong className="font-semibold text-stone-700 dark:text-zinc-200">solicitud</strong> a S.Administración; con sustituto incluye nombre y sexo (hombre/mujer) para el vestuario del nuevo empleado.
             </>
         ),
     },
@@ -379,7 +387,7 @@ const MODAL_CFG = {
         warnTxt:  'text-zinc-600 dark:text-zinc-400',
         inputCls: 'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-200/40 dark:border-zinc-700 dark:focus:border-zinc-500',
         selectCls:'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-200/40 dark:border-zinc-700 dark:focus:border-zinc-500',
-        btnCls:   'border border-zinc-900 bg-zinc-900 text-white hover:bg-zinc-800 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200',
+        btnCls:   'border-2 border-zinc-500/80 bg-white text-zinc-800 hover:bg-zinc-50/90 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50',
         icon:     <ArrowLeftRight className="size-5" strokeWidth={1.8} />,
         title:    'Solicitar cambio de delegación',
         label:    'Nota del cambio',
@@ -403,6 +411,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
     const [sustNombre, setSustNombre]       = useState('');
     const [sustApPat, setSustApPat]         = useState('');
     const [sustApMat, setSustApMat]         = useState('');
+    const [sustNue, setSustNue]             = useState('');
     const [sustSexo, setSustSexo]           = useState('M');
     const [saving, setSaving]               = useState(false);
     const [error, setError]                 = useState('');
@@ -421,6 +430,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
             setSustNombre('');
             setSustApPat('');
             setSustApMat('');
+            setSustNue('');
             setSustSexo('M');
         }
     }, [open]);
@@ -453,6 +463,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                         nombre: sustNombre.trim(),
                         apellido_paterno: sustApPat.trim(),
                         apellido_materno: sustApMat.trim() || '',
+                        nue: sustNue.trim() || null,
                         sexo: sustSexo,
                     };
                 }
@@ -466,32 +477,34 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
         }
     };
 
+    const esBajaUi = accion === 'baja';
+
     return (
-        <Modal open={open} onClose={onCerrar}>
+        <Modal open={open} onClose={onCerrar} maxWidthClass={esBajaUi ? 'max-w-2xl' : 'max-w-lg'} tone={esBajaUi ? 'bajaSoft' : 'default'}>
             {/* Cabecera */}
-            <div className="flex items-start justify-between gap-3 px-6 pb-4 pt-6">
-                <div className="flex items-center gap-4">
-                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${cfg.iconBg}`}>
+            <div className={`flex items-start justify-between gap-3 px-6 pb-4 pt-6 ${esBajaUi ? 'sm:px-8' : ''}`}>
+                <div className="flex min-w-0 flex-1 items-center gap-4">
+                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${cfg.iconBg}`}>
                         <span className={cfg.iconClr}>{cfg.icon}</span>
                     </div>
-                    <div>
-                        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{cfg.title}</h2>
-                        <p className="mt-0.5 max-w-[210px] truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                    <div className="min-w-0">
+                        <h2 className={`text-[15px] font-bold ${esBajaUi ? 'text-stone-800 dark:text-zinc-100' : 'text-zinc-900 dark:text-zinc-100'}`}>{cfg.title}</h2>
+                        <p className={`mt-0.5 truncate text-[11px] ${esBajaUi ? 'max-w-none text-stone-500 dark:text-zinc-400' : 'max-w-[210px] text-zinc-500 dark:text-zinc-400'}`}>
                             {empleado?.nombre_completo}
                         </p>
                     </div>
                 </div>
                 <button type="button" onClick={onCerrar}
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
+                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl transition dark:hover:bg-zinc-800 dark:hover:text-zinc-300 ${esBajaUi ? 'text-stone-400 hover:bg-stone-100 hover:text-stone-600' : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'}`}>
                     <X className="size-4" />
                 </button>
             </div>
 
             {/* Divisor sutil */}
-            <div className="mx-6 h-px bg-zinc-100 dark:bg-zinc-800" />
+            <div className={`mx-6 h-px sm:mx-8 ${esBajaUi ? 'bg-stone-100 dark:bg-zinc-800' : 'bg-zinc-100 dark:bg-zinc-800'}`} />
 
             {/* Cuerpo */}
-            <div className="px-6 py-5">
+            <div className={`px-6 py-5 ${esBajaUi ? 'sm:px-8' : ''}`}>
                 {/* Aviso */}
                 <div className={`mb-5 flex items-start gap-3 rounded-lg px-4 py-3 ring-1 ${cfg.warnBg} ${cfg.warnRing}`}>
                     <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${cfg.iconClr}`} />
@@ -501,15 +514,15 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                 {/* Tipo de baja — solo baja */}
                 {accion === 'baja' && (
                     <div className="mb-5 space-y-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Modalidad</p>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 dark:text-zinc-500">Modalidad</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
                             <button
                                 type="button"
                                 onClick={() => { setBajaModo('definitiva'); setError(''); }}
-                                className={`rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition ${
+                                className={`rounded-xl px-3 py-2.5 text-left text-[12px] font-medium transition ${
                                     bajaModo === 'definitiva'
-                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                        ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
+                                        : 'border border-stone-200/90 bg-stone-50/70 text-stone-700 hover:border-stone-300/90 hover:bg-stone-100/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
                                 }`}
                             >
                                 Baja definitiva
@@ -518,10 +531,10 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                             <button
                                 type="button"
                                 onClick={() => { setBajaModo('sustitucion'); setError(''); }}
-                                className={`rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition ${
+                                className={`rounded-xl px-3 py-2.5 text-left text-[12px] font-medium transition ${
                                     bajaModo === 'sustitucion'
-                                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                        : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                        ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
+                                        : 'border border-stone-200/90 bg-stone-50/70 text-stone-700 hover:border-stone-300/90 hover:bg-stone-100/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
                                 }`}
                             >
                                 Llega otra persona
@@ -530,44 +543,58 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                         </div>
 
                         {bajaModo === 'sustitucion' && (
-                            <div className="space-y-3 rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/30">
-                                <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
-                                    <Users className="size-3.5 shrink-0" strokeWidth={2} />
+                            <div className="space-y-3 rounded-xl border border-stone-200/60 bg-stone-50/70 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/30">
+                                <div className="flex items-center gap-2 text-[11px] font-medium text-stone-600 dark:text-zinc-400">
+                                    <Users className="size-3.5 shrink-0 opacity-80" strokeWidth={2} />
                                     Datos de quien llega (van a la solicitud)
                                 </div>
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="sm:col-span-2">
-                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Nombre <span className="text-zinc-800 dark:text-zinc-200">*</span></label>
+                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Nombre <span className="text-stone-700 dark:text-zinc-200">*</span></label>
                                         <input
                                             type="text"
                                             value={sustNombre}
                                             onChange={(e) => setSustNombre(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
                                             autoComplete="off"
                                         />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Primer apellido <span className="text-zinc-800 dark:text-zinc-200">*</span></label>
+                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Primer apellido <span className="text-stone-700 dark:text-zinc-200">*</span></label>
                                         <input
                                             type="text"
                                             value={sustApPat}
                                             onChange={(e) => setSustApPat(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
                                             autoComplete="off"
                                         />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500">Segundo apellido</label>
+                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Segundo apellido</label>
                                         <input
                                             type="text"
                                             value={sustApMat}
                                             onChange={(e) => setSustApMat(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-zinc-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
                                             autoComplete="off"
                                         />
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <p className="mb-2 text-[10px] font-medium text-zinc-500">Sexo (vestuario) <span className="text-zinc-800 dark:text-zinc-200">*</span></p>
+                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">
+                                            NUE <span className="font-normal text-stone-400 dark:text-zinc-500">— opcional</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={sustNue}
+                                            onChange={(e) => setSustNue(e.target.value)}
+                                            maxLength={15}
+                                            placeholder="Número de empleado único"
+                                            className={`w-full rounded-lg border bg-white px-3 py-2 font-mono text-[13px] text-stone-800 outline-none placeholder:font-sans dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <p className="mb-2 text-[10px] font-medium text-stone-500 dark:text-zinc-500">Sexo (vestuario) <span className="text-stone-700 dark:text-zinc-200">*</span></p>
                                         <div className="flex flex-wrap gap-2">
                                             {[
                                                 ['M', 'Hombre'],
@@ -577,10 +604,10 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                                                     key={val}
                                                     type="button"
                                                     onClick={() => setSustSexo(val)}
-                                                    className={`rounded-full border px-4 py-1.5 text-[12px] font-medium transition ${
+                                                    className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition ${
                                                         sustSexo === val
-                                                            ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                                                            ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
+                                                            : 'border border-stone-200/90 bg-white/80 text-stone-600 hover:border-stone-300/80 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400 dark:hover:border-zinc-600'
                                                     }`}
                                                 >
                                                     {label}
@@ -629,34 +656,42 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
 
                 {/* Observación */}
                 <div className="mb-6">
-                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                    <label className={`mb-2 block text-[11px] font-semibold uppercase tracking-widest dark:text-zinc-500 ${esBajaUi ? 'text-stone-400' : 'text-zinc-400'}`}>
                         {cfg.label}
-                        <span className="ml-1.5 font-normal normal-case tracking-normal text-zinc-400"> — opcional</span>
+                        <span className={`ml-1.5 font-normal normal-case tracking-normal ${esBajaUi ? 'text-stone-400/90' : 'text-zinc-400'}`}> — opcional</span>
                     </label>
                     <textarea
                         value={obs} onChange={(e) => setObs(e.target.value)}
                         rows={2} maxLength={255} placeholder={cfg.ph}
-                        className={`w-full resize-none rounded-lg border bg-zinc-50/60 px-4 py-3 text-[13px] text-zinc-800 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-400 focus:bg-zinc-100 focus:ring-2 dark:bg-zinc-800/40 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-800 ${cfg.inputCls}`}
+                        className={`w-full resize-none rounded-lg border px-4 py-3 text-[13px] outline-none transition-[border-color,box-shadow] focus:ring-2 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-800 ${esBajaUi
+                            ? 'border-stone-200/80 bg-white text-stone-800 placeholder:text-stone-400/80 focus:bg-stone-50/50 focus:ring-stone-200/35 dark:border-zinc-700 dark:bg-zinc-800/40 dark:focus:bg-zinc-800'
+                            : 'bg-zinc-50/60 text-zinc-800 placeholder:text-zinc-400 focus:bg-zinc-100 dark:bg-zinc-800/40 dark:focus:bg-zinc-800'} ${cfg.inputCls}`}
                     />
-                    <p className="mt-1 text-right text-[10px] tabular-nums text-zinc-400">{obs.length}/255</p>
+                    <p className={`mt-1 text-right text-[10px] tabular-nums ${esBajaUi ? 'text-stone-400 dark:text-zinc-500' : 'text-zinc-400'}`}>{obs.length}/255</p>
                 </div>
 
                 {/* Error */}
                 {error && (
-                    <p className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-600 ring-1 ring-rose-200/50 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-800/30">
+                    <p className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-medium dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-800/30 ${esBajaUi
+                        ? 'bg-rose-50/90 text-rose-600/95 ring-1 ring-rose-200/40'
+                        : 'bg-rose-50 text-rose-600 ring-1 ring-rose-200/50'}`}
+                    >
                         <AlertTriangle className="size-4 shrink-0" /> {error}
                     </p>
                 )}
 
                 {/* Botones */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
                     <button type="button" onClick={guardar} disabled={saving}
                         className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium transition-opacity disabled:opacity-50 ${cfg.btnCls}`}>
                         {saving ? <RotateCcw className="size-4 animate-spin" /> : cfg.icon}
                         {saving ? 'Enviando…' : cfg.btnLbl}
                     </button>
                     <button type="button" onClick={onCerrar}
-                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
+                        className={`rounded-lg border px-4 py-2.5 text-[13px] font-medium sm:shrink-0 ${esBajaUi
+                            ? 'border-stone-200/90 bg-stone-50/90 text-stone-600 hover:bg-stone-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'}`}
+                    >
                         Cancelar
                     </button>
                 </div>
@@ -1474,12 +1509,14 @@ function MiDelegacionIndex({
                                             role="tab"
                                             aria-selected={active}
                                             onClick={() => handleFiltro(f.key)}
-                                            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                                            className={`rounded-full border-2 px-3 py-1.5 text-[11px] font-medium transition-colors ${
                                                 listosStyle
-                                                    ? 'bg-white/95 text-stone-700 dark:bg-zinc-800/90 dark:text-stone-300'
+                                                    ? active
+                                                        ? 'border-stone-500/70 bg-transparent text-stone-800 dark:border-stone-500/80 dark:text-stone-200'
+                                                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
                                                     : active
-                                                        ? 'bg-white/95 text-zinc-800 dark:bg-zinc-800/90 dark:text-zinc-100'
-                                                        : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                                                        ? 'border-zinc-500/70 bg-transparent text-zinc-800 dark:border-zinc-500/80 dark:text-zinc-100'
+                                                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
                                             }`}
                                         >
                                             {f.label}

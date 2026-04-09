@@ -30,6 +30,8 @@ final class AltaSustitutoPorBajaService
         $apPat = trim((string) ($raw['apellido_paterno'] ?? ''));
         $apMat = trim((string) ($raw['apellido_materno'] ?? ''));
         $sexo = $raw['sexo'] ?? null;
+        $nue = isset($raw['nue']) ? trim((string) $raw['nue']) : '';
+        $nue = $nue !== '' ? $nue : null;
 
         if ($nombre === '' || $apPat === '') {
             throw new \InvalidArgumentException('Nombre y primer apellido del sustituto son obligatorios.');
@@ -39,7 +41,7 @@ final class AltaSustitutoPorBajaService
         }
 
         $nuevo = Empleado::query()->create([
-            'nue' => null,
+            'nue' => $nue,
             'nombre' => $nombre,
             'apellido_paterno' => $apPat,
             'apellido_materno' => $apMat !== '' ? $apMat : '',

@@ -74,19 +74,19 @@ export default function AuthLayout({
                         />
 
                         <div className="relative z-10 flex h-full min-h-[280px] flex-col items-center justify-end px-4 pb-12 sm:min-h-[320px] sm:px-6 lg:min-h-0 lg:items-start lg:justify-end lg:px-8 lg:pb-8">
-                            <div className="w-full max-w-[340px] border-0 bg-transparent px-5 py-6 text-center shadow-none sm:max-w-[360px] sm:px-6 sm:py-7 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:text-left lg:shadow-none">
-                                <div className="flex flex-col items-center gap-4 lg:items-start lg:gap-3">
-                                    <div className="animate-auth-brand-float flex flex-col items-center gap-3 lg:items-start">
-                                        <h1 className="animate-auth-brand-title max-w-[min(100%,20rem)] text-[clamp(1.5rem,5vw+0.55rem,2.25rem)] font-extralight uppercase leading-none tracking-[0.14em] text-white antialiased drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] sm:max-w-none sm:text-[2.2rem] sm:tracking-[0.18em] lg:text-[1.28rem] lg:tracking-[0.22em] lg:text-brand-gold/88 lg:drop-shadow-none">
+                            <div className="w-full max-w-[340px] border-0 bg-transparent px-5 py-6 text-center shadow-none sm:max-w-[360px] sm:px-6 sm:py-7 lg:max-w-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:text-left lg:shadow-none">
+                                <div className="flex flex-col items-center gap-4 lg:items-start lg:gap-5">
+                                    <div className="animate-auth-brand-float flex flex-col items-center gap-3 lg:items-start lg:gap-4">
+                                        <h1 className="animate-auth-brand-title max-w-[min(100%,20rem)] text-[clamp(1.5rem,5vw+0.55rem,2.25rem)] font-extralight uppercase leading-none tracking-[0.14em] text-white antialiased drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] sm:max-w-none sm:text-[2.2rem] sm:tracking-[0.18em] lg:max-w-none lg:text-[clamp(1.95rem,2.6vw+1.15rem,3.15rem)] lg:font-light lg:leading-[1.05] lg:tracking-[0.22em] lg:text-brand-gold lg:drop-shadow-[0_4px_28px_rgba(0,0,0,0.55),0_0_40px_rgba(212,175,55,0.28)]">
                                             SIVSO
                                         </h1>
                                         <span
-                                            className="animate-auth-brand-line block h-px w-10 rounded-full bg-gradient-to-r from-transparent via-brand-gold to-transparent sm:w-12 lg:w-11"
+                                            className="animate-auth-brand-line block h-px w-10 rounded-full bg-gradient-to-r from-transparent via-brand-gold to-transparent sm:w-12 lg:h-0.5 lg:w-16 lg:from-brand-gold/20 lg:via-brand-gold lg:to-brand-gold-soft/80 xl:w-20"
                                             aria-hidden
                                         />
                                     </div>
 
-                                    <p className="animate-auth-brand-tagline max-w-[17.5rem] text-[10px] font-light leading-relaxed tracking-[0.06em] text-white/55 sm:max-w-none sm:text-[11px] lg:max-w-[13.5rem] lg:text-[10px] lg:leading-tight lg:tracking-[0.08em] lg:text-brand-gold/60">
+                                    <p className="animate-auth-brand-tagline max-w-[17.5rem] text-[10px] font-light leading-relaxed tracking-[0.06em] text-white/55 sm:max-w-none sm:text-[11px] lg:max-w-[min(100%,19rem)] lg:text-[13px] lg:font-medium lg:leading-snug lg:tracking-[0.12em] lg:text-white/92 lg:drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)] xl:max-w-[21rem] xl:text-sm xl:tracking-[0.11em]">
                                         Sistema Integral de Vestuario Sindicato
                                     </p>
                                 </div>

@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
 
     const navLink = (active) =>
         [
-            'group flex items-center gap-3 rounded-lg py-2 px-3 text-[12px] font-bold tracking-wide transition-colors duration-200',
+            'group flex items-center gap-3 rounded-lg py-2 px-3 text-[13px] font-bold tracking-wide transition-colors duration-200',
             active
                 ? 'bg-brand-gold/10 text-brand-gold dark:bg-brand-gold/20 dark:text-brand-gold-soft'
                 : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-200',
@@ -43,7 +43,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
 
     const iconClass = (active) =>
         [
-            'size-[16px] shrink-0 transition-colors',
+            'size-[17px] shrink-0 transition-colors',
             active
                 ? 'text-brand-gold dark:text-brand-gold-soft'
                 : 'text-zinc-400 group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300',
@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
             return <div className="my-2 hidden h-px w-full bg-zinc-100 dark:bg-zinc-800/60 lg:block" />;
         }
         return (
-            <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
+            <div className="mb-1 mt-4 px-3 text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
                 {title}
             </div>
         );
@@ -92,12 +92,12 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                         className={`flex min-w-0 items-center ${collapsed ? 'lg:justify-center' : 'gap-1'}`}
                     >
                         <span
-                            className={`truncate text-[13px] font-black uppercase tracking-[0.25em] text-zinc-800 dark:text-zinc-100 ${collapsed ? 'lg:hidden' : ''}`}
+                            className={`truncate text-[14px] font-black uppercase tracking-[0.25em] text-zinc-800 dark:text-zinc-100 ${collapsed ? 'lg:hidden' : ''}`}
                         >
                             SIVSO
                         </span>
                         <span
-                            className={`hidden text-[12px] font-black uppercase tracking-[0.35em] text-brand-gold dark:text-brand-gold-soft ${collapsed ? 'lg:inline' : ''}`}
+                            className={`hidden text-[13px] font-black uppercase tracking-[0.35em] text-brand-gold dark:text-brand-gold-soft ${collapsed ? 'lg:inline' : ''}`}
                             aria-hidden={!collapsed}
                         >
                             S
@@ -150,7 +150,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                             <span className="relative shrink-0">
                                 <Bell className={iconClass(route().current('notificaciones.*'))} strokeWidth={2} aria-hidden />
                                 {notificaciones.length > 0 && (
-                                    <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold leading-none text-white">
+                                    <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold leading-none text-white">
                                         {notificaciones.length > 9 ? '9+' : notificaciones.length}
                                     </span>
                                 )}
@@ -347,20 +347,20 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                 <div className="border-t border-zinc-200/60 p-4 dark:border-zinc-800/60">
                     {!collapsed && (
                         <div className="mb-4 px-2">
-                            <p className="truncate text-[11px] font-bold text-zinc-800 dark:text-zinc-200">{displayName}</p>
+                            <p className="truncate text-[12px] font-bold text-zinc-800 dark:text-zinc-200">{displayName}</p>
                         </div>
                     )}
                     <Link
                         href={route('logout')}
                         method="post"
                         as="button"
-                        className={`group flex w-full items-center gap-3 rounded-lg py-2 px-2 text-[12px] font-bold tracking-wide text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 ${
+                        className={`group flex w-full items-center gap-3 rounded-lg py-2 px-2 text-[13px] font-bold tracking-wide text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 ${
                             collapsed ? 'lg:justify-center lg:px-0' : ''
                         }`}
                         title="Cerrar sesión"
                     >
                         <LogOut
-                            className="size-[16px] shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
+                            className="size-[17px] shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300"
                             strokeWidth={2}
                             aria-hidden
                         />

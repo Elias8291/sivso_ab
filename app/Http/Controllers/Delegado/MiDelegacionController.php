@@ -1166,6 +1166,7 @@ class MiDelegacionController extends Controller
                     'sustituto.nombre' => ['required', 'string', 'max:80'],
                     'sustituto.apellido_paterno' => ['required', 'string', 'max:80'],
                     'sustituto.apellido_materno' => ['nullable', 'string', 'max:80'],
+                    'sustituto.nue' => ['nullable', 'string', 'max:15'],
                     'sustituto.sexo' => ['required', 'string', 'in:M,F'],
                 ]));
             } else {
@@ -1192,14 +1193,34 @@ class MiDelegacionController extends Controller
             ], 422);
         }
 
+        if ($validated['tipo'] === 'baja' && ($validated['baja_modo'] ?? 'definitiva') === 'sustitucion' && isset($validated['sustituto']['nue'])) {
+            $nueTrim = trim((string) $validated['sustituto']['nue']);
+            if ($nueTrim !== '') {
+                $ocupado = Empleado::query()
+                    ->where('ur', $empleado->ur)
+                    ->where('nue', $nueTrim)
+                    ->exists();
+                if ($ocupado) {
+                    return response()->json([
+                        'data' => null,
+                        'message' => 'Ya existe un empleado con ese NUE en la misma UR.',
+                        'errors' => ['sustituto.nue' => 'NUE duplicado en la UR.'],
+                    ], 422);
+                }
+            }
+        }
+
         $sustitutoPayload = null;
         if ($validated['tipo'] === 'baja' && ($validated['baja_modo'] ?? 'definitiva') === 'sustitucion' && isset($validated['sustituto']) && is_array($validated['sustituto'])) {
             $s = $validated['sustituto'];
+            $nueSust = isset($s['nue']) ? trim((string) $s['nue']) : '';
+            $nueSust = $nueSust !== '' ? $nueSust : null;
             $sustitutoPayload = [
                 'nombre' => $s['nombre'],
                 'apellido_paterno' => $s['apellido_paterno'],
                 'apellido_materno' => $s['apellido_materno'] ?? '',
                 'sexo' => $s['sexo'],
+                'nue' => $nueSust,
             ];
         }
 
