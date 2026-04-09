@@ -827,13 +827,50 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $requestLista = $request->duplicate(
-            array_merge($request->query(), ['filtro' => 'todos']),
-            $request->request->all()
-        );
-        [$query, , $contexto, $anioVestuario] = $this->buildEmpleadosQueryParaExport($requestLista, $user);
-        $query->where('empleado.estado_delegacion', '!=', 'baja');
-        $empleados = $query->get();
+
+        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+
+        $delegacionCodigo = $request->input('delegacion_codigo');
+        $delegacionCodigo = is_string($delegacionCodigo) ? trim($delegacionCodigo) : null;
+        if ($delegacionCodigo === '') {
+            $delegacionCodigo = null;
+        }
+
+        $codigosFiltro = $codigosDelegacion;
+        if ($delegacionCodigo !== null) {
+            if (is_array($codigosDelegacion)) {
+                $codigosFiltro = in_array($delegacionCodigo, $codigosDelegacion, true) ? [$delegacionCodigo] : [];
+            } else {
+                $codigosFiltro = [$delegacionCodigo];
+            }
+        }
+
+        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
+
+        $search = $request->input('search');
+        $search = is_string($search) ? trim($search) : null;
+        if ($search === '') {
+            $search = null;
+        }
+
+        $empleados = Empleado::query()
+            ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
+            ->where(function ($q): void {
+                $q->where('estado_delegacion', '!=', 'baja')
+                    ->orWhereNull('estado_delegacion');
+            })
+            ->when($search !== null, function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    $q->where('nombre', 'like', "%{$search}%")
+                        ->orWhere('apellido_paterno', 'like', "%{$search}%")
+                        ->orWhere('apellido_materno', 'like', "%{$search}%")
+                        ->orWhere('nue', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('apellido_paterno')
+            ->orderBy('apellido_materno')
+            ->orderBy('nombre')
+            ->get();
 
         $filas = [];
         $n = 1;
@@ -853,7 +890,7 @@ class MiDelegacionController extends Controller
             'filas' => $filas,
             'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
             'logoDataUri' => $this->logoDataUri(),
-            'anioTitulo' => $anioVestuario,
+            'anioTitulo' => $this->anioCaptura(),
             'codigoDelegacion' => $delegacionesEtiqueta,
         ]);
         $pdf->setPaper('letter', 'portrait');
