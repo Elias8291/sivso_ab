@@ -205,14 +205,6 @@
     }
 }
 
-@utility animate-auth-loading-overlay {
-    animation: auth-fade-up 0.35s ease-out both;
-
-    @media (prefers-reduced-motion: reduce) {
-        animation: none;
-    }
-}
-
 @utility animate-auth-hero-ken {
     animation: auth-ken-burns 24s ease-in-out infinite alternate;
     transform-origin: center 32%;

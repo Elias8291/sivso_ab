@@ -48,7 +48,6 @@
         .firmas td { width: 50%; text-align: center; vertical-align: top; padding: 0 8px; border: 0; }
         .linea-firma { border-top: 1px solid #000; margin: 0 6px 4px; padding-top: 3px; font-size: 7pt; font-weight: bold; line-height: 1.08; }
         .rol-firma { font-size: 6.5pt; margin-top: 1px; line-height: 1.08; }
-        .pie-gen { margin-top: 6px; font-size: 6pt; color: #555; text-align: right; line-height: 1.1; }
         .acuse-block { page-break-after: always; }
         .acuse-block:last-child { page-break-after: auto; }
     </style>
@@ -140,8 +139,6 @@
                     </td>
                 </tr>
             </table>
-
-            <p class="pie-gen">Generado: {{ $generadoEn }}</p>
         </div>
     @endforeach
 </body>

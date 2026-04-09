@@ -1449,102 +1449,117 @@ function MiDelegacionIndex({
                     </div>
                 )}
 
-                <div className="mb-8 space-y-4 border-b border-zinc-100 pb-8 dark:border-zinc-800/80">
-                    <p className="max-w-xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                        Tallas, cambio de delegación y bajas se gestionan en cada fila.
-                    </p>
-                    {periodo && periodo.estado !== 'abierto' && (
-                        <p className="flex items-center gap-2 text-[12px] text-zinc-500 dark:text-zinc-500">
-                            <Lock className="size-3.5 shrink-0 opacity-60" strokeWidth={1.5} />
-                            {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'} · {periodo.nombre}
+                <div className="mb-6 border-b border-zinc-100 pb-6 dark:border-zinc-800/80">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
+                        <p className="max-w-2xl text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                            Tallas, cambio de delegación y bajas se gestionan en cada fila.
                         </p>
-                    )}
-                    {periodo?.estado === 'abierto' && (
-                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-zinc-600 dark:text-zinc-400">
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="size-1.5 rounded-full bg-stone-400/70 dark:bg-stone-500/50" />
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">{periodo.nombre}</span>
-                            </span>
-                            {periodo.fecha_fin && (
-                                <span className="text-zinc-400 dark:text-zinc-500">
-                                    · hasta {new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {periodo && periodo.estado !== 'abierto' && (
+                            <p className="shrink-0 text-[12px] leading-snug text-zinc-500 dark:text-zinc-500 sm:text-right">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Lock className="size-3 shrink-0 opacity-60" strokeWidth={1.5} aria-hidden />
+                                    {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
                                 </span>
-                            )}
-                        </p>
-                    )}
+                                <span className="mt-1 block text-zinc-600 dark:text-zinc-400">{periodo.nombre}</span>
+                            </p>
+                        )}
+                        {periodo?.estado === 'abierto' && (
+                            <p className="shrink-0 text-[12px] leading-snug text-zinc-500 dark:text-zinc-500 sm:text-right">
+                                <span className="font-medium text-zinc-700 dark:text-zinc-300">{periodo.nombre}</span>
+                                {periodo.fecha_fin && (
+                                    <>
+                                        <span className="text-zinc-300 dark:text-zinc-600"> · </span>
+                                        <span className="tabular-nums">
+                                            hasta{' '}
+                                            {new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                            })}
+                                        </span>
+                                    </>
+                                )}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
-                <section className="mb-10 space-y-6" aria-label="Resumen y filtros">
+                <section className="mb-8 space-y-4" aria-label="Resumen y filtros">
                     <div
-                        className="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between"
+                        className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-zinc-500 dark:text-zinc-400"
                         aria-live="polite"
                     >
-                        <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 text-[13px] tabular-nums text-zinc-600 dark:text-zinc-400">
-                            <span>
-                                <span className="mr-1.5 text-[11px] font-normal text-zinc-400 dark:text-zinc-500">Total</span>
-                                <span className="font-semibold text-zinc-900 dark:text-zinc-50">{resumen.total ?? empleados.total}</span>
+                        <span className="tabular-nums">
+                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                Total
                             </span>
-                            <span>
-                                <span className="mr-1.5 text-[11px] font-normal text-stone-500 dark:text-stone-400">Listos</span>
-                                <span className="font-semibold text-stone-700 dark:text-stone-300">{resumen.listos ?? 0}</span>
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.total ?? empleados.total}</span>
+                        </span>
+                        <span className="text-zinc-200 dark:text-zinc-700" aria-hidden>
+                            ·
+                        </span>
+                        <span className="tabular-nums">
+                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                Listos
                             </span>
-                            <span>
-                                <span className="mr-1.5 text-[11px] font-normal text-zinc-400 dark:text-zinc-500">Sin empezar</span>
-                                <span className="font-semibold text-zinc-900 dark:text-zinc-50">{resumen.sin_empezar ?? 0}</span>
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.listos ?? 0}</span>
+                        </span>
+                        <span className="text-zinc-200 dark:text-zinc-700" aria-hidden>
+                            ·
+                        </span>
+                        <span className="tabular-nums">
+                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                                Sin empezar
                             </span>
+                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.sin_empezar ?? 0}</span>
+                        </span>
+                    </div>
+
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                        <div
+                            role="tablist"
+                            aria-label="Filtrar empleados por estado"
+                            className="flex flex-wrap gap-1"
+                        >
+                            {FILTROS.map((f) => {
+                                const active = filtro === f.key;
+                                return (
+                                    <button
+                                        key={f.key}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={active}
+                                        onClick={() => handleFiltro(f.key)}
+                                        className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                                            active
+                                                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                                                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-200'
+                                        }`}
+                                    >
+                                        {f.label}
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 sm:justify-end">
-                            <div
-                                role="tablist"
-                                aria-label="Filtrar empleados por estado"
-                                className="inline-flex flex-wrap gap-0.5 rounded-full bg-zinc-100/70 p-0.5 dark:bg-zinc-800/60"
+                        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-100 pt-4 sm:border-t-0 sm:pt-0 dark:border-zinc-800/80">
+                            <a
+                                href={route('my-delegation.acuse-general.pdf', exportParams)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-white dark:hover:decoration-zinc-400"
                             >
-                                {FILTROS.map((f) => {
-                                    const active = filtro === f.key;
-                                    const listosStyle = active && f.key === 'listos';
-                                    return (
-                                        <button
-                                            key={f.key}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={active}
-                                            onClick={() => handleFiltro(f.key)}
-                                            className={`rounded-full border-2 px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                                                listosStyle
-                                                    ? active
-                                                        ? 'border-stone-500/70 bg-transparent text-stone-800 dark:border-stone-500/80 dark:text-stone-200'
-                                                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
-                                                    : active
-                                                        ? 'border-zinc-500/70 bg-transparent text-zinc-800 dark:border-zinc-500/80 dark:text-zinc-100'
-                                                        : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
-                                            }`}
-                                        >
-                                            {f.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <div className="hidden h-4 w-px bg-zinc-200 dark:bg-zinc-700 sm:block" aria-hidden />
-                            <div className="flex flex-wrap items-center gap-2">
-                                <a
-                                    href={route('my-delegation.acuse-general.pdf', exportParams)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-stone-200/90 bg-stone-100/50 px-3 py-1.5 text-[11px] font-medium text-stone-700 transition hover:bg-stone-100 dark:border-stone-600/40 dark:bg-stone-800/40 dark:text-stone-300 dark:hover:bg-stone-800/60"
-                                >
-                                    <FileDown className="size-3.5 shrink-0 text-stone-500 dark:text-stone-400" strokeWidth={2} />
-                                    Acuse
-                                </a>
-                                <a
-                                    href={route('my-delegation.empleados.lista.pdf', exportParams)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-stone-200/90 bg-stone-50/80 px-3 py-1.5 text-[11px] font-medium text-stone-600 transition hover:bg-stone-100/90 dark:border-stone-600/40 dark:bg-stone-900/35 dark:text-stone-400 dark:hover:bg-stone-800/50"
-                                >
-                                    <Users className="size-3.5 shrink-0 text-stone-500 dark:text-stone-400" strokeWidth={2} />
-                                    Lista
-                                </a>
-                            </div>
+                                <FileDown className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                Acuse
+                            </a>
+                            <a
+                                href={route('my-delegation.empleados.lista.pdf', exportParams)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-200 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-400 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-zinc-200"
+                            >
+                                <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                Lista
+                            </a>
                         </div>
                     </div>
                 </section>

@@ -134,13 +134,6 @@
             margin-top: 1px;
             line-height: 1.08;
         }
-        .pie-gen {
-            margin-top: 6px;
-            font-size: 6pt;
-            color: #555;
-            text-align: right;
-            line-height: 1.1;
-        }
     </style>
 </head>
 <body>
@@ -232,7 +225,5 @@
             </td>
         </tr>
     </table>
-
-    <p class="pie-gen">Generado: {{ $generadoEn }}</p>
 </body>
 </html>

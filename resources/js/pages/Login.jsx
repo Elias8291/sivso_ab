@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import AuthLayout from '../components/layout/AuthLayout';
 import PasswordInput from '../components/ui/PasswordInput';
 
 export default function Login() {
-    const [loading, setLoading] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         rfc: '',
         password: '',
@@ -13,28 +11,11 @@ export default function Login() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setLoading(true);
-        post(route('login'), {
-            onFinish: () => setLoading(false),
-        });
+        post(route('login'));
     };
 
     return (
         <AuthLayout title="Inicio de Sesion" imageSrc="/images/login-hero.png">
-            {(loading || processing) && (
-                <div className="animate-auth-loading-overlay fixed inset-0 z-[200] flex items-center justify-center bg-gradient-to-br from-white/92 to-[#faf8f3]/92 backdrop-blur-md dark:from-black/92 dark:to-zinc-950/92">
-                    <div className="flex flex-col items-center gap-5">
-                        <span
-                            className="size-14 animate-spin rounded-full border-[3px] border-brand-gold/20 border-t-brand-gold shadow-[0_0_28px_rgba(212,175,55,0.45)] dark:border-brand-gold/15 dark:border-t-brand-gold"
-                            aria-hidden
-                        />
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-gold/85 dark:text-brand-gold/75">
-                            Iniciando sesión...
-                        </p>
-                    </div>
-                </div>
-            )}
-
             <header className="animate-auth-fade-up mb-8 text-center delay-100 lg:text-left">
                 <div
                     className="animate-auth-shimmer-bar mx-auto h-0.5 w-20 rounded-full lg:mx-0"
@@ -86,7 +67,7 @@ export default function Login() {
                 <div className="animate-auth-fade-up delay-[480ms]">
                     <button
                         type="submit"
-                        disabled={loading || processing}
+                        disabled={processing}
                         className="relative w-full overflow-hidden rounded-xl border border-brand-gold/35 bg-brand-gold/15 py-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 transition-[background-color,border-color,color,opacity] duration-200 ease-out enabled:hover:border-brand-gold/50 enabled:hover:bg-brand-gold/22 enabled:active:bg-brand-gold/18 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-gold-soft/30 dark:bg-brand-gold/10 dark:text-zinc-100 dark:enabled:hover:border-brand-gold-soft/45 dark:enabled:hover:bg-brand-gold/16"
                     >
                         Iniciar Sesión

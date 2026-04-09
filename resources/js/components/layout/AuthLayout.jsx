@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { Head } from '@inertiajs/react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -9,25 +8,6 @@ export default function AuthLayout({
     imageSrc = null,
 }) {
     const { isDarkMode, toggleTheme } = useTheme();
-
-    const themeButton = (
-        <button
-            type="button"
-            onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleTheme();
-            }}
-            className="group pointer-events-auto fixed top-[max(1rem,env(safe-area-inset-top,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] z-[100] min-h-[44px] min-w-[44px] touch-manipulation rounded-full border-2 border-brand-gold/40 bg-gradient-to-br from-white/95 to-[#faf8f3]/95 p-3 shadow-[0_8px_24px_rgba(212,175,55,0.2)] ring-1 ring-brand-gold/20 transition-all duration-300 ease-out hover:scale-110 hover:border-brand-gold/60 hover:shadow-[0_12px_32px_rgba(212,175,55,0.35)] hover:ring-brand-gold/40 active:scale-95 dark:border-zinc-700/80 dark:bg-gradient-to-br dark:from-black/95 dark:to-zinc-900/95 dark:ring-zinc-700/60 dark:hover:border-zinc-500 dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
-            aria-label={isDarkMode ? 'Activar modo claro' : 'Activar modo oscuro'}
-        >
-            {isDarkMode ? (
-                <Sun className="h-5 w-5 text-brand-gold/70 transition-transform duration-500 group-hover:rotate-12" aria-hidden />
-            ) : (
-                <Moon className="h-5 w-5 text-brand-gold/60 transition-transform duration-500 group-hover:-rotate-12" aria-hidden />
-            )}
-        </button>
-    );
 
     return (
         <>
@@ -106,11 +86,29 @@ export default function AuthLayout({
                     <section className="relative flex w-full flex-col justify-center bg-gradient-to-br from-white to-[#faf8f3] px-6 py-12 dark:from-zinc-950 dark:to-black sm:px-8 sm:py-14 lg:w-[55%] lg:px-14 lg:py-0">
                         <div className="absolute left-0 top-1/2 hidden h-48 w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-brand-gold/40 to-transparent opacity-80 lg:block dark:via-brand-gold/35" />
 
-                        <div className="mx-auto w-full max-w-sm">{children}</div>
+                        <div className="mx-auto w-full max-w-sm">
+                            <div className="mb-5 flex justify-end sm:mb-6">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        toggleTheme();
+                                    }}
+                                    className="group inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-full border-2 border-brand-gold/40 bg-gradient-to-br from-white/95 to-[#faf8f3]/95 p-3 shadow-[0_8px_24px_rgba(212,175,55,0.2)] ring-1 ring-brand-gold/20 transition-all duration-300 ease-out hover:scale-105 hover:border-brand-gold/60 hover:shadow-[0_12px_32px_rgba(212,175,55,0.35)] hover:ring-brand-gold/40 active:scale-95 dark:border-zinc-700/80 dark:bg-gradient-to-br dark:from-black/95 dark:to-zinc-900/95 dark:ring-zinc-700/60 dark:hover:border-zinc-500 dark:hover:shadow-[0_12px_32px_rgba(0,0,0,0.55)]"
+                                    aria-label={isDarkMode ? 'Activar modo claro' : 'Activar modo oscuro'}
+                                >
+                                    {isDarkMode ? (
+                                        <Sun className="h-5 w-5 text-brand-gold/70 transition-transform duration-500 group-hover:rotate-12" aria-hidden />
+                                    ) : (
+                                        <Moon className="h-5 w-5 text-brand-gold/60 transition-transform duration-500 group-hover:-rotate-12" aria-hidden />
+                                    )}
+                                </button>
+                            </div>
+                            {children}
+                        </div>
                     </section>
                 </main>
-
-                {typeof document !== 'undefined' ? createPortal(themeButton, document.body) : null}
             </div>
         </>
     );

@@ -813,7 +813,6 @@ class MiDelegacionController extends Controller
         $pdf = Pdf::loadView('pdf.acuse-recibo-general', [
             'acuses' => $acuses,
             'delegadoNombre' => $delegadoNombre,
-            'generadoEn' => now()->format('d/m/Y H:i'),
             'anio' => $anioVestuario,
             'logoDataUri' => $this->logoDataUri(),
         ]);
@@ -831,7 +830,7 @@ class MiDelegacionController extends Controller
             array_merge($request->query(), ['filtro' => 'todos']),
             $request->request->all()
         );
-        [$query, , $contexto] = $this->buildEmpleadosQueryParaExport($requestLista, $user);
+        [$query, , $contexto, $anioVestuario] = $this->buildEmpleadosQueryParaExport($requestLista, $user);
         $empleados = $query->get();
 
         $filas = [];
@@ -844,11 +843,16 @@ class MiDelegacionController extends Controller
             ];
         }
 
+        $delegacionesEtiqueta = isset($contexto['delegaciones']) && is_array($contexto['delegaciones']) && $contexto['delegaciones'] !== []
+            ? implode(' · ', array_map(static fn ($c): string => strtoupper((string) $c), $contexto['delegaciones']))
+            : '';
+
         $pdf = Pdf::loadView('pdf.lista-empleados', [
             'filas' => $filas,
             'delegadoNombre' => $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO',
-            'generadoEn' => now()->format('d/m/Y H:i'),
             'logoDataUri' => $this->logoDataUri(),
+            'anioTitulo' => $anioVestuario,
+            'codigoDelegacion' => $delegacionesEtiqueta,
         ]);
         $pdf->setPaper('letter', 'portrait');
         $pdf->setOption('defaultFont', 'DejaVu Sans');

@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import { useEffect, useRef, useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 
+/** Evita createRoot() duplicado en el mismo contenedor (p. ej. HMR de Vite). */
+const REACT_ROOT_KEY = Symbol.for('sivso.inertiaRoot');
+
 function GlobalPageLoader() {
     const [visible, setVisible] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -104,7 +107,11 @@ createInertiaApp({
         return page.default;
     },
     setup({ el, App, props }) {
-        const root = createRoot(el);
+        let root = el[REACT_ROOT_KEY];
+        if (!root) {
+            root = createRoot(el);
+            el[REACT_ROOT_KEY] = root;
+        }
         root.render(
             <ThemeProvider>
                 <>
