@@ -120,6 +120,9 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::patch('/productos/{tipo}/{id}', [ProductoController::class, 'update'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_PRODUCTOS)
         ->name('productos.update');
+    Route::post('/categorias', [ProductoController::class, 'storeCategoria'])
+        ->middleware('permission:'.SivsoPermissions::GESTIONAR_PRODUCTOS)
+        ->name('categorias.store');
     Route::get('/partidas', [PartidaController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_PARTIDAS)
         ->name('partidas.index');

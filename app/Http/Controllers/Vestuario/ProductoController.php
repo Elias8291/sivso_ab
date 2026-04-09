@@ -165,4 +165,30 @@ final class ProductoController extends Controller
             'errors' => null,
         ]);
     }
+
+    public function storeCategoria(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'codigo' => ['required', 'string', 'max:40', 'unique:clasificacion_bien,codigo'],
+            'nombre' => ['required', 'string', 'max:120'],
+        ]);
+
+        $codigo = trim($data['codigo']);
+        $nombre = trim($data['nombre']);
+
+        $id = DB::table('clasificacion_bien')->insertGetId([
+            'codigo' => $codigo,
+            'nombre' => $nombre,
+        ]);
+
+        return response()->json([
+            'data' => [
+                'id' => $id,
+                'codigo' => $codigo,
+                'nombre' => $nombre,
+            ],
+            'message' => 'Categoría creada correctamente.',
+            'errors' => null,
+        ], 201);
+    }
 }
