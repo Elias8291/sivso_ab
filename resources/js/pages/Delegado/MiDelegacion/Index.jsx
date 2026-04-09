@@ -1,7 +1,7 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertTriangle,
@@ -10,6 +10,7 @@ import {
     CheckCircle2,
     ChevronDown,
     Clock,
+    Eye,
     FileDown,
     Info,
     Lock,
@@ -708,326 +709,11 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
     );
 }
 
-/* ─── ModalProductos ─────────────────────────────────────────────── */
-
-function ModalProductos({ empleado, open, onClose }) {
-    const [tab, setTab]         = useState('licitados');
-    const [data, setData]       = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError]     = useState('');
-    const [anioSeleccionado, setAnioSeleccionado] = useState('');
-
-    useEffect(() => {
-        if (!open || !empleado) return;
-        setLoading(true);
-        setError('');
-        setData(null);
-        axios
-            .get(route('my-delegation.empleado.productos', empleado.id), {
-                params: anioSeleccionado ? { anio: Number(anioSeleccionado) } : {},
-            })
-            .then((r) => {
-                const payload = r.data?.data ?? null;
-                setData(payload);
-                if (payload?.anio != null && !anioSeleccionado) {
-                    setAnioSeleccionado(String(payload.anio));
-                }
-                if (!payload?.licitados?.length && payload?.cotizados?.length) {
-                    setTab('cotizados');
-                }
-            })
-            .catch(() => setError('No se pudieron cargar los productos.'))
-            .finally(() => setLoading(false));
-    }, [open, empleado?.id, anioSeleccionado]);
-
-    useEffect(() => {
-        if (open) {
-            setTab('licitados');
-            setAnioSeleccionado('');
-        }
-    }, [open, empleado?.id]);
-
-    const fmt$ = (v) =>
-        v != null ? `$${Number(v).toLocaleString('es-MX', { minimumFractionDigits: 2 })}` : null;
-
-    /* resumen de categorías: usa cotizados si existen, si no licitados */
-    const resumenCategorias = useMemo(() => {
-        if (!data) return [];
-        const fuente = data.cotizados?.length ? data.cotizados : data.licitados ?? [];
-        const mapa = new Map();
-        fuente.forEach((p) => {
-            (p.clasificaciones ?? []).forEach((c) => {
-                const entry = mapa.get(c.codigo) ?? { codigo: c.codigo, nombre: c.nombre, total: 0, confirmadas: 0 };
-                entry.total += 1;
-                if (p.estado === 'confirmado') entry.confirmadas += 1;
-                mapa.set(c.codigo, entry);
-            });
-            /* producto sin clasificación */
-            if (!p.clasificaciones?.length) {
-                const entry = mapa.get('__sin__') ?? { codigo: '__sin__', nombre: 'Sin clasificación', total: 0, confirmadas: 0 };
-                entry.total += 1;
-                if (p.estado === 'confirmado') entry.confirmadas += 1;
-                mapa.set('__sin__', entry);
-            }
-        });
-        return [...mapa.values()].sort((a, b) => b.total - a.total);
-    }, [data]);
-
-    const TABS = ['licitados', 'cotizados', 'categorias'];
-    const lista = data ? (tab === 'licitados' ? data.licitados : tab === 'cotizados' ? data.cotizados : []) : [];
-
-    return (
-        <Modal open={open} onClose={onClose} maxWidthClass="max-w-6xl">
-            {/* ── encabezado ── */}
-            <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
-                <div className="min-w-0">
-                    <h2 className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
-                        Productos asignados
-                    </h2>
-                    <p className="mt-0.5 truncate text-[11px] text-zinc-400 dark:text-zinc-500">
-                        {empleado?.nombre_completo}
-                        {data?.anio && <span className="ml-1 tabular-nums">· {data.anio}</span>}
-                    </p>
-                </div>
-                <button type="button" onClick={onClose}
-                    className="flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300">
-                    <X className="size-3.5" />
-                </button>
-            </div>
-
-            {data?.anios_disponibles?.length > 0 && (
-                <div className="flex items-center justify-between gap-3 border-t border-zinc-100 px-5 py-3 dark:border-zinc-800">
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        Mostrando productos del año <span className="font-semibold text-zinc-800 dark:text-zinc-200">{data.anio}</span>
-                    </p>
-                    <label className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                        <span>Año</span>
-                        <select
-                            value={anioSeleccionado}
-                            onChange={(e) => setAnioSeleccionado(e.target.value)}
-                            className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-[12px] font-medium text-zinc-800 outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
-                        >
-                            {data.anios_disponibles.map((anio) => (
-                                <option key={anio} value={String(anio)}>
-                                    {anio}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-            )}
-
-            {/* ── tabs: ancho natural, alineados a la izquierda; scroll si no caben ── */}
-            <div className="border-b border-zinc-100 px-5 dark:border-zinc-800">
-                <div
-                    role="tablist"
-                    className="-mb-px flex max-w-full gap-1 overflow-x-auto overflow-y-hidden pb-px [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                >
-                    {TABS.map((id) => {
-                        const labels = { licitados: 'Licitados', cotizados: 'Cotizados', categorias: 'Categorías' };
-                        const count = id === 'categorias'
-                            ? (data ? resumenCategorias.length : null)
-                            : (data?.[id]?.length ?? null);
-                        const active = tab === id;
-                        return (
-                            <button
-                                key={id}
-                                type="button"
-                                role="tab"
-                                aria-selected={active}
-                                onClick={() => setTab(id)}
-                                className={`relative shrink-0 whitespace-nowrap border-b-2 pb-2.5 pl-1 pr-3 pt-1 text-left text-[12px] font-semibold transition-colors ${
-                                    active
-                                        ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-50'
-                                        : 'border-transparent text-zinc-400 hover:border-zinc-200 hover:text-zinc-700 dark:text-zinc-500 dark:hover:border-zinc-700 dark:hover:text-zinc-300'
-                                }`}
-                            >
-                                {labels[id]}
-                                {count != null && (
-                                    <span
-                                        className={`ml-1.5 tabular-nums text-[10px] font-medium ${
-                                            active ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-300 dark:text-zinc-600'
-                                        }`}
-                                    >
-                                        {count}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* ── lista ── */}
-            <div className="max-h-[62vh] overflow-y-auto">
-                {loading && (
-                    <div className="flex items-center justify-center gap-2 py-16 text-[11px] text-zinc-400">
-                        <RotateCcw className="size-3.5 animate-spin" /> Cargando…
-                    </div>
-                )}
-                {error && (
-                    <p className="mx-5 my-4 rounded-lg bg-red-50 px-3 py-2.5 text-[11px] text-red-600 dark:bg-red-950/30 dark:text-red-400">
-                        {error}
-                    </p>
-                )}
-                {/* ── tab CATEGORÍAS ── */}
-                {data && tab === 'categorias' && (
-                    resumenCategorias.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2 py-16 text-center">
-                            <Tag className="size-7 text-zinc-200 dark:text-zinc-700" strokeWidth={1.25} />
-                            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Sin clasificaciones registradas.</p>
-                        </div>
-                    ) : (
-                        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                            {resumenCategorias.map((cat, catIdx) => {
-                                const pct = cat.total > 0 ? Math.round((cat.confirmadas / cat.total) * 100) : 0;
-                                return (
-                                    <li key={`${cat.codigo}-${catIdx}-${cat.nombre}`} className="flex items-center gap-4 px-5 py-3.5">
-                                        {/* nombre */}
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-[12px] font-medium text-zinc-800 dark:text-zinc-200">
-                                                {cat.nombre}
-                                            </p>
-                                            {cat.codigo !== '__sin__' && (
-                                                <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{cat.codigo}</p>
-                                            )}
-                                        </div>
-                                        {/* barra + conteo */}
-                                        <div className="flex shrink-0 items-center gap-3">
-                                            <div className="hidden w-20 sm:block">
-                                                <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                                                    <div
-                                                        className="h-full rounded-full bg-gradient-to-r from-stone-300/50 to-stone-400/35 dark:from-stone-600/40 dark:to-stone-500/30 transition-all duration-500"
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <span className="min-w-[1.5rem] text-right text-[13px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                                {cat.total}
-                                            </span>
-                                            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                                                {cat.confirmadas}/{cat.total}
-                                            </span>
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    )
-                )}
-
-                {data && tab !== 'categorias' && lista.length === 0 && (
-                    <div className="flex flex-col items-center gap-2 py-16 text-center">
-                        <Package className="size-7 text-zinc-200 dark:text-zinc-700" strokeWidth={1.25} />
-                        <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                            Sin productos {tab === 'licitados' ? 'licitados' : 'cotizados'}.
-                        </p>
-                    </div>
-                )}
-
-                {data && tab !== 'categorias' && lista.length > 0 && (
-                    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-                        {lista.map((p) => {
-                            const clasifs = Array.isArray(p.clasificaciones) ? p.clasificaciones : [];
-                            const confirmado = p.estado === 'confirmado';
-
-                            /* pares label/valor filtrados */
-                            const campos = tab === 'licitados'
-                                ? [
-                                    ['Partida',    p.numero_partida, false],
-                                    ['Marca',      p.marca,          false],
-                                    ['Unidad',     p.unidad,         false],
-                                    ['Medida',     p.medida,         false],
-                                    ['Proveedor',  p.proveedor,      false],
-                                    ['P.U.',       fmt$(p.precio_unitario), false],
-                                    ['Cant.',      p.cantidad_asignada, false],
-                                    ['Talla',      p.talla,          true],
-                                    ['Rubro',      p.clave_rubro,    true],
-                                ]
-                                : [
-                                    ['Partida',    p.numero_partida, false],
-                                    ['Ref.',       p.referencia,     true],
-                                    ['P.U.',       fmt$(p.precio_unitario), false],
-                                    ['Total',      fmt$(p.total),    false],
-                                    ['Cant.',      p.cantidad_asignada, false],
-                                    ['Talla',      p.talla,          true],
-                                    ['Medida',     p.medida,         false],
-                                    ['Rubro',      p.clave_rubro,    true],
-                                ];
-
-                            const camposValidos = campos.filter(([, v]) => v != null && v !== '');
-
-                            return (
-                                <li key={p.asignacion_id} className="px-5 py-4">
-                                    {/* nombre + estado */}
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="text-[12px] font-semibold leading-tight text-zinc-900 dark:text-zinc-100 [overflow-wrap:anywhere]">
-                                                {p.descripcion}
-                                            </p>
-                                            {p.codigo && (
-                                                <p className="mt-0.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
-                                                    {p.codigo}
-                                                </p>
-                                            )}
-                                        </div>
-                                        {tab === 'cotizados' && p.estado && (
-                                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${
-                                                confirmado
-                                                    ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'
-                                                    : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500'
-                                            }`}>
-                                                {p.estado}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* clasificaciones */}
-                                    {clasifs.length > 0 && (
-                                        <div className="mt-2 flex flex-wrap gap-1">
-                                            {clasifs.map((c, ci) => (
-                                                <span key={`${p.asignacion_id}-${c.codigo}-${ci}`}
-                                                    className="rounded-full border border-zinc-200/80 px-2 py-px text-[10px] text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-                                                    title={c.nombre}
-                                                >
-                                                    {c.nombre}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* atributos en grid compacto */}
-                                    {camposValidos.length > 0 && (
-                                        <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
-                                            {camposValidos.map(([label, value, mono], fi) => (
-                                                <span key={`${p.asignacion_id}-${label}-${fi}`} className="flex items-baseline gap-1 text-[11px]">
-                                                    <span className="text-zinc-400 dark:text-zinc-500">{label}</span>
-                                                    <span className={`text-zinc-700 dark:text-zinc-300 ${mono ? 'font-mono' : ''}`}>
-                                                        {value}
-                                                    </span>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
-            </div>
-
-            {/* espaciado inferior */}
-            <div className="h-3" />
-        </Modal>
-    );
-}
-
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
 function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, presupuestoBaja = 0, onAbrirAgregarProducto }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
-    const [verProductos, setVerProductos]          = useState(false);
     const [vestuario, setVestuario]                = useState(empleado.vestuario);
     const [vestuarioCargando, setVestuarioCargando] = useState(false);
     const [vestuarioFetchKey, setVestuarioFetchKey] = useState(0);
@@ -1306,11 +992,11 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         </button>
                     )}
 
-                    <button type="button" onClick={() => setVerProductos(true)} title="Ver productos"
+                    <Link href={route('my-delegation.empleado.show', empleado.id)} title="Ver empleado"
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
-                        <Package className="size-3.5" strokeWidth={1.75} />
-                        <span className="hidden sm:inline">Productos</span>
-                    </button>
+                        <Eye className="size-3.5" strokeWidth={1.75} />
+                        <span className="hidden sm:inline">Ver</span>
+                    </Link>
                 </div>
             </div>
 
@@ -1357,11 +1043,6 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
             {/* ── modales ── */}
             <ModalAccionEmpleado open={modal === 'baja'}   accion="baja"   empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
             <ModalAccionEmpleado open={modal === 'cambio'} accion="cambio" empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
-            <ModalProductos
-                empleado={{ id: empleado.id, nombre_completo: empleado.nombre_completo }}
-                open={verProductos}
-                onClose={() => setVerProductos(false)}
-            />
         </div>
     );
 }

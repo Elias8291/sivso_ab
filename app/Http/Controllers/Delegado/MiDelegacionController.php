@@ -1411,6 +1411,35 @@ class MiDelegacionController extends Controller
         ]);
     }
 
+    public function showEmpleado(Request $request, int $empleadoId): InertiaResponse
+    {
+        $empleado = Empleado::query()->with('dependencia')->findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+
+        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+            ->where('empleado_id', $empleadoId)
+            ->distinct()
+            ->orderByDesc('anio')
+            ->pluck('anio')
+            ->map(static fn ($anio) => (int) $anio)
+            ->values()
+            ->all();
+
+        return Inertia::render('Delegado/MiDelegacion/Empleado', [
+            'empleado' => [
+                'id' => $empleado->id,
+                'nombre_completo' => strtoupper(trim("{$empleado->apellido_paterno} {$empleado->apellido_materno} {$empleado->nombre}")),
+                'nue' => $empleado->nue,
+                'ur' => $empleado->ur,
+                'dependencia_nombre' => $empleado->dependencia?->nombre ?? $empleado->dependencia?->nombre_corto ?? null,
+                'delegacion_codigo' => $empleado->delegacion_codigo,
+                'estado_delegacion' => $empleado->estado_delegacion ?? 'activo',
+            ],
+            'anios_disponibles' => $aniosDisponibles,
+            'anio_default' => $aniosDisponibles[0] ?? $this->anioCaptura(),
+        ]);
+    }
+
     /**
      * Devuelve los productos licitados y cotizados de un empleado para el año de referencia.
      */

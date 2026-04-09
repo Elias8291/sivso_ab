@@ -73,6 +73,9 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::patch('/mi-delegacion/empleado/{empleado}/nue', [MiDelegacionController::class, 'actualizarNue'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
         ->name('my-delegation.empleado.nue');
+    Route::get('/mi-delegacion/empleado/{empleado}', [MiDelegacionController::class, 'showEmpleado'])
+        ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
+        ->name('my-delegation.empleado.show');
     Route::get('/mi-delegacion/empleado/{empleado}/vestuario', [MiDelegacionController::class, 'vestuarioEmpleado'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('my-delegation.empleado.vestuario');
