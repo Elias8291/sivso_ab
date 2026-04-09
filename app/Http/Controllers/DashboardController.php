@@ -5,21 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Delegado\MiDelegacionController;
-use App\Models\Delegacion;
-use App\Models\Delegado;
-use App\Models\Dependencia;
-use App\Models\Empleado;
-use App\Models\PeriodoVestuario;
-use App\Models\ProductoCotizado;
-use App\Models\SolicitudMovimiento;
 use App\Models\User;
 use App\Support\SivsoPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 final class DashboardController extends Controller
 {
@@ -63,6 +54,7 @@ final class DashboardController extends Controller
 
     /**
      * Contadores según permisos de ver (null = no mostrar KPI).
+     * Una sola query con sub-selects en vez de 13 COUNT individuales.
      *
      * @return array<string, int|null>
      */
@@ -70,55 +62,67 @@ final class DashboardController extends Controller
     {
         $user->loadMissing('delegado');
 
-        return [
-            'mi_delegacion' => $user->can(SivsoPermissions::VER_MI_DELEGACION) && $user->delegado !== null
-                ? $user->delegado->delegaciones()->count()
-                : null,
-            'empleados' => $user->can(SivsoPermissions::VER_EMPLEADOS)
-                ? Empleado::query()->count()
-                : null,
-            'productos' => $user->can(SivsoPermissions::VER_PRODUCTOS)
-                ? ProductoCotizado::query()->count()
-                : null,
-            'partidas' => $user->can(SivsoPermissions::VER_PARTIDAS)
-                ? $this->countDistinctPartidas()
-                : null,
-            'dependencias' => $user->can(SivsoPermissions::VER_DEPENDENCIAS)
-                ? Dependencia::query()->count()
-                : null,
-            'delegaciones' => $user->can(SivsoPermissions::VER_DELEGACIONES)
-                ? Delegacion::query()->count()
-                : null,
-            'delegados' => $user->can(SivsoPermissions::VER_DELEGADOS)
-                ? Delegado::query()->count()
-                : null,
-            'periodos' => $user->can(SivsoPermissions::VER_PERIODOS)
-                ? PeriodoVestuario::query()->count()
-                : null,
-            'usuarios' => $user->can(SivsoPermissions::VER_USUARIOS)
-                ? User::query()->count()
-                : null,
-            'roles' => $user->can(SivsoPermissions::VER_ROLES)
-                ? Role::query()->count()
-                : null,
-            'permisos' => $user->can(SivsoPermissions::VER_PERMISOS)
-                ? Permission::query()->count()
-                : null,
-            'solicitudes_totales' => $user->can(SivsoPermissions::VER_SOLICITUDES)
-                ? SolicitudMovimiento::query()->count()
-                : null,
-            'solicitudes_pendientes' => $user->can(SivsoPermissions::VER_SOLICITUDES)
-                ? SolicitudMovimiento::query()->where('estado', 'pendiente')->count()
-                : null,
+        $permMap = [
+            'empleados'              => SivsoPermissions::VER_EMPLEADOS,
+            'productos'              => SivsoPermissions::VER_PRODUCTOS,
+            'partidas'               => SivsoPermissions::VER_PARTIDAS,
+            'dependencias'           => SivsoPermissions::VER_DEPENDENCIAS,
+            'delegaciones'           => SivsoPermissions::VER_DELEGACIONES,
+            'delegados'              => SivsoPermissions::VER_DELEGADOS,
+            'periodos'               => SivsoPermissions::VER_PERIODOS,
+            'usuarios'               => SivsoPermissions::VER_USUARIOS,
+            'roles'                  => SivsoPermissions::VER_ROLES,
+            'permisos'               => SivsoPermissions::VER_PERMISOS,
+            'solicitudes_totales'    => SivsoPermissions::VER_SOLICITUDES,
+            'solicitudes_pendientes' => SivsoPermissions::VER_SOLICITUDES,
         ];
-    }
 
-    private function countDistinctPartidas(): int
-    {
-        return (int) DB::query()->fromSub(
-            DB::table('producto_licitado')->select('anio', 'numero_partida')->distinct(),
-            'p',
-        )->count();
+        $needed = [];
+        foreach ($permMap as $key => $perm) {
+            if ($user->can($perm)) {
+                $needed[] = $key;
+            }
+        }
+
+        $counts = [];
+        if ($needed !== []) {
+            $query = DB::query()->selectRaw('1');
+
+            $subSelects = [
+                'empleados'              => '(SELECT COUNT(*) FROM empleados)',
+                'productos'              => '(SELECT COUNT(*) FROM producto_cotizado)',
+                'partidas'               => '(SELECT COUNT(*) FROM (SELECT DISTINCT anio, numero_partida FROM producto_licitado) AS p)',
+                'dependencias'           => '(SELECT COUNT(*) FROM dependencias)',
+                'delegaciones'           => '(SELECT COUNT(*) FROM delegaciones)',
+                'delegados'              => '(SELECT COUNT(*) FROM delegados)',
+                'periodos'               => '(SELECT COUNT(*) FROM periodos_vestuario)',
+                'usuarios'               => '(SELECT COUNT(*) FROM users)',
+                'roles'                  => '(SELECT COUNT(*) FROM roles)',
+                'permisos'               => '(SELECT COUNT(*) FROM permissions)',
+                'solicitudes_totales'    => '(SELECT COUNT(*) FROM solicitudes_movimiento)',
+                'solicitudes_pendientes' => "(SELECT COUNT(*) FROM solicitudes_movimiento WHERE estado = 'pendiente')",
+            ];
+
+            foreach ($needed as $key) {
+                if (isset($subSelects[$key])) {
+                    $query->selectRaw("{$subSelects[$key]} AS {$key}");
+                }
+            }
+
+            $counts = (array) $query->first();
+            unset($counts['1']);
+        }
+
+        $result = [];
+        foreach (array_keys($permMap) as $key) {
+            $result[$key] = isset($counts[$key]) ? (int) $counts[$key] : null;
+        }
+
+        $result['mi_delegacion'] = $user->can(SivsoPermissions::VER_MI_DELEGACION) && $user->delegado !== null
+            ? $user->delegado->delegaciones()->count()
+            : null;
+
+        return $result;
     }
 
 }

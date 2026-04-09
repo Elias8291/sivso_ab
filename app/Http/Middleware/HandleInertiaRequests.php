@@ -27,58 +27,79 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        $delegado = null;
-        if ($user) {
-            $user->loadMissing(['delegado.delegaciones', 'delegado.empleado:id,nue']);
-            if ($user->delegado) {
-                $delegado = [
-                    'nombre_completo' => $user->delegado->nombre_completo,
-                    'delegaciones' => $user->delegado->delegaciones->pluck('codigo')->values()->all(),
-                    'empleado' => $user->delegado->empleado
-                        ? [
-                            'id' => $user->delegado->empleado->id,
-                            'nue' => $user->delegado->empleado->nue,
-                        ]
-                        : null,
-                ];
-            }
+        if (! $user) {
+            return array_merge(parent::share($request), [
+                'flash' => ['status' => $request->session()->get('status')],
+                'auth' => [
+                    'user' => null,
+                    'is_super_admin' => false,
+                    'is_sivso_administrator' => false,
+                    'permissions' => [],
+                    'delegado' => null,
+                ],
+                'notificaciones' => [],
+            ]);
         }
 
-        $notificaciones = $user
-            ? $user->unreadNotifications()
-                ->latest()
-                ->limit(15)
-                ->get()
-                ->map(fn ($n) => [
-                    'id' => $n->id,
-                    'tipo' => $n->data['tipo'] ?? null,
-                    'titulo' => $n->data['titulo'] ?? '',
-                    'cuerpo' => $n->data['cuerpo'] ?? '',
-                    'url' => $n->data['url'] ?? null,
-                    'decision' => $n->data['decision'] ?? null,
-                    'tipo_sol' => $n->data['tipo_sol'] ?? null,
-                    'created_at' => $n->created_at->diffForHumans(),
-                ])
-                ->values()
-                ->all()
-            : [];
+        $user->loadMissing(['delegado.delegaciones', 'delegado.empleado:id,nue']);
+
+        $delegado = null;
+        if ($user->delegado) {
+            $delegado = [
+                'nombre_completo' => $user->delegado->nombre_completo,
+                'delegaciones' => $user->delegado->delegaciones->pluck('codigo')->values()->all(),
+                'empleado' => $user->delegado->empleado
+                    ? [
+                        'id' => $user->delegado->empleado->id,
+                        'nue' => $user->delegado->empleado->nue,
+                    ]
+                    : null,
+            ];
+        }
+
+        $cacheKey = "user:{$user->id}:inertia_share";
+        $cached = $request->attributes->get($cacheKey);
+        if ($cached === null) {
+            $cached = [
+                'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+                'is_sivso_administrator' => $user->hasRole(SivsoPermissions::ROLE_ADMIN_SIVSO),
+            ];
+            $request->attributes->set($cacheKey, $cached);
+        }
 
         return array_merge(parent::share($request), [
-            'flash' => [
-                'status' => $request->session()->get('status'),
-            ],
+            'flash' => ['status' => $request->session()->get('status')],
             'auth' => [
-                'user' => $user
-                    ? $user->only('id', 'name', 'email', 'rfc', 'nue', 'is_super_admin')
-                    : null,
-                'is_super_admin' => (bool) ($user?->is_super_admin ?? false),
-                'is_sivso_administrator' => (bool) ($user?->hasRole(SivsoPermissions::ROLE_ADMIN_SIVSO) ?? false),
-                'permissions' => $user
-                    ? $user->getAllPermissions()->pluck('name')->values()->all()
-                    : [],
+                'user' => $user->only('id', 'name', 'email', 'rfc', 'nue', 'is_super_admin'),
+                'is_super_admin' => (bool) $user->is_super_admin,
+                'is_sivso_administrator' => (bool) $cached['is_sivso_administrator'],
+                'permissions' => $cached['permissions'],
                 'delegado' => $delegado,
             ],
-            'notificaciones' => $notificaciones,
+            'notificaciones' => fn () => $this->unreadNotifications($user),
         ]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function unreadNotifications(\App\Models\User $user): array
+    {
+        return $user->unreadNotifications()
+            ->latest()
+            ->limit(15)
+            ->get()
+            ->map(fn ($n) => [
+                'id' => $n->id,
+                'tipo' => $n->data['tipo'] ?? null,
+                'titulo' => $n->data['titulo'] ?? '',
+                'cuerpo' => $n->data['cuerpo'] ?? '',
+                'url' => $n->data['url'] ?? null,
+                'decision' => $n->data['decision'] ?? null,
+                'tipo_sol' => $n->data['tipo_sol'] ?? null,
+                'created_at' => $n->created_at->diffForHumans(),
+            ])
+            ->values()
+            ->all();
     }
 }

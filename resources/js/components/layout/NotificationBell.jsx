@@ -1,4 +1,3 @@
-import echo from '@/echo';
 import { Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import {
@@ -147,12 +146,16 @@ export default function NotificationBell() {
      *
      * Fallback: si el navegador no soporta EventSource (prácticamente
      * inexistente en 2025), se usa sondeo HTTP con setInterval.
+     *
+     * Se difiere 2 s para no competir con la carga inicial de la página
+     * (especialmente importante en móvil con red lenta).
      * ─────────────────────────────────────────────────────────────────── */
     useEffect(() => {
         if (!userId) return;
 
         let es   = null;
         let poll = null;
+        let cancelled = false;
 
         const handleMessage = (event) => {
             try {
@@ -162,33 +165,33 @@ export default function NotificationBell() {
             } catch { /* JSON inválido, ignorar */ }
         };
 
-        if (typeof EventSource !== 'undefined') {
-            /* ─── Modo SSE ─── */
-            const url = route('notificaciones.stream');
-            const connect = () => {
+        const boot = () => {
+            if (cancelled) return;
+
+            if (typeof EventSource !== 'undefined') {
+                const url = route('notificaciones.stream');
                 es = new EventSource(url, { withCredentials: true });
                 es.onmessage = handleMessage;
-                es.onerror   = () => {
-                    /* El navegador reconecta automáticamente gracias a `retry:`.
-                     * Si el error es permanente, EventSource se cierra solo. */
+                es.onerror   = () => {};
+            } else {
+                const fetchUnread = async () => {
+                    if (document.hidden) return;
+                    try {
+                        const res  = await axios.get(route('notificaciones.stream'));
+                        const list = toNotifArray(res.data);
+                        applyList(list);
+                    } catch { /* red intermitente */ }
                 };
-            };
-            connect();
-        } else {
-            /* ─── Modo fallback (polling clásico) ─── */
-            const fetchUnread = async () => {
-                if (document.hidden) return;
-                try {
-                    const res  = await axios.get(route('notificaciones.stream'));
-                    const list = toNotifArray(res.data);
-                    applyList(list);
-                } catch { /* red intermitente */ }
-            };
-            void fetchUnread();
-            poll = setInterval(fetchUnread, POLL_FALLBACK_MS);
-        }
+                void fetchUnread();
+                poll = setInterval(fetchUnread, POLL_FALLBACK_MS);
+            }
+        };
+
+        const delay = setTimeout(boot, 2000);
 
         return () => {
+            cancelled = true;
+            clearTimeout(delay);
             es?.close();
             if (poll) clearInterval(poll);
         };
@@ -196,30 +199,42 @@ export default function NotificationBell() {
 
     /* ── WebSocket (Pusher / Reverb) — prepend instantáneo opcional ── */
     useEffect(() => {
-        if (!userId || !echo) return;
+        if (!userId) return;
 
-        const channel = echo.private(`App.Models.User.${userId}`);
+        let echoInstance = null;
+        let cancelled = false;
 
-        channel.listen('.sivso.notificacion', (payload) => {
-            const nueva = {
-                id:        String(payload.id ?? crypto.randomUUID()),
-                tipo:      payload.tipo     ?? null,
-                titulo:    payload.titulo   ?? '',
-                cuerpo:    payload.cuerpo   ?? '',
-                url:       payload.url      ?? null,
-                decision:  payload.decision ?? null,
-                tipo_sol:  payload.tipo_sol ?? null,
-                created_at:'Ahora mismo',
-            };
-            setItems((prev) => {
-                if (prev.some((n) => n.id === nueva.id)) return prev;
-                return [nueva, ...prev];
+        import('@/echo').then((mod) => {
+            if (cancelled) return;
+            echoInstance = mod.default;
+            if (!echoInstance) return;
+
+            const channel = echoInstance.private(`App.Models.User.${userId}`);
+
+            channel.listen('.sivso.notificacion', (payload) => {
+                const nueva = {
+                    id:        String(payload.id ?? crypto.randomUUID()),
+                    tipo:      payload.tipo     ?? null,
+                    titulo:    payload.titulo   ?? '',
+                    cuerpo:    payload.cuerpo   ?? '',
+                    url:       payload.url      ?? null,
+                    decision:  payload.decision ?? null,
+                    tipo_sol:  payload.tipo_sol ?? null,
+                    created_at:'Ahora mismo',
+                };
+                setItems((prev) => {
+                    if (prev.some((n) => n.id === nueva.id)) return prev;
+                    return [nueva, ...prev];
+                });
+                setIsNew(true);
+                setTimeout(() => setIsNew(false), 2500);
             });
-            setIsNew(true);
-            setTimeout(() => setIsNew(false), 2500);
         });
 
-        return () => echo.leave(`App.Models.User.${userId}`);
+        return () => {
+            cancelled = true;
+            if (echoInstance) echoInstance.leave(`App.Models.User.${userId}`);
+        };
     }, [userId]);
 
     /* ── cierra panel al hacer click fuera ─────────────────────────── */

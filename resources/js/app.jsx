@@ -99,12 +99,12 @@ function GlobalPageLoader() {
 createInertiaApp({
     title: (title) => (title ? `${title} — ${import.meta.env.VITE_APP_NAME ?? 'SIVSO'}` : (import.meta.env.VITE_APP_NAME ?? 'SIVSO')),
     resolve: (name) => {
-        const pages = import.meta.glob('./pages/**/*.jsx', { eager: true });
-        const page = pages[`./pages/${name}.jsx`];
-        if (!page) {
+        const pages = import.meta.glob('./pages/**/*.jsx');
+        const importFn = pages[`./pages/${name}.jsx`];
+        if (!importFn) {
             throw new Error(`Página Inertia no encontrada: ${name}`);
         }
-        return page.default;
+        return importFn().then((mod) => mod.default);
     },
     setup({ el, App, props }) {
         let root = el[REACT_ROOT_KEY];
