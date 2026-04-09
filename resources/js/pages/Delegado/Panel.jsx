@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     ArrowRight,
+    Users,
     XCircle,
 } from 'lucide-react';
 import { route } from 'ziggy-js';
@@ -211,7 +212,51 @@ function PanelMisSolicitudes({ solicitudes }) {
     );
 }
 
-function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
+function DelegacionCard({ del: d, capturaAbierta }) {
+    const pct = Math.min(100, Math.max(0, d.pct_completado ?? 0));
+
+    return (
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="flex items-start justify-between gap-3 px-5 py-4">
+                <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{d.nombre || d.codigo}</p>
+                    <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                        <span className="tabular-nums font-medium text-zinc-700 dark:text-zinc-300">{d.total}</span> empleados
+                        {d.listos > 0 && (
+                            <> · <span className="tabular-nums font-medium text-zinc-700 dark:text-zinc-300">{d.listos}</span> actualizados</>
+                        )}
+                        {d.bajas > 0 && (
+                            <> · <span className="tabular-nums">{d.bajas}</span> bajas</>
+                        )}
+                    </p>
+                </div>
+                <Link
+                    href={route('my-delegation.index', { delegacion_codigo: d.codigo })}
+                    className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-zinc-200/90 bg-zinc-50/90 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-700 transition-colors hover:border-brand-gold/45 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/45 dark:text-zinc-200 dark:hover:border-brand-gold-soft/40 dark:hover:bg-zinc-800/55"
+                >
+                    {capturaAbierta ? 'Actualizar' : 'Consultar'}
+                    <ArrowRight className="size-3.5 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/65 dark:text-zinc-500" strokeWidth={1.5} aria-hidden />
+                </Link>
+            </div>
+            {capturaAbierta && d.total > 0 && (
+                <div className="border-t border-zinc-100 px-5 py-3 dark:border-zinc-800/80">
+                    <div className="flex items-center justify-between gap-3 text-[10px] text-zinc-500 dark:text-zinc-400">
+                        <span className="font-medium uppercase tracking-[0.1em]">Avance</span>
+                        <span className="tabular-nums text-[12px] font-semibold text-zinc-900 dark:text-zinc-100">{pct}%</span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-brand-gold/95 to-brand-gold/65 dark:from-brand-gold-soft/90 dark:to-brand-gold-soft/55"
+                            style={{ width: `${pct}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function PanelDelegado({ resumen, delegaciones_detalle = [], contexto, periodo, mis_solicitudes = [] }) {
     const anio = resumen.anio_actual ?? new Date().getFullYear();
     const anioRefFallback =
         resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
@@ -220,6 +265,7 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
     const nombre = contexto.delegado_nombre;
     const delegaciones = contexto.delegaciones ?? [];
     const delegacionesTexto = delegacionesComoTexto(delegaciones);
+    const tieneMultiples = Array.isArray(delegaciones_detalle) && delegaciones_detalle.length > 1;
 
     const hayPeriodo = periodo != null;
     const capturaAbierta = hayPeriodo && periodo.estado === 'abierto';
@@ -277,23 +323,27 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
                             </div>
                         </div>
                         <div className="h-px w-full bg-gradient-to-r from-transparent via-zinc-200/90 to-transparent dark:via-zinc-700/70" aria-hidden />
-                        <div className="flex flex-col items-center px-1 text-center">
-                            <Link
-                                href={route('my-delegation.index')}
-                                className="group inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200/90 bg-zinc-50/90 px-5 py-2.5 shadow-sm transition-colors hover:border-brand-gold/45 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/45 dark:shadow-none dark:hover:border-brand-gold-soft/40 dark:hover:bg-zinc-800/55"
-                            >
-                                <span className="text-[13px] font-semibold tracking-tight text-zinc-800 transition-colors group-hover:text-brand-gold dark:text-zinc-100 dark:group-hover:text-brand-gold-soft">
-                                    {tituloPrincipal}
-                                </span>
-                                <ArrowRight
-                                    className="size-[18px] shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/65 dark:text-zinc-500 dark:group-hover:text-brand-gold-soft/70"
-                                    strokeWidth={1.5}
-                                    aria-hidden
-                                />
-                            </Link>
-                        </div>
+
+                        {!tieneMultiples && (
+                            <div className="flex flex-col items-center px-1 text-center">
+                                <Link
+                                    href={route('my-delegation.index')}
+                                    className="group inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200/90 bg-zinc-50/90 px-5 py-2.5 shadow-sm transition-colors hover:border-brand-gold/45 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900/45 dark:shadow-none dark:hover:border-brand-gold-soft/40 dark:hover:bg-zinc-800/55"
+                                >
+                                    <span className="text-[13px] font-semibold tracking-tight text-zinc-800 transition-colors group-hover:text-brand-gold dark:text-zinc-100 dark:group-hover:text-brand-gold-soft">
+                                        {tituloPrincipal}
+                                    </span>
+                                    <ArrowRight
+                                        className="size-[18px] shrink-0 text-zinc-400 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-gold/65 dark:text-zinc-500 dark:group-hover:text-brand-gold-soft/70"
+                                        strokeWidth={1.5}
+                                        aria-hidden
+                                    />
+                                </Link>
+                            </div>
+                        )}
+
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
-                            {delegaciones.length > 0 ? (
+                            {!tieneMultiples && delegaciones.length > 0 ? (
                                 <div className="flex min-w-0 flex-wrap gap-2">
                                     {delegaciones.map((d) => (
                                         <span
@@ -304,9 +354,9 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
                                         </span>
                                     ))}
                                 </div>
-                            ) : (
+                            ) : !tieneMultiples ? (
                                 <span className="text-[13px] text-zinc-500 dark:text-zinc-400">Sin delegaciones asignadas</span>
-                            )}
+                            ) : null}
                             <p className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                                 <span
                                     className="mr-1 inline-block size-1 rounded-full bg-brand-gold/70 align-middle dark:bg-brand-gold-soft/60"
@@ -334,7 +384,26 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
                             )}
                         </section>
 
-                        {capturaAbierta ? (
+                        {tieneMultiples ? (
+                            <section className="space-y-3" aria-label="Mis delegaciones">
+                                <SectionLabel>Mis delegaciones</SectionLabel>
+                                {capturaAbierta && (
+                                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200/70 bg-zinc-50/50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                                        <Users className="size-4 shrink-0 text-zinc-400" strokeWidth={1.75} aria-hidden />
+                                        <p className="text-[12px] text-zinc-600 dark:text-zinc-400">
+                                            <span className="tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">{resumen.total ?? 0}</span> empleados en total
+                                            {' · '}
+                                            <span className="tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">{pct}%</span> avance global
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    {delegaciones_detalle.map((d) => (
+                                        <DelegacionCard key={d.codigo} del={d} capturaAbierta={capturaAbierta} />
+                                    ))}
+                                </div>
+                            </section>
+                        ) : capturaAbierta ? (
                             <section aria-label="Avance">
                                 <CapturaProgress pct={pct} />
                             </section>

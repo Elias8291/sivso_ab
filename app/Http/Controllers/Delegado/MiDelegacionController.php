@@ -49,7 +49,48 @@ class MiDelegacionController extends Controller
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
         $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
 
-        $resumenVestuario = $this->resumenVestuarioEmpleados($codigosDelegacion);
+        $resumenGlobal = $this->calcularResumenDesdeVestuario(
+            $this->resumenVestuarioEmpleados($codigosDelegacion)
+        );
+
+        $delegacionesDetalle = [];
+        $codigos = $contexto['delegaciones'] ?? [];
+        if (count($codigos) > 1) {
+            $nombres = DB::table('delegacion')
+                ->whereIn('codigo', $codigos)
+                ->pluck('ur_referencia', 'codigo')
+                ->all();
+
+            foreach ($codigos as $codigo) {
+                $r = $this->calcularResumenDesdeVestuario(
+                    $this->resumenVestuarioEmpleados([$codigo])
+                );
+                $delegacionesDetalle[] = [
+                    'codigo' => $codigo,
+                    'nombre' => $nombres[$codigo] ?? $codigo,
+                    ...$r,
+                ];
+            }
+        }
+
+        return Inertia::render('Delegado/Panel', [
+            'resumen' => [
+                ...$resumenGlobal,
+                'anio_actual' => $this->anioCaptura(),
+                'anio_ref' => $this->anioBase(),
+            ],
+            'delegaciones_detalle' => $delegacionesDetalle,
+            'contexto' => $contexto,
+            'periodo' => $this->periodoActualCached(),
+            'mis_solicitudes' => $this->misSolicitudesParaPanel($user),
+        ]);
+    }
+
+    /**
+     * @return array{total: int, listos: int, sin_empezar: int, bajas: int, pct_completado: int}
+     */
+    private function calcularResumenDesdeVestuario(Collection $resumenVestuario): array
+    {
         $total = $resumenVestuario->count();
         $listos = $resumenVestuario
             ->filter(static fn (array $fila) => $fila['total_prendas'] > 0 && $fila['confirmadas'] >= $fila['total_prendas'])
@@ -61,23 +102,13 @@ class MiDelegacionController extends Controller
             ->filter(static fn (array $fila) => $fila['estado_delegacion'] === 'baja')
             ->count();
 
-        return Inertia::render('Delegado/Panel', [
-            'resumen' => [
-                'total' => $total,
-                'listos' => $listos,
-                'sin_empezar' => $sinEmpezar,
-                'bajas' => $bajas,
-                'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
-                'anio_actual' => $this->anioCaptura(),
-                'anio_ref' => $this->anioBase(),
-            ],
-            'contexto' => $contexto,
-            'periodo' => $this->periodoActualCached(),
-            'mis_solicitudes' => $this->misSolicitudesParaPanel($user),
-            'solicitudes_count' => SolicitudMovimiento::query()
-                ->where('solicitada_por', $user->id)
-                ->count(),
-        ]);
+        return [
+            'total' => $total,
+            'listos' => $listos,
+            'sin_empezar' => $sinEmpezar,
+            'bajas' => $bajas,
+            'pct_completado' => $total > 0 ? (int) round(($listos / $total) * 100) : 0,
+        ];
     }
 
     /**
@@ -1339,6 +1370,43 @@ class MiDelegacionController extends Controller
         return response()->json([
             'data' => null,
             'message' => 'Empleado reactivado en tu listado.',
+            'errors' => null,
+        ]);
+    }
+
+    public function actualizarNue(Request $request, int $empleadoId): JsonResponse
+    {
+        $validated = $request->validate([
+            'nue' => ['required', 'string', 'max:15'],
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        $empleado = Empleado::query()->findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
+
+        $nueTrim = trim($validated['nue']);
+        abort_unless($nueTrim !== '', 422, 'El NUE no puede estar vacío.');
+
+        $duplicado = Empleado::query()
+            ->where('ur', $empleado->ur)
+            ->where('nue', $nueTrim)
+            ->where('id', '!=', $empleado->id)
+            ->exists();
+
+        if ($duplicado) {
+            return response()->json([
+                'data' => null,
+                'message' => 'Ya existe un empleado con ese NUE en la misma UR.',
+                'errors' => ['nue' => 'NUE duplicado en la UR.'],
+            ], 422);
+        }
+
+        $empleado->update(['nue' => $nueTrim]);
+
+        return response()->json([
+            'data' => ['nue' => $empleado->nue],
+            'message' => 'NUE actualizado correctamente.',
             'errors' => null,
         ]);
     }

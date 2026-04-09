@@ -6,6 +6,7 @@ import axios from 'axios';
 import {
     AlertTriangle,
     ArrowLeftRight,
+    Check,
     CheckCircle2,
     ChevronDown,
     Clock,
@@ -1034,6 +1035,11 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
     const [obsDelegacion, setObsDelegacion]        = useState(empleado.observacion_delegacion || '');
     const [solicitudPendiente, setSolicitudPendiente] = useState(empleado.solicitud_pendiente ?? null);
     const [reactivando, setReactivando]               = useState(false);
+    const [nueLocal, setNueLocal]                     = useState(empleado.nue ?? '');
+    const [editandoNue, setEditandoNue]               = useState(false);
+    const [nueInput, setNueInput]                     = useState('');
+    const [nueSaving, setNueSaving]                   = useState(false);
+    const [nueError, setNueError]                     = useState('');
 
     const cerrarModal = () => setModal(null);
 
@@ -1045,6 +1051,28 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
             setObsDelegacion('');
         } catch { /* sin acción */ } finally {
             setReactivando(false);
+        }
+    };
+
+    const iniciarEdicionNue = () => {
+        setNueInput(nueLocal || '');
+        setNueError('');
+        setEditandoNue(true);
+    };
+
+    const guardarNue = async () => {
+        const v = nueInput.trim();
+        if (!v) { setNueError('Ingresa un NUE.'); return; }
+        setNueSaving(true);
+        setNueError('');
+        try {
+            const { data } = await axios.patch(route('my-delegation.empleado.nue', empleado.id), { nue: v });
+            setNueLocal(data.data?.nue ?? v);
+            setEditandoNue(false);
+        } catch (e) {
+            setNueError(e?.response?.data?.message ?? 'Error al guardar NUE.');
+        } finally {
+            setNueSaving(false);
         }
     };
 
@@ -1178,8 +1206,36 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                 </span>
                             )}
                         </div>
-                        {empleado.nue && (
-                            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{empleado.nue}</p>
+                        {nueLocal ? (
+                            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{nueLocal}</p>
+                        ) : editandoNue ? (
+                            <div className="flex items-center gap-1.5">
+                                <input
+                                    type="text"
+                                    value={nueInput}
+                                    onChange={(e) => { setNueInput(e.target.value); setNueError(''); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') guardarNue(); if (e.key === 'Escape') setEditandoNue(false); }}
+                                    maxLength={15}
+                                    placeholder="NUE"
+                                    autoFocus
+                                    className="w-24 rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-[11px] text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
+                                />
+                                <button type="button" onClick={guardarNue} disabled={nueSaving}
+                                    className="flex size-5 items-center justify-center rounded text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
+                                    {nueSaving ? <RotateCcw className="size-3 animate-spin" /> : <Check className="size-3" strokeWidth={2.5} />}
+                                </button>
+                                <button type="button" onClick={() => setEditandoNue(false)}
+                                    className="flex size-5 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                                    <X className="size-3" strokeWidth={2} />
+                                </button>
+                                {nueError && <span className="text-[10px] text-rose-500">{nueError}</span>}
+                            </div>
+                        ) : (
+                            <button type="button" onClick={iniciarEdicionNue}
+                                className="inline-flex items-center gap-1 font-mono text-[11px] text-amber-600/80 transition hover:text-amber-700 dark:text-amber-400/80 dark:hover:text-amber-300">
+                                <Pencil className="size-2.5" strokeWidth={2} />
+                                Sin NUE — asignar
+                            </button>
                         )}
                         {obsDelegacion && (
                             <p className="break-words text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
