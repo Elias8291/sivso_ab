@@ -358,13 +358,19 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                 <div className="mb-3 flex items-center gap-2">
                     <TabButton active={tab === 'licitados'} onClick={() => setTab('licitados')}>
                         Licitados
-                        <span className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
+                        <span
+                            aria-label={`${licitados.length} licitados`}
+                            className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400"
+                        >
                             {licitados.length}
                         </span>
                     </TabButton>
                     <TabButton active={tab === 'cotizados'} onClick={() => setTab('cotizados')}>
                         Cotizados
-                        <span className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
+                        <span
+                            aria-label={`${cotizados.length} cotizados`}
+                            className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400"
+                        >
                             {cotizados.length}
                         </span>
                     </TabButton>
