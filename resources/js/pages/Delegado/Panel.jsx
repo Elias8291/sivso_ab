@@ -1,13 +1,8 @@
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     ArrowRight,
-    Bell,
-    CheckCircle2,
-    ClipboardList,
-    LayoutList,
-    Users,
     XCircle,
 } from 'lucide-react';
 import { route } from 'ziggy-js';
@@ -137,25 +132,6 @@ function CapturaProgress({ pct }) {
     );
 }
 
-function StatTile({ icon: Icon, label, value, hint }) {
-    return (
-        <div className="flex flex-col rounded-xl border border-zinc-200/75 border-l-2 border-l-brand-gold/40 bg-zinc-50/40 px-2.5 py-2 dark:border-zinc-800 dark:border-l-brand-gold-soft/35 dark:bg-zinc-900/25">
-            <div className="flex items-center justify-between gap-1.5">
-                <span className="text-[9px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
-                <Icon
-                    className="size-3 shrink-0 text-brand-gold/50 dark:text-brand-gold-soft/45"
-                    strokeWidth={1.75}
-                    aria-hidden
-                />
-            </div>
-            <p className="mt-0.5 text-lg font-semibold tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{value}</p>
-            {hint ? (
-                <p className="mt-0.5 line-clamp-1 text-[9px] leading-snug text-zinc-400 dark:text-zinc-500">{hint}</p>
-            ) : null}
-        </div>
-    );
-}
-
 const ESTADO_SOL_LABEL = {
     pendiente: 'Pendiente',
     aprobada: 'Aprobada',
@@ -235,19 +211,11 @@ function PanelMisSolicitudes({ solicitudes }) {
     );
 }
 
-function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solicitudes_count = 0 }) {
-    const { notificaciones = [] } = usePage().props;
-    const notifCount = Array.isArray(notificaciones) ? notificaciones.length : 0;
-    const solicitudesTotal = typeof solicitudes_count === 'number' ? solicitudes_count : 0;
-
+function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [] }) {
     const anio = resumen.anio_actual ?? new Date().getFullYear();
     const anioRefFallback =
         resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
     const pct = Math.min(100, Math.max(0, resumen.pct_completado ?? 0));
-    const total = resumen.total ?? 0;
-    const listos = resumen.listos ?? 0;
-    const sinEmpezar = resumen.sin_empezar ?? 0;
-    const bajas = resumen.bajas ?? 0;
 
     const nombre = contexto.delegado_nombre;
     const delegaciones = contexto.delegaciones ?? [];
@@ -261,9 +229,6 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solic
         : hayPeriodo
           ? 'Período de vestuario'
           : 'Calendario de captura';
-
-    const tituloKpis = capturaAbierta ? 'Indicadores' : 'Resumen';
-    const hintCompletosCaptura = `${pct}% con vestuario confirmado`;
 
     const tituloPrincipal = capturaAbierta ? 'Actualizar en mi delegación' : 'Consultar mi delegación';
 
@@ -374,37 +339,6 @@ function PanelDelegado({ resumen, contexto, periodo, mis_solicitudes = [], solic
                                 <CapturaProgress pct={pct} />
                             </section>
                         ) : null}
-
-                        <section className="space-y-3" aria-label="Indicadores">
-                            <SectionLabel>{tituloKpis}</SectionLabel>
-                            {capturaAbierta ? (
-                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                    <StatTile icon={Users} label="Personal" value={total} hint="Captura" />
-                                    <StatTile icon={CheckCircle2} label="Listos" value={listos} hint={hintCompletosCaptura} />
-                                    <StatTile icon={LayoutList} label="Pendientes" value={sinEmpezar} hint="Sin confirmar" />
-                                    <StatTile icon={XCircle} label="Bajas" value={bajas} hint="En delegación" />
-                                    <StatTile icon={Bell} label="Notificaciones" value={notifCount} hint="Sin leer" />
-                                    <StatTile
-                                        icon={ClipboardList}
-                                        label="Solicitudes"
-                                        value={solicitudesTotal}
-                                        hint="Total enviadas"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                    <StatTile icon={Users} label="Personal" value={total} hint="Delegación" />
-                                    <StatTile icon={XCircle} label="Bajas" value={bajas} hint="Registros" />
-                                    <StatTile icon={Bell} label="Notificaciones" value={notifCount} hint="Sin leer" />
-                                    <StatTile
-                                        icon={ClipboardList}
-                                        label="Solicitudes"
-                                        value={solicitudesTotal}
-                                        hint="Total enviadas"
-                                    />
-                                </div>
-                            )}
-                        </section>
 
                         <section
                             className="space-y-3 border-t border-zinc-200/80 pt-8 dark:border-zinc-800/80"

@@ -1194,7 +1194,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
 
                 {/* acciones: fila completa en móvil, columna a la derecha en desktop */}
                 <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
-                    {!solicitudPendiente && (esBaja || esCambio) && (
+                    {!solicitudPendiente && esCambio && (
                         <button type="button" onClick={handleReactivar} disabled={reactivando}
                             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-[11px] font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
                             {reactivando ? <RotateCcw className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}

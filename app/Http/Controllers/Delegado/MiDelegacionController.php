@@ -1316,7 +1316,14 @@ class MiDelegacionController extends Controller
         abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         $estado = $empleado->estado_delegacion ?? 'activo';
-        if (! in_array($estado, ['baja', 'cambio'], true)) {
+        if ($estado === 'baja') {
+            return response()->json([
+                'data' => null,
+                'message' => 'Un empleado dado de baja no se puede reactivar.',
+                'errors' => ['estado' => 'La baja es definitiva.'],
+            ], 422);
+        }
+        if ($estado !== 'cambio') {
             return response()->json([
                 'data' => null,
                 'message' => 'El empleado ya está activo en la delegación.',
@@ -1705,7 +1712,7 @@ class MiDelegacionController extends Controller
             ->where('aep.estado_anio_actual', 'pendiente')
             ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->count();
+            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
 
         $plazasUsadas = (int) DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
@@ -1713,7 +1720,7 @@ class MiDelegacionController extends Controller
             ->where('aep.estado_anio_actual', 'baja')
             ->where('aep.observacion_anio_actual', 'like', '%Consumido%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->count();
+            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
         $catalogo = DB::table('producto_cotizado as pc')
@@ -1781,16 +1788,24 @@ class MiDelegacionController extends Controller
             ->where('observacion_anio_actual', 'like', '%reasignación%')
             ->first();
 
-        abort_unless($plazaLibre !== null, 422, 'No hay plazas disponibles de recurso de bajas.');
+        abort_unless($plazaLibre !== null, 422, 'No hay recurso disponible de bajas.');
 
         $anioCaptura = $this->anioCaptura();
+        $cantidadActual = max(1, (int) ($plazaLibre->cantidad ?? 1));
 
-        DB::transaction(function () use ($plazaLibre, $empleado, $pc, $anioCaptura): void {
-            $plazaLibre->update([
-                'estado_anio_actual' => 'baja',
-                'observacion_anio_actual' => "Consumido: producto asignado a empleado #{$empleado->id}.",
-                'talla_actualizada_at' => now(),
-            ]);
+        DB::transaction(function () use ($plazaLibre, $empleado, $pc, $anioCaptura, $cantidadActual): void {
+            if ($cantidadActual <= 1) {
+                $plazaLibre->update([
+                    'estado_anio_actual' => 'baja',
+                    'observacion_anio_actual' => "Consumido: recurso asignado a empleado #{$empleado->id}.",
+                    'talla_actualizada_at' => now(),
+                ]);
+            } else {
+                $plazaLibre->update([
+                    'cantidad' => $cantidadActual - 1,
+                    'talla_actualizada_at' => now(),
+                ]);
+            }
 
             AsignacionEmpleadoProducto::query()->create([
                 'anio' => $anioCaptura,
@@ -1823,7 +1838,7 @@ class MiDelegacionController extends Controller
             ->where('aep.estado_anio_actual', 'pendiente')
             ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->count();
+            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
     }
 
     private function resolverAsignacionObjetivoParaCapturaActual(AsignacionEmpleadoProducto $asignacion): AsignacionEmpleadoProducto
