@@ -1251,8 +1251,10 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                     </div>
                 </div>
 
+                <div className="mx-4 h-px bg-zinc-100/80 sm:hidden dark:bg-zinc-800/60" aria-hidden />
+
                 {/* acciones */}
-                <div className="flex w-full items-center justify-end gap-1 border-t border-zinc-100/80 pt-2.5 dark:border-zinc-800/60 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
+                <div className="flex w-full items-center justify-end gap-1 px-4 pb-1 pt-1.5 sm:w-auto sm:shrink-0 sm:px-0 sm:pb-0 sm:pt-0">
                     {!solicitudPendiente && esCambio && (
                         <button type="button" onClick={handleReactivar} disabled={reactivando} title="Reactivar"
                             className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
