@@ -1,10 +1,11 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
+import DataTable from '@/components/admin/DataTable';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
 import { route } from 'ziggy-js';
-import { useEffect, useState } from 'react';
 
 function FiltroAnio({ anio, aniosDisponibles }) {
     return (
@@ -109,15 +110,73 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
     const canGestionar = useAuthCan()('Gestionar productos');
     const [editing, setEditing] = useState(null);
 
-    const openEdit = (item) => {
+    const openEdit = (item, tipo) => {
         setEditing({
             id: item.id,
-            tipo: tab === 'licitados' ? 'licitado' : 'cotizado',
-            clave: tab === 'licitados' ? (item.codigo_catalogo ?? '') : (item.clave ?? ''),
+            tipo,
+            clave: tipo === 'licitado' ? (item.codigo_catalogo ?? '') : (item.clave ?? ''),
             descripcion: item.descripcion ?? '',
             categoria_id: categorias.find((c) => c.nombre === item.categoria)?.id ?? '',
         });
     };
+
+    const columnsLicitados = useMemo(
+        () => [
+            { key: 'codigo_catalogo', header: 'Clave', cellClassName: 'font-mono' },
+            { key: 'descripcion', header: 'Descripción' },
+            {
+                key: 'categoria',
+                header: 'Categoría',
+                render: (row) => row.categoria || '—',
+            },
+            ...(canGestionar
+                ? [
+                      {
+                          key: 'acciones',
+                          render: (row) => (
+                              <button
+                                  type="button"
+                                  onClick={() => openEdit(row, 'licitado')}
+                                  className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700"
+                              >
+                                  Editar
+                              </button>
+                          ),
+                      },
+                  ]
+                : []),
+        ],
+        [canGestionar],
+    );
+
+    const columnsCotizados = useMemo(
+        () => [
+            { key: 'clave', header: 'Clave', cellClassName: 'font-mono' },
+            { key: 'descripcion', header: 'Descripción' },
+            {
+                key: 'categoria',
+                header: 'Categoría',
+                render: (row) => row.categoria || '—',
+            },
+            ...(canGestionar
+                ? [
+                      {
+                          key: 'acciones',
+                          render: (row) => (
+                              <button
+                                  type="button"
+                                  onClick={() => openEdit(row, 'cotizado')}
+                                  className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700"
+                              >
+                                  Editar
+                              </button>
+                          ),
+                      },
+                  ]
+                : []),
+        ],
+        [canGestionar],
+    );
 
     return (
         <>
@@ -159,59 +218,21 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                 </div>
 
                 {tab === 'licitados' ? (
-                    <div className="overflow-x-auto rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30">
-                        <table className="min-w-full text-[12px]">
-                            <thead>
-                                <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                    <th className="px-3 py-2 text-left">Clave</th>
-                                    <th className="px-3 py-2 text-left">Descripción</th>
-                                    <th className="px-3 py-2 text-left">Categoría</th>
-                                    {canGestionar && <th className="px-3 py-2 text-right">Acción</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {licitados.map((item) => (
-                                    <tr key={item.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                        <td className="px-3 py-2 font-mono">{item.codigo_catalogo}</td>
-                                        <td className="px-3 py-2">{item.descripcion}</td>
-                                        <td className="px-3 py-2">{item.categoria || '—'}</td>
-                                        {canGestionar && (
-                                            <td className="px-3 py-2 text-right">
-                                                <button type="button" onClick={() => openEdit(item)} className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700">Editar</button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <DataTable
+                        columns={columnsLicitados}
+                        rows={licitados}
+                        keyExtractor={(row) => row.id}
+                        emptyTitle="Sin productos licitados"
+                        emptyDescription="No hay productos licitados para el año seleccionado."
+                    />
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30">
-                        <table className="min-w-full text-[12px]">
-                            <thead>
-                                <tr className="border-b border-zinc-200/70 dark:border-zinc-800">
-                                    <th className="px-3 py-2 text-left">Clave</th>
-                                    <th className="px-3 py-2 text-left">Descripción</th>
-                                    <th className="px-3 py-2 text-left">Categoría</th>
-                                    {canGestionar && <th className="px-3 py-2 text-right">Acción</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cotizados.map((item) => (
-                                    <tr key={item.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
-                                        <td className="px-3 py-2 font-mono">{item.clave}</td>
-                                        <td className="px-3 py-2">{item.descripcion}</td>
-                                        <td className="px-3 py-2">{item.categoria || '—'}</td>
-                                        {canGestionar && (
-                                            <td className="px-3 py-2 text-right">
-                                                <button type="button" onClick={() => openEdit(item)} className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] dark:border-zinc-700">Editar</button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <DataTable
+                        columns={columnsCotizados}
+                        rows={cotizados}
+                        keyExtractor={(row) => row.id}
+                        emptyTitle="Sin productos cotizados"
+                        emptyDescription="No hay productos cotizados para el año seleccionado."
+                    />
                 )}
             </AdminPageShell>
             <EditarProductoModal
