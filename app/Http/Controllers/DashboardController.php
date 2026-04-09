@@ -89,18 +89,18 @@ final class DashboardController extends Controller
             $query = DB::query()->selectRaw('1');
 
             $subSelects = [
-                'empleados'              => '(SELECT COUNT(*) FROM empleados)',
+                'empleados'              => '(SELECT COUNT(*) FROM empleado)',
                 'productos'              => '(SELECT COUNT(*) FROM producto_cotizado)',
                 'partidas'               => '(SELECT COUNT(*) FROM (SELECT DISTINCT anio, numero_partida FROM producto_licitado) AS p)',
-                'dependencias'           => '(SELECT COUNT(*) FROM dependencias)',
-                'delegaciones'           => '(SELECT COUNT(*) FROM delegaciones)',
-                'delegados'              => '(SELECT COUNT(*) FROM delegados)',
-                'periodos'               => '(SELECT COUNT(*) FROM periodos_vestuario)',
+                'dependencias'           => '(SELECT COUNT(*) FROM dependencia)',
+                'delegaciones'           => '(SELECT COUNT(*) FROM delegacion)',
+                'delegados'              => '(SELECT COUNT(*) FROM delegado)',
+                'periodos'               => '(SELECT COUNT(*) FROM periodo_vestuario)',
                 'usuarios'               => '(SELECT COUNT(*) FROM users)',
                 'roles'                  => '(SELECT COUNT(*) FROM roles)',
                 'permisos'               => '(SELECT COUNT(*) FROM permissions)',
-                'solicitudes_totales'    => '(SELECT COUNT(*) FROM solicitudes_movimiento)',
-                'solicitudes_pendientes' => "(SELECT COUNT(*) FROM solicitudes_movimiento WHERE estado = 'pendiente')",
+                'solicitudes_totales'    => '(SELECT COUNT(*) FROM solicitud_movimiento)',
+                'solicitudes_pendientes' => "(SELECT COUNT(*) FROM solicitud_movimiento WHERE estado = 'pendiente')",
             ];
 
             foreach ($needed as $key) {

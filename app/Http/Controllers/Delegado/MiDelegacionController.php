@@ -201,14 +201,21 @@ class MiDelegacionController extends Controller
 
         if ($filtro === 'bajas') {
             $empleadosQuery->where('estado_delegacion', 'baja');
-        } elseif ($filtro === 'sin_nue') {
-            $empleadosQuery->whereNull('nue');
-        } elseif ($filtro === 'listos') {
-            $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
-            $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
-        } elseif ($filtro === 'sin_empezar') {
-            $idsSinEmpezar = $this->empleadosSinEmpezarAnioActualIds($codigosFiltro, $search);
-            $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
+        } else {
+            $empleadosQuery->where(function ($q): void {
+                $q->where('estado_delegacion', '!=', 'baja')
+                    ->orWhereNull('estado_delegacion');
+            });
+
+            if ($filtro === 'sin_nue') {
+                $empleadosQuery->whereNull('nue');
+            } elseif ($filtro === 'listos') {
+                $idsListos = $this->empleadosListosAnioActualIds($codigosFiltro, $search);
+                $this->restringirEmpleadosPorIds($empleadosQuery, $idsListos);
+            } elseif ($filtro === 'sin_empezar') {
+                $idsSinEmpezar = $this->empleadosSinEmpezarAnioActualIds($codigosFiltro, $search);
+                $this->restringirEmpleadosPorIds($empleadosQuery, $idsSinEmpezar);
+            }
         }
 
         $empleadosPaginator = $empleadosQuery

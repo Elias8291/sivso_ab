@@ -14,10 +14,11 @@ export default function AuthLayout({
             <Head title={title} />
 
             <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-x-hidden overflow-y-auto overscroll-none bg-gradient-to-br from-[#faf8f3] via-[#f5f1e8] to-[#ede7dd] transition-colors duration-500 dark:bg-gradient-to-br dark:from-black dark:via-zinc-950 dark:to-zinc-900 lg:p-8">
+                {/* Orbs: estáticos y más ligeros en móvil, animados con blur completo solo en desktop */}
                 <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
-                    <div className="animate-auth-orb-1 absolute -top-40 -right-40 h-[700px] w-[700px] rounded-full bg-gradient-to-br from-brand-gold/[0.15] to-brand-gold/[0.05] blur-[140px] dark:from-brand-gold/[0.12] dark:to-brand-gold/[0.04]" />
-                    <div className="animate-auth-orb-2 absolute -bottom-40 -left-40 h-[700px] w-[700px] rounded-full bg-gradient-to-tr from-brand-gold/[0.10] to-brand-gold/[0.02] blur-[140px] dark:from-brand-gold/[0.08] dark:to-brand-gold/[0.01]" />
-                    <div className="animate-auth-orb-3 absolute top-1/3 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-brand-gold/[0.04] blur-[100px] dark:bg-brand-gold/[0.02]" />
+                    <div className="absolute -top-40 -right-40 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-brand-gold/[0.12] to-brand-gold/[0.04] blur-[60px] dark:from-brand-gold/[0.08] dark:to-brand-gold/[0.02] lg:animate-auth-orb-1 lg:h-[700px] lg:w-[700px] lg:blur-[140px] lg:from-brand-gold/[0.15] lg:to-brand-gold/[0.05] lg:dark:from-brand-gold/[0.12] lg:dark:to-brand-gold/[0.04]" />
+                    <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-brand-gold/[0.08] to-brand-gold/[0.02] blur-[60px] dark:from-brand-gold/[0.06] dark:to-brand-gold/[0.01] lg:animate-auth-orb-2 lg:h-[700px] lg:w-[700px] lg:blur-[140px] lg:from-brand-gold/[0.10] lg:to-brand-gold/[0.02] lg:dark:from-brand-gold/[0.08] lg:dark:to-brand-gold/[0.01]" />
+                    <div className="hidden lg:block lg:animate-auth-orb-3 lg:absolute lg:top-1/3 lg:left-1/2 lg:h-[500px] lg:w-[500px] lg:-translate-x-1/2 lg:rounded-full lg:bg-brand-gold/[0.04] lg:blur-[100px] lg:dark:bg-brand-gold/[0.02]" />
                 </div>
 
                 <div
@@ -41,7 +42,7 @@ export default function AuthLayout({
                                     src={imageSrc}
                                     alt=""
                                     aria-hidden
-                                    className="animate-auth-hero-ken absolute inset-0 h-full min-h-[102%] w-full object-cover object-[center_22%] sm:object-center lg:object-[center_32%]"
+                                    className="absolute inset-0 h-full w-full object-cover object-[center_22%] sm:object-center lg:animate-auth-hero-ken lg:min-h-[102%] lg:object-[center_32%]"
                                 />
                             </div>
                         ) : null}
@@ -49,14 +50,14 @@ export default function AuthLayout({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
 
                         <div
-                            className="absolute inset-0 z-[5] bg-black/20 backdrop-blur-sm lg:hidden"
+                            className="absolute inset-0 z-[5] bg-black/30 lg:hidden"
                             aria-hidden
                         />
 
                         <div className="relative z-10 flex h-full min-h-[280px] flex-col items-center justify-end px-4 pb-12 sm:min-h-[320px] sm:px-6 lg:min-h-0 lg:items-start lg:justify-end lg:px-8 lg:pb-8">
                             <div className="w-full max-w-[340px] border-0 bg-transparent px-5 py-6 text-center shadow-none sm:max-w-[360px] sm:px-6 sm:py-7 lg:max-w-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:text-left lg:shadow-none">
                                 <div className="flex flex-col items-center gap-4 lg:items-start lg:gap-5">
-                                    <div className="animate-auth-brand-float flex flex-col items-center gap-3 lg:items-start lg:gap-4">
+                                    <div className="flex flex-col items-center gap-3 lg:animate-auth-brand-float lg:items-start lg:gap-4">
                                         <h1 className="animate-auth-brand-title max-w-[min(100%,20rem)] text-[clamp(1.5rem,5vw+0.55rem,2.25rem)] font-extralight uppercase leading-none tracking-[0.14em] text-white antialiased drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] sm:max-w-none sm:text-[2.2rem] sm:tracking-[0.18em] lg:max-w-none lg:text-[clamp(1.95rem,2.6vw+1.15rem,3.15rem)] lg:font-light lg:leading-[1.05] lg:tracking-[0.22em] lg:text-brand-gold lg:drop-shadow-[0_4px_28px_rgba(0,0,0,0.55),0_0_40px_rgba(212,175,55,0.28)]">
                                             SIVSO
                                         </h1>

@@ -1,0 +1,1 @@
+function e(){let e=NaN;return Number.isFinite(e)&&e>=2e3?e:5e3}var t=25e3;export{e as n,t};
