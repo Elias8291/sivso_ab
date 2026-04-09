@@ -1171,7 +1171,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                         ? 'bg-stone-100/90 text-stone-700 dark:bg-stone-800/60 dark:text-stone-300'
                                         : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-400'
                                 }`}>
-                                    {vestuarioListo ? 'Listo' : `${listos}/${total}`}
+                                    {vestuarioListo ? 'Actualizado' : `${listos}/${total}`}
                                 </span>
                             )}
                         </div>
