@@ -1183,6 +1183,12 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                 “{obsDelegacion}”
                             </p>
                         )}
+                        {esBaja && !solicitudPendiente && (
+                            <p className="mt-1 flex items-start gap-1.5 rounded-lg bg-rose-50/60 px-2.5 py-1.5 text-[10px] leading-snug text-rose-700/80 dark:bg-rose-950/20 dark:text-rose-400/90">
+                                <Info className="mt-px size-3 shrink-0" strokeWidth={2} />
+                                Sus productos y presupuesto quedan en la delegación y se pueden repartir entre los demás empleados.
+                            </p>
+                        )}
                     </div>
                 </div>
 
