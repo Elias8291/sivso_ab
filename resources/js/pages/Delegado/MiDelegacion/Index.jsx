@@ -55,20 +55,22 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
         <div className={`transition-colors ${
             editando
                 ? 'rounded-xl bg-zinc-50/80 dark:bg-zinc-900/40'
-                : confirmado
-                    ? 'rounded-xl bg-stone-50/50 dark:bg-stone-900/20'
-                    : ''
+                : dirty
+                    ? 'rounded-xl bg-amber-50/50 ring-1 ring-amber-200/30 dark:bg-amber-950/15 dark:ring-amber-700/20'
+                    : confirmado
+                        ? 'rounded-xl bg-stone-50/50 dark:bg-stone-900/20'
+                        : ''
         }`}>
             <div className="flex gap-3 px-1 py-3 sm:gap-3.5 sm:py-3.5">
                 <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
                     dirty
-                        ? 'bg-stone-200/40 dark:bg-stone-700/35'
+                        ? 'bg-amber-100/60 dark:bg-amber-900/30'
                         : confirmado
                             ? 'bg-stone-200/50 dark:bg-stone-800/50'
                             : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}>
                     {dirty
-                        ? <Pencil className="size-3 text-stone-500 dark:text-stone-400" strokeWidth={2} />
+                        ? <Pencil className="size-3 text-amber-600 dark:text-amber-400" strokeWidth={2} />
                         : confirmado
                             ? <CheckCircle2 className="size-3 text-stone-500 dark:text-stone-400" strokeWidth={1.75} />
                             : <Clock className="size-3 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
@@ -91,34 +93,36 @@ function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert
                         <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
                             <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
                                 dirty
-                                    ? 'border-stone-200/80 bg-stone-100/50 dark:border-stone-600/40 dark:bg-stone-800/40'
+                                    ? 'border-amber-300/50 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/25'
                                     : confirmado
                                         ? 'border-stone-200/70 bg-stone-50/70 dark:border-stone-600/40 dark:bg-stone-800/35'
                                         : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
                             }`}>
-                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>T</span>
-                                <span className={`font-mono text-[9px] font-semibold leading-none ${confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
+                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${dirty ? 'text-amber-500 dark:text-amber-500' : confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>T</span>
+                                <span className={`font-mono text-[9px] font-semibold leading-none ${dirty ? 'text-amber-800 dark:text-amber-300' : confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
                             </span>
                             <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
                                 dirty
-                                    ? 'border-stone-200/80 bg-stone-100/50 dark:border-stone-600/40 dark:bg-stone-800/40'
+                                    ? 'border-amber-300/50 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/25'
                                     : confirmado
                                         ? 'border-stone-200/70 bg-stone-50/70 dark:border-stone-600/40 dark:bg-stone-800/35'
                                         : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
                             }`}>
-                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>M</span>
-                                <span className={`font-mono text-[9px] font-semibold leading-none ${confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
+                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${dirty ? 'text-amber-500 dark:text-amber-500' : confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>M</span>
+                                <span className={`font-mono text-[9px] font-semibold leading-none ${dirty ? 'text-amber-800 dark:text-amber-300' : confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
                             </span>
                         </div>
                         {!editando && periodoAbierto && (
                             <button type="button" onClick={() => setEditando(true)}
                                 className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] font-medium transition ${
-                                    confirmado
-                                        ? 'border-stone-200/80 bg-white text-stone-800 hover:bg-stone-50/90 dark:border-stone-600/45 dark:bg-stone-900/35 dark:text-stone-300 dark:hover:bg-stone-800/45'
-                                        : 'border-zinc-200/90 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    dirty
+                                        ? 'border-amber-300/60 bg-amber-50/80 text-amber-800 hover:bg-amber-100/70 dark:border-amber-700/35 dark:bg-amber-900/25 dark:text-amber-300 dark:hover:bg-amber-900/40'
+                                        : confirmado
+                                            ? 'border-stone-200/80 bg-white text-stone-800 hover:bg-stone-50/90 dark:border-stone-600/45 dark:bg-stone-900/35 dark:text-stone-300 dark:hover:bg-stone-800/45'
+                                            : 'border-zinc-200/90 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
                                 }`}>
                                 <Pencil className="size-3" strokeWidth={2} />
-                                Editar
+                                {dirty ? 'Editado' : 'Editar'}
                             </button>
                         )}
                     </div>
