@@ -265,6 +265,7 @@ class MiDelegacionController extends Controller
             ),
             'acuse_anios_disponibles' => $this->aniosAcuseDisponiblesCached($codigosFiltro, $search),
             'acuse_anio_default' => $anioCaptura,
+            'plazas_baja_disponibles' => $this->contarPlazasBajaDisponibles($codigosFiltro),
         ]);
     }
 
@@ -1686,147 +1687,143 @@ class MiDelegacionController extends Controller
     }
 
     /**
-     * Productos disponibles de empleados dados de baja en la delegación.
-     * Son asignaciones marcadas como 'pendiente' con observación de reasignación.
+     * Recurso disponible de bajas: plazas sin consumir + catálogo de productos.
      */
-    public function productosDisponiblesBaja(Request $request): JsonResponse
+    public function recursoBajaDisponible(Request $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
 
         if ($codigosDelegacion === []) {
-            return response()->json(['data' => ['productos' => [], 'empleados_activos' => []], 'message' => '', 'errors' => null]);
+            return response()->json(['data' => ['plazas_disponibles' => 0, 'plazas_usadas' => 0, 'catalogo' => []], 'message' => '', 'errors' => null]);
         }
 
-        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
-        $anioCaptura = $this->anioCaptura();
-
-        $q = DB::table('asignacion_empleado_producto as aep')
+        $plazasDisponibles = (int) DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
-        VestuarioCotizadoJoin::applyCotizadoResuelto($q, 'aep', $anioCatalogo);
-
-        $productos = $q
             ->where('e.estado_delegacion', 'baja')
             ->where('aep.estado_anio_actual', 'pendiente')
             ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
-            ->when(is_array($codigosDelegacion), fn ($qb) => $qb->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->count();
+
+        $plazasUsadas = (int) DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->where('e.estado_delegacion', 'baja')
+            ->where('aep.estado_anio_actual', 'baja')
+            ->where('aep.observacion_anio_actual', 'like', '%Consumido%')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->count();
+
+        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
+        $catalogo = DB::table('producto_cotizado as pc')
+            ->join('producto_licitado as pl', 'pl.id', '=', 'pc.producto_licitado_id')
+            ->where('pc.anio', $anioCatalogo)
             ->select([
-                'aep.id',
-                'aep.empleado_id',
-                'aep.producto_licitado_id',
-                'aep.producto_cotizado_id',
-                'aep.clave_partida_presupuestal',
-                'aep.cantidad',
-                'aep.anio',
-                DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as prenda'),
-                DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
-                DB::raw("CONCAT(COALESCE(e.apellido_paterno,''),' ',COALESCE(e.apellido_materno,''),' ',COALESCE(e.nombre,'')) as empleado_baja"),
-                'e.nue as empleado_baja_nue',
+                'pc.id as producto_cotizado_id',
+                'pl.id as producto_licitado_id',
+                'pc.clave',
+                'pc.descripcion',
+                'pl.numero_partida',
             ])
-            ->orderBy('clave')
+            ->orderBy('pc.clave')
+            ->orderBy('pc.descripcion')
             ->get()
             ->map(fn ($r) => [
-                'id' => (int) $r->id,
-                'empleado_id' => (int) $r->empleado_id,
+                'producto_cotizado_id' => (int) $r->producto_cotizado_id,
                 'producto_licitado_id' => (int) $r->producto_licitado_id,
-                'prenda' => $r->prenda,
                 'clave' => $r->clave,
-                'cantidad' => max(1, (int) ($r->cantidad ?? 1)),
-                'empleado_baja' => trim($r->empleado_baja),
-                'empleado_baja_nue' => $r->empleado_baja_nue,
-            ])
-            ->values()
-            ->all();
-
-        $empleadosActivos = Empleado::query()
-            ->when(is_array($codigosDelegacion), fn ($qe) => $qe->whereIn('delegacion_codigo', $codigosDelegacion))
-            ->where(function ($qe): void {
-                $qe->where('estado_delegacion', '!=', 'baja')
-                    ->orWhereNull('estado_delegacion');
-            })
-            ->orderBy('apellido_paterno')
-            ->orderBy('apellido_materno')
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'apellido_paterno', 'apellido_materno', 'nue'])
-            ->map(fn (Empleado $e) => [
-                'id' => $e->id,
-                'nombre_completo' => trim("{$e->apellido_paterno} {$e->apellido_materno} {$e->nombre}"),
-                'nue' => $e->nue,
+                'descripcion' => $r->descripcion,
+                'numero_partida' => $r->numero_partida,
             ])
             ->values()
             ->all();
 
         return response()->json([
-            'data' => ['productos' => $productos, 'empleados_activos' => $empleadosActivos],
+            'data' => [
+                'plazas_disponibles' => $plazasDisponibles,
+                'plazas_usadas' => $plazasUsadas,
+                'catalogo' => $catalogo,
+            ],
             'message' => '',
             'errors' => null,
         ]);
     }
 
     /**
-     * Reasigna un producto disponible (de empleado dado de baja) a un empleado activo.
+     * Agrega un producto del catálogo a un empleado, consumiendo una plaza de baja.
      */
-    public function reasignarProductoBaja(Request $request, int $asignacionId): JsonResponse
+    public function agregarProductoEmpleado(Request $request, int $empleadoId): JsonResponse
     {
         $validated = $request->validate([
-            'empleado_destino_id' => ['required', 'integer', 'exists:empleado,id'],
+            'producto_cotizado_id' => ['required', 'integer', 'exists:producto_cotizado,id'],
         ]);
 
         /** @var User $user */
         $user = $request->user();
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
 
-        $asignacion = AsignacionEmpleadoProducto::query()
-            ->with('empleado')
-            ->findOrFail($asignacionId);
+        $empleado = Empleado::query()->findOrFail($empleadoId);
+        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
+        abort_unless($empleado->estado_delegacion !== 'baja', 422, 'No se puede asignar a un empleado dado de baja.');
 
-        $empleadoBaja = $asignacion->empleado;
-        abort_unless($empleadoBaja && $empleadoBaja->estado_delegacion === 'baja', 422, 'La asignación no pertenece a un empleado dado de baja.');
-        abort_unless($asignacion->estado_anio_actual === 'pendiente', 422, 'Este producto ya no está disponible para reasignación.');
+        $pc = DB::table('producto_cotizado')->where('id', $validated['producto_cotizado_id'])->first();
+        abort_unless($pc !== null, 422, 'Producto no encontrado en el catálogo.');
 
-        if (is_array($codigosDelegacion)) {
-            abort_unless(in_array($empleadoBaja->delegacion_codigo, $codigosDelegacion, true), 403);
-        }
+        $plazaLibre = AsignacionEmpleadoProducto::query()
+            ->whereHas('empleado', function ($q) use ($codigosDelegacion): void {
+                $q->where('estado_delegacion', 'baja');
+                if (is_array($codigosDelegacion)) {
+                    $q->whereIn('delegacion_codigo', $codigosDelegacion);
+                }
+            })
+            ->where('estado_anio_actual', 'pendiente')
+            ->where('observacion_anio_actual', 'like', '%reasignación%')
+            ->first();
 
-        $empleadoDestino = Empleado::query()->findOrFail($validated['empleado_destino_id']);
-        abort_unless($empleadoDestino->estado_delegacion !== 'baja', 422, 'No se puede asignar a un empleado dado de baja.');
-
-        if (is_array($codigosDelegacion)) {
-            abort_unless(in_array($empleadoDestino->delegacion_codigo, $codigosDelegacion, true), 403);
-        }
+        abort_unless($plazaLibre !== null, 422, 'No hay plazas disponibles de recurso de bajas.');
 
         $anioCaptura = $this->anioCaptura();
 
-        DB::transaction(function () use ($asignacion, $empleadoDestino, $anioCaptura): void {
-            $asignacion->update([
+        DB::transaction(function () use ($plazaLibre, $empleado, $pc, $anioCaptura): void {
+            $plazaLibre->update([
                 'estado_anio_actual' => 'baja',
-                'observacion_anio_actual' => "Reasignado a empleado #{$empleadoDestino->id} ({$empleadoDestino->nue}).",
+                'observacion_anio_actual' => "Consumido: producto asignado a empleado #{$empleado->id}.",
                 'talla_actualizada_at' => now(),
             ]);
 
             AsignacionEmpleadoProducto::query()->create([
                 'anio' => $anioCaptura,
-                'empleado_id' => $empleadoDestino->id,
-                'producto_licitado_id' => $asignacion->producto_licitado_id,
-                'producto_cotizado_id' => $asignacion->producto_cotizado_id,
-                'clave_partida_presupuestal' => $asignacion->clave_partida_presupuestal,
-                'cantidad' => $asignacion->cantidad,
+                'empleado_id' => $empleado->id,
+                'producto_licitado_id' => (int) $pc->producto_licitado_id,
+                'producto_cotizado_id' => (int) $pc->id,
+                'clave_partida_presupuestal' => $pc->clave,
+                'cantidad' => 1,
                 'talla' => null,
                 'talla_anio_actual' => null,
                 'medida_anio_actual' => null,
                 'estado_anio_actual' => 'pendiente',
-                'observacion_anio_actual' => "Reasignado desde baja de empleado #{$asignacion->empleado_id}.",
+                'observacion_anio_actual' => 'Agregado con recurso de baja.',
                 'talla_actualizada_at' => null,
             ]);
         });
 
         return response()->json([
-            'data' => null,
-            'message' => 'Producto reasignado correctamente.',
+            'data' => ['plazas_disponibles' => $this->contarPlazasBajaDisponibles($codigosDelegacion)],
+            'message' => 'Producto agregado correctamente.',
             'errors' => null,
         ]);
+    }
+
+    private function contarPlazasBajaDisponibles(?array $codigosDelegacion): int
+    {
+        return (int) DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->where('e.estado_delegacion', 'baja')
+            ->where('aep.estado_anio_actual', 'pendiente')
+            ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->count();
     }
 
     private function resolverAsignacionObjetivoParaCapturaActual(AsignacionEmpleadoProducto $asignacion): AsignacionEmpleadoProducto

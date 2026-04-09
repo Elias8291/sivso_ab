@@ -14,7 +14,6 @@ import {
     Lock,
     Package,
     Pencil,
-    Repeat2,
     RotateCcw,
     Search,
     Shirt,
@@ -1021,7 +1020,7 @@ function ModalProductos({ empleado, open, onClose }) {
 
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
-function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null }) {
+function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null, plazasBaja = 0, onAbrirAgregarProducto }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
@@ -1285,6 +1284,16 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         </>
                     )}
 
+                    {!esBaja && periodoAbierto && plazasBaja > 0 && onAbrirAgregarProducto && (
+                        <button type="button" onClick={() => onAbrirAgregarProducto(empleado)}
+                            title="Agregar producto con recurso de baja"
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/50 px-3 text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
+                            <Package className="size-3.5 shrink-0 opacity-90" strokeWidth={1.75} />
+                            <span className="hidden sm:inline">Agregar</span>
+                            <span className="sm:hidden">+</span>
+                        </button>
+                    )}
+
                     <button type="button" onClick={() => setVerProductos(true)}
                         title="Ver productos asignados (licitados y cotizados)"
                         className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-zinc-200/70 bg-zinc-50/70 px-3 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-100/80 dark:border-zinc-700/70 dark:bg-zinc-900/40 dark:text-zinc-400 dark:hover:bg-zinc-800/60">
@@ -1346,15 +1355,17 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
     );
 }
 
-/* ─── ModalRepartirProductos ──────────────────────────────────────── */
+/* ─── ModalAgregarProducto ────────────────────────────────────────── */
 
-function ModalRepartirProductos({ open, onClose }) {
-    const [productos, setProductos] = useState([]);
-    const [empleados, setEmpleados] = useState([]);
+function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgregado }) {
+    const [catalogo, setCatalogo] = useState([]);
+    const [plazas, setPlazas] = useState(0);
+    const [plazasUsadas, setPlazasUsadas] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [asignando, setAsignando] = useState(null);
-    const [selEmpleado, setSelEmpleado] = useState({});
+    const [saving, setSaving] = useState(false);
+    const [selProducto, setSelProducto] = useState('');
+    const [busqueda, setBusqueda] = useState('');
     const [mensajeExito, setMensajeExito] = useState('');
 
     useEffect(() => {
@@ -1362,50 +1373,60 @@ function ModalRepartirProductos({ open, onClose }) {
         setLoading(true);
         setError('');
         setMensajeExito('');
-        axios.get(route('my-delegation.productos-baja'))
+        setSelProducto('');
+        setBusqueda('');
+        axios.get(route('my-delegation.recurso-baja'))
             .then((r) => {
-                setProductos(r.data?.data?.productos ?? []);
-                setEmpleados(r.data?.data?.empleados_activos ?? []);
+                setCatalogo(r.data?.data?.catalogo ?? []);
+                setPlazas(r.data?.data?.plazas_disponibles ?? 0);
+                setPlazasUsadas(r.data?.data?.plazas_usadas ?? 0);
             })
-            .catch(() => setError('No se pudieron cargar los productos disponibles.'))
+            .catch(() => setError('No se pudo cargar el catálogo.'))
             .finally(() => setLoading(false));
     }, [open]);
 
-    const handleReasignar = async (productoId) => {
-        const destino = selEmpleado[productoId];
-        if (!destino) return;
-        setAsignando(productoId);
+    const catalogoFiltrado = useMemo(() => {
+        if (!busqueda.trim()) return catalogo;
+        const t = busqueda.toLowerCase();
+        return catalogo.filter((p) =>
+            (p.descripcion ?? '').toLowerCase().includes(t) || (p.clave ?? '').toLowerCase().includes(t),
+        );
+    }, [catalogo, busqueda]);
+
+    const handleAgregar = async () => {
+        if (!selProducto || !empleadoId) return;
+        setSaving(true);
         setError('');
         setMensajeExito('');
         try {
-            await axios.post(route('my-delegation.reasignar-baja', productoId), {
-                empleado_destino_id: destino,
+            const { data } = await axios.post(route('my-delegation.agregar-producto', empleadoId), {
+                producto_cotizado_id: Number(selProducto),
             });
-            setProductos((prev) => prev.filter((p) => p.id !== productoId));
-            setSelEmpleado((prev) => { const n = { ...prev }; delete n[productoId]; return n; });
-            const emp = empleados.find((e) => e.id === Number(destino));
-            setMensajeExito(`Producto asignado a ${emp?.nombre_completo ?? 'empleado'}.`);
+            const nuevasPlazas = data.data?.plazas_disponibles ?? (plazas - 1);
+            setPlazas(nuevasPlazas);
+            setPlazasUsadas((prev) => prev + 1);
+            setSelProducto('');
+            const prod = catalogo.find((c) => c.producto_cotizado_id === Number(selProducto));
+            setMensajeExito(`${prod?.descripcion ?? 'Producto'} agregado.`);
             setTimeout(() => setMensajeExito(''), 3000);
+            if (onAgregado) onAgregado(nuevasPlazas);
         } catch (e) {
-            setError(e?.response?.data?.message ?? 'Error al reasignar el producto.');
+            setError(e?.response?.data?.message ?? 'Error al agregar el producto.');
         } finally {
-            setAsignando(null);
+            setSaving(false);
         }
     };
 
+    const totalPlazas = plazas + plazasUsadas;
+
     return (
-        <Modal open={open} onClose={onClose} maxWidthClass="max-w-2xl">
+        <Modal open={open} onClose={onClose} maxWidthClass="max-w-lg">
             <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
-                <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
-                        <Repeat2 className="size-5 text-zinc-500 dark:text-zinc-400" strokeWidth={1.8} />
-                    </div>
-                    <div>
-                        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">Repartir productos de bajas</h2>
-                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-                            Asigna productos disponibles de empleados dados de baja a otros empleados activos.
-                        </p>
-                    </div>
+                <div className="min-w-0">
+                    <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">Agregar producto</h2>
+                    <p className="mt-0.5 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {empleadoNombre}
+                    </p>
                 </div>
                 <button type="button" onClick={onClose}
                     className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
@@ -1415,93 +1436,121 @@ function ModalRepartirProductos({ open, onClose }) {
 
             <div className="mx-5 h-px bg-zinc-100 dark:bg-zinc-800 sm:mx-6" />
 
-            <div className="max-h-[min(70dvh,600px)] overflow-y-auto overscroll-y-contain px-5 py-4 sm:px-6">
-                {loading && (
+            <div className="max-h-[min(65dvh,500px)] overflow-y-auto overscroll-y-contain px-5 py-4 sm:px-6">
+                {loading ? (
                     <div className="flex items-center justify-center py-12">
                         <RotateCcw className="size-5 animate-spin text-zinc-400" />
                     </div>
-                )}
-
-                {!loading && error && (
-                    <p className="flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-600 ring-1 ring-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:ring-rose-800/30">
-                        <AlertTriangle className="size-4 shrink-0" /> {error}
-                    </p>
-                )}
-
-                {mensajeExito && (
-                    <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-700 ring-1 ring-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:ring-emerald-800/30">
-                        <CheckCircle2 className="size-4 shrink-0" /> {mensajeExito}
-                    </div>
-                )}
-
-                {!loading && !error && productos.length === 0 && (
-                    <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                        <Package className="size-8 text-zinc-300 dark:text-zinc-600" strokeWidth={1.25} />
-                        <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin productos disponibles</p>
-                        <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
-                            No hay productos de empleados dados de baja pendientes de repartir.
-                        </p>
-                    </div>
-                )}
-
-                {!loading && productos.length > 0 && (
-                    <div className="space-y-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                            {productos.length} producto{productos.length !== 1 ? 's' : ''} disponible{productos.length !== 1 ? 's' : ''}
-                        </p>
-                        {productos.map((p) => (
-                            <div key={p.id} className="rounded-xl border border-zinc-200 bg-white p-3.5 dark:border-zinc-700 dark:bg-zinc-900/30">
-                                <div className="mb-2.5">
-                                    <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100">{p.prenda}</p>
-                                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
-                                        {p.clave && <span className="font-mono">{p.clave}</span>}
-                                        <span>Cant. <strong className="text-zinc-700 dark:text-zinc-300">{p.cantidad}</strong></span>
-                                        <span className="text-zinc-400 dark:text-zinc-500">
-                                            De: <span className="font-medium text-zinc-600 dark:text-zinc-300">{p.empleado_baja}</span>
-                                            {p.empleado_baja_nue && <span className="ml-1 font-mono">({p.empleado_baja_nue})</span>}
+                ) : (
+                    <>
+                        {/* Contador de plazas */}
+                        <div className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                            <Package className="size-4 shrink-0 text-zinc-400" strokeWidth={1.8} />
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
+                                    <span className="tabular-nums font-bold text-zinc-900 dark:text-zinc-100">{plazas}</span>{' '}
+                                    {plazas === 1 ? 'plaza disponible' : 'plazas disponibles'}
+                                </p>
+                                {totalPlazas > 0 && (
+                                    <div className="mt-1.5 flex items-center gap-2">
+                                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                                            <div
+                                                className="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
+                                                style={{ width: `${Math.round((plazasUsadas / totalPlazas) * 100)}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                                            {plazasUsadas}/{totalPlazas} usadas
                                         </span>
                                     </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {plazas === 0 ? (
+                            <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                                <Package className="size-7 text-zinc-300 dark:text-zinc-600" strokeWidth={1.25} />
+                                <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin plazas disponibles</p>
+                                <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
+                                    Se han utilizado todas las plazas de recurso de bajas.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Buscador del catálogo */}
+                                <div className="mb-3">
+                                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                                        Buscar producto en catálogo
+                                    </label>
+                                    <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+                                        <Search className="size-3.5 shrink-0 text-zinc-400" />
+                                        <input
+                                            type="text"
+                                            value={busqueda}
+                                            onChange={(e) => setBusqueda(e.target.value)}
+                                            placeholder="Clave o descripción…"
+                                            className="w-full border-0 bg-transparent p-0 text-[12px] text-zinc-800 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-200"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                                    <div className="min-w-0 flex-1">
-                                        <label className="mb-1 block text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-                                            Asignar a
-                                        </label>
-                                        <select
-                                            value={selEmpleado[p.id] || ''}
-                                            onChange={(e) => setSelEmpleado((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                                            className="w-full rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[12px] text-zinc-800 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-200"
-                                        >
-                                            <option value="">— Seleccionar empleado —</option>
-                                            {empleados.map((e) => (
-                                                <option key={e.id} value={e.id}>
-                                                    {e.nombre_completo} {e.nue ? `(${e.nue})` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        disabled={!selEmpleado[p.id] || asignando === p.id}
-                                        onClick={() => handleReasignar(p.id)}
-                                        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border-2 border-zinc-500/80 bg-white px-4 text-[12px] font-medium text-zinc-800 transition disabled:opacity-40 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50"
-                                    >
-                                        {asignando === p.id
-                                            ? <RotateCcw className="size-3.5 animate-spin" />
-                                            : <Repeat2 className="size-3.5" strokeWidth={2} />}
-                                        Asignar
-                                    </button>
+                                {/* Selector de producto */}
+                                <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                    {catalogoFiltrado.length === 0 ? (
+                                        <p className="px-3 py-4 text-center text-[12px] text-zinc-400">Sin resultados.</p>
+                                    ) : (
+                                        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                            {catalogoFiltrado.map((p) => {
+                                                const selected = selProducto === String(p.producto_cotizado_id);
+                                                return (
+                                                    <li key={p.producto_cotizado_id}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelProducto(String(p.producto_cotizado_id))}
+                                                            className={`w-full px-3 py-2 text-left text-[12px] transition ${
+                                                                selected
+                                                                    ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                                                                    : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50'
+                                                            }`}
+                                                        >
+                                                            <span className="block">{p.descripcion}</span>
+                                                            <span className="mt-0.5 block font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{p.clave}</span>
+                                                        </button>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </div>
+                            </>
+                        )}
+
+                        {error && (
+                            <p className="mb-3 flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-600 ring-1 ring-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:ring-rose-800/30">
+                                <AlertTriangle className="size-4 shrink-0" /> {error}
+                            </p>
+                        )}
+                        {mensajeExito && (
+                            <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-700 ring-1 ring-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:ring-emerald-800/30">
+                                <CheckCircle2 className="size-4 shrink-0" /> {mensajeExito}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
 
-            <div className="border-t border-zinc-100 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-6">
+            <div className="flex gap-2 border-t border-zinc-100 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-6">
+                <button
+                    type="button"
+                    disabled={!selProducto || saving || plazas === 0}
+                    onClick={handleAgregar}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-zinc-500/80 bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-800 transition disabled:opacity-40 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50"
+                >
+                    {saving ? <RotateCcw className="size-4 animate-spin" /> : <Package className="size-4" strokeWidth={2} />}
+                    {saving ? 'Agregando…' : 'Agregar producto'}
+                </button>
                 <button type="button" onClick={onClose}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
+                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
                     Cerrar
                 </button>
             </div>
@@ -1520,10 +1569,13 @@ function MiDelegacionIndex({
     filters = {},
     acuse_anios_disponibles = [],
     acuse_anio_default = null,
+    plazas_baja_disponibles = 0,
 }) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
-    const [repartirOpen, setRepartirOpen] = useState(false);
+    const [agregarTarget, setAgregarTarget] = useState(null);
+    const [plazasBajaCount, setPlazasBajaCount] = useState(plazas_baja_disponibles ?? 0);
+    useEffect(() => { setPlazasBajaCount(plazas_baja_disponibles ?? 0); }, [plazas_baja_disponibles]);
     const isFirstRender       = useRef(true);
     const anioRefFallback =
         resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
@@ -1745,15 +1797,11 @@ function MiDelegacionIndex({
                                 <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
                                 Lista
                             </a>
-                            {periodo?.estado === 'abierto' && (
-                                <button
-                                    type="button"
-                                    onClick={() => setRepartirOpen(true)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[12px] font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                                >
-                                    <Repeat2 className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                    Repartir productos
-                                </button>
+                            {periodo?.estado === 'abierto' && plazasBajaCount > 0 && (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/70 bg-emerald-50/50 px-3 py-1.5 text-[12px] font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400">
+                                    <Package className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                    <span className="tabular-nums">{plazasBajaCount}</span> {plazasBajaCount === 1 ? 'plaza' : 'plazas'} de baja
+                                </span>
                             )}
                         </div>
                     </div>
@@ -1863,6 +1911,8 @@ function MiDelegacionIndex({
                                 anioActual={anioVestuario}
                                 periodoAbierto={periodo?.estado === 'abierto'}
                                 acuseAnio={acuseAnio ? Number(acuseAnio) : null}
+                                plazasBaja={plazasBajaCount}
+                                onAbrirAgregarProducto={(e) => setAgregarTarget(e)}
                             />
                         ))}
                     </div>
@@ -1872,7 +1922,13 @@ function MiDelegacionIndex({
                     <div className="mt-6"><TablePagination pagination={empleados} /></div>
                 )}
 
-                <ModalRepartirProductos open={repartirOpen} onClose={() => setRepartirOpen(false)} />
+                <ModalAgregarProducto
+                    open={!!agregarTarget}
+                    onClose={() => setAgregarTarget(null)}
+                    empleadoId={agregarTarget?.id}
+                    empleadoNombre={agregarTarget?.nombre_completo}
+                    onAgregado={(nuevasPlazas) => setPlazasBajaCount(nuevasPlazas)}
+                />
             </AdminPageShell>
         </>
     );

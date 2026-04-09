@@ -634,6 +634,7 @@ function SolicitudesMovimientoIndex({ solicitudes, totales = {}, filters = {} })
             router.reload({
                 only: ['solicitudes', 'totales', 'filters'],
                 preserveScroll: true,
+                showProgress: false,
             });
         };
 

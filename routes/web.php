@@ -85,12 +85,12 @@ Route::middleware(['auth', 'password.changed'])->group(function (): void {
     Route::get('/mi-delegacion/empleados/lista', [MiDelegacionController::class, 'listaEmpleadosPdf'])
         ->middleware('permission:'.SivsoPermissions::VER_MI_DELEGACION)
         ->name('my-delegation.empleados.lista.pdf');
-    Route::get('/mi-delegacion/productos-disponibles-baja', [MiDelegacionController::class, 'productosDisponiblesBaja'])
+    Route::get('/mi-delegacion/recurso-baja', [MiDelegacionController::class, 'recursoBajaDisponible'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
-        ->name('my-delegation.productos-baja');
-    Route::post('/mi-delegacion/asignacion/{asignacion}/reasignar', [MiDelegacionController::class, 'reasignarProductoBaja'])
+        ->name('my-delegation.recurso-baja');
+    Route::post('/mi-delegacion/empleado/{empleado}/agregar-producto', [MiDelegacionController::class, 'agregarProductoEmpleado'])
         ->middleware('permission:'.SivsoPermissions::GESTIONAR_MI_DELEGACION)
-        ->name('my-delegation.reasignar-baja');
+        ->name('my-delegation.agregar-producto');
 
     Route::get('/solicitudes-movimiento', [SolicitudMovimientoController::class, 'index'])
         ->middleware('permission:'.SivsoPermissions::VER_SOLICITUDES)
