@@ -1243,7 +1243,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         </button>
                     )}
 
-                    {!esBaja && !esCambio && total > 0 && empleado.tiene_registro_anio_actual === true && (
+                    {!esBaja && !esCambio && total > 0 && empleado.tiene_registro_anio_actual === true && vestuarioListo && (
                         <a
                             href={route('my-delegation.empleado.acuse-pdf', { empleado: empleado.id, anio: acuseAnio || undefined })}
                             target="_blank"
@@ -1542,15 +1542,25 @@ function MiDelegacionIndex({
                             })}
                         </div>
                         <div className="flex flex-wrap items-center gap-4 border-t border-zinc-100 pt-4 sm:border-t-0 sm:pt-0 dark:border-zinc-800/80">
-                            <a
-                                href={route('my-delegation.acuse-general.pdf', exportParams)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-white dark:hover:decoration-zinc-400"
-                            >
-                                <FileDown className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                Acuse
-                            </a>
+                            {(resumen.total ?? 0) > 0 && (resumen.listos ?? 0) >= (resumen.total ?? 0) ? (
+                                <a
+                                    href={route('my-delegation.acuse-general.pdf', exportParams)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-white dark:hover:decoration-zinc-400"
+                                >
+                                    <FileDown className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                    Acuse general
+                                </a>
+                            ) : (
+                                <span
+                                    className="inline-flex cursor-not-allowed items-center gap-1.5 text-[12px] font-medium text-zinc-400 dark:text-zinc-600"
+                                    title="Actualiza el vestuario de todos los empleados para generar el acuse general"
+                                >
+                                    <Lock className="size-3 shrink-0 opacity-60" strokeWidth={2} aria-hidden />
+                                    Acuse general
+                                </span>
+                            )}
                             <a
                                 href={route('my-delegation.empleados.lista.pdf', exportParams)}
                                 target="_blank"
@@ -1589,6 +1599,41 @@ function MiDelegacionIndex({
                         ) : null}
                     </div>
                 </div>
+
+                {(resumen.total ?? 0) > 0 && (
+                    <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${
+                        (resumen.listos ?? 0) >= (resumen.total ?? 0)
+                            ? 'border-stone-200/70 bg-stone-50/50 dark:border-stone-700/40 dark:bg-stone-900/20'
+                            : 'border-zinc-200/70 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/30'
+                    }`}>
+                        {(resumen.listos ?? 0) >= (resumen.total ?? 0) ? (
+                            <>
+                                <CheckCircle2 className="size-4 shrink-0 text-stone-500 dark:text-stone-400" strokeWidth={1.75} />
+                                <p className="text-[13px] leading-snug text-stone-700 dark:text-stone-300">
+                                    <span className="font-semibold">Actualización completa.</span>{' '}
+                                    Todos los empleados tienen su vestuario al día. Ya puedes generar el acuse general.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <Clock className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[13px] leading-snug text-zinc-600 dark:text-zinc-400">
+                                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">{resumen.listos ?? 0}</span> de{' '}
+                                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">{resumen.total ?? 0}</span>{' '}
+                                        empleados actualizados. Completa todos para generar el acuse general.
+                                    </p>
+                                    <div className="mt-2 h-1 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200/90 dark:bg-zinc-800">
+                                        <div
+                                            className="h-full rounded-full bg-gradient-to-r from-stone-300/60 to-stone-400/45 transition-all duration-500 dark:from-stone-600/50 dark:to-stone-500/35"
+                                            style={{ width: `${(resumen.total ?? 0) > 0 ? Math.round(((resumen.listos ?? 0) / (resumen.total ?? 0)) * 100) : 0}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <h2 className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">

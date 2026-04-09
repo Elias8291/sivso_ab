@@ -98,16 +98,10 @@ function DependenciasIndex({ dependencias, filters = {} }) {
             {
                 key: 'ur',
                 header: 'UR',
-                className: 'w-1/3 text-left tabular-nums',
+                className: 'w-24 text-left tabular-nums',
                 cellClassName: 'text-left font-mono text-xs tabular-nums',
             },
-            { key: 'nombre', header: 'Nombre', className: 'w-1/3 text-left', cellClassName: 'text-left' },
-            {
-                key: 'nombre_corto',
-                header: 'Nombre corto',
-                className: 'w-1/3 text-left',
-                cellClassName: 'text-left',
-            },
+            { key: 'nombre', header: 'Nombre', cellClassName: 'text-left' },
             {
                 key: 'acciones',
                 header: 'Acciones',
