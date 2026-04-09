@@ -576,6 +576,11 @@ function TarjetaSolicitud({ solicitud, onResolver, puedeResolver }) {
                                     {solicitud.lleva_recurso ? '→ Empleado lleva el recurso presupuestal' : '→ El recurso queda en delegación origen'}
                                 </span>
                             )}
+                            {!esCambio && solicitud.estado === 'aprobada' && (
+                                <span className="block font-semibold text-zinc-700 dark:text-zinc-300">
+                                    → El presupuesto queda en la delegación y se puede repartir entre sus empleados
+                                </span>
+                            )}
                             {solicitud.ajuste_recurso && (
                                 <span className="block italic text-zinc-500 dark:text-zinc-400">Ajuste: {solicitud.ajuste_recurso}</span>
                             )}
