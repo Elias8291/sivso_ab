@@ -341,10 +341,10 @@ function Modal({ open, onClose, children, maxWidthClass = 'max-w-md', tone = 'de
         : 'bg-zinc-900/40 backdrop-blur-[2px]';
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            <div className={`absolute inset-0 ${backdropTone}`} onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overscroll-contain sm:items-center sm:p-6">
+            <div className={`fixed inset-0 ${backdropTone}`} onClick={onClose} />
             <div
-                className={`relative z-10 w-full ${maxWidthClass} overflow-hidden rounded-2xl border ${shellTone}`}
+                className={`relative z-10 w-full ${maxWidthClass} max-h-[min(95dvh,calc(100dvh-env(safe-area-inset-bottom)))] overflow-y-auto overscroll-y-contain rounded-t-2xl border sm:max-h-[min(90dvh,900px)] sm:rounded-2xl ${shellTone}`}
                 style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}
             >
                 {children}
@@ -685,7 +685,7 @@ function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerr
                 )}
 
                 {/* Botones */}
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                <div className="flex flex-col-reverse gap-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:pb-0">
                     <button type="button" onClick={guardar} disabled={saving}
                         className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium transition-opacity disabled:opacity-50 ${cfg.btnCls}`}>
                         {saving ? <RotateCcw className="size-4 animate-spin" /> : cfg.icon}
