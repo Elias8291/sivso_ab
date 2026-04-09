@@ -167,12 +167,6 @@ class MiDelegacionController extends Controller
 
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
-            ->whereExists(function ($q) use ($anioBase): void {
-                $q->selectRaw('1')
-                    ->from('asignacion_empleado_producto as aep')
-                    ->whereColumn('aep.empleado_id', 'empleado.id')
-                    ->where('aep.anio', $anioBase);
-            })
             ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
             ->when($search !== null, function ($query) use ($search): void {
                 $query->where(function ($q) use ($search): void {
