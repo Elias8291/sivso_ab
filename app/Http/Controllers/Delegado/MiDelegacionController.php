@@ -831,6 +831,7 @@ class MiDelegacionController extends Controller
             $request->request->all()
         );
         [$query, , $contexto, $anioVestuario] = $this->buildEmpleadosQueryParaExport($requestLista, $user);
+        $query->where('empleado.estado_delegacion', '!=', 'baja');
         $empleados = $query->get();
 
         $filas = [];
