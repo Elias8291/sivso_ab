@@ -35,6 +35,9 @@ const FILTROS = [
 
 const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 
+const moneyFmt = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmtMoney(v) { return moneyFmt.format(Number(v) || 0); }
+
 /* ─── PrendaRow ──────────────────────────────────────────────────── */
 /* Ahora es controlado: recibe draft del panel padre y lo notifica */
 
@@ -1020,7 +1023,7 @@ function ModalProductos({ empleado, open, onClose }) {
 
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
-function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null, plazasBaja = 0, onAbrirAgregarProducto }) {
+function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null, presupuestoBaja = 0, onAbrirAgregarProducto }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
@@ -1284,7 +1287,7 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                         </>
                     )}
 
-                    {!esBaja && periodoAbierto && plazasBaja > 0 && onAbrirAgregarProducto && (
+                    {!esBaja && periodoAbierto && presupuestoBaja > 0 && onAbrirAgregarProducto && (
                         <button type="button" onClick={() => onAbrirAgregarProducto(empleado)}
                             title="Agregar producto con recurso de baja"
                             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/50 px-3 text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
@@ -1359,8 +1362,9 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
 
 function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgregado }) {
     const [catalogo, setCatalogo] = useState([]);
-    const [plazas, setPlazas] = useState(0);
-    const [plazasUsadas, setPlazasUsadas] = useState(0);
+    const [presupuestoTotal, setPresupuestoTotal] = useState(0);
+    const [presupuestoUsado, setPresupuestoUsado] = useState(0);
+    const [presupuestoDisponible, setPresupuestoDisponible] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -1378,8 +1382,9 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
         axios.get(route('my-delegation.recurso-baja'))
             .then((r) => {
                 setCatalogo(r.data?.data?.catalogo ?? []);
-                setPlazas(r.data?.data?.plazas_disponibles ?? 0);
-                setPlazasUsadas(r.data?.data?.plazas_usadas ?? 0);
+                setPresupuestoTotal(r.data?.data?.presupuesto_total ?? 0);
+                setPresupuestoUsado(r.data?.data?.presupuesto_usado ?? 0);
+                setPresupuestoDisponible(r.data?.data?.presupuesto_disponible ?? 0);
             })
             .catch(() => setError('No se pudo cargar el catálogo.'))
             .finally(() => setLoading(false));
@@ -1393,6 +1398,9 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
         );
     }, [catalogo, busqueda]);
 
+    const productoSeleccionado = catalogo.find((c) => c.producto_cotizado_id === Number(selProducto));
+    const precioSeleccionado = productoSeleccionado?.precio_unitario ?? 0;
+
     const handleAgregar = async () => {
         if (!selProducto || !empleadoId) return;
         setSaving(true);
@@ -1402,22 +1410,19 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
             const { data } = await axios.post(route('my-delegation.agregar-producto', empleadoId), {
                 producto_cotizado_id: Number(selProducto),
             });
-            const nuevasPlazas = data.data?.plazas_disponibles ?? (plazas - 1);
-            setPlazas(nuevasPlazas);
-            setPlazasUsadas((prev) => prev + 1);
+            const nuevoDisponible = data.data?.presupuesto_disponible ?? Math.max(0, presupuestoDisponible - precioSeleccionado);
+            setPresupuestoDisponible(nuevoDisponible);
+            setPresupuestoUsado((prev) => prev + precioSeleccionado);
             setSelProducto('');
-            const prod = catalogo.find((c) => c.producto_cotizado_id === Number(selProducto));
-            setMensajeExito(`${prod?.descripcion ?? 'Producto'} agregado.`);
+            setMensajeExito(`${productoSeleccionado?.descripcion ?? 'Producto'} agregado.`);
             setTimeout(() => setMensajeExito(''), 3000);
-            if (onAgregado) onAgregado(nuevasPlazas);
+            if (onAgregado) onAgregado(nuevoDisponible);
         } catch (e) {
             setError(e?.response?.data?.message ?? 'Error al agregar el producto.');
         } finally {
             setSaving(false);
         }
     };
-
-    const totalPlazas = plazas + plazasUsadas;
 
     return (
         <Modal open={open} onClose={onClose} maxWidthClass="max-w-lg">
@@ -1443,36 +1448,36 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
                     </div>
                 ) : (
                     <>
-                        {/* Contador de plazas */}
+                        {/* Presupuesto disponible */}
                         <div className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
                             <Package className="size-4 shrink-0 text-zinc-400" strokeWidth={1.8} />
                             <div className="min-w-0 flex-1">
                                 <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
-                                    <span className="tabular-nums font-bold text-zinc-900 dark:text-zinc-100">{plazas}</span>{' '}
-                                    {plazas === 1 ? 'plaza disponible' : 'plazas disponibles'}
+                                    <span className="tabular-nums font-bold text-zinc-900 dark:text-zinc-100">${fmtMoney(presupuestoDisponible)}</span>{' '}
+                                    disponible
                                 </p>
-                                {totalPlazas > 0 && (
+                                {presupuestoTotal > 0 && (
                                     <div className="mt-1.5 flex items-center gap-2">
                                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                                             <div
                                                 className="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
-                                                style={{ width: `${Math.round((plazasUsadas / totalPlazas) * 100)}%` }}
+                                                style={{ width: `${Math.min(100, Math.round((presupuestoUsado / presupuestoTotal) * 100))}%` }}
                                             />
                                         </div>
                                         <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                                            {plazasUsadas}/{totalPlazas} usadas
+                                            ${fmtMoney(presupuestoUsado)} / ${fmtMoney(presupuestoTotal)}
                                         </span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {plazas === 0 ? (
+                        {presupuestoDisponible <= 0 ? (
                             <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                                 <Package className="size-7 text-zinc-300 dark:text-zinc-600" strokeWidth={1.25} />
-                                <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin plazas disponibles</p>
+                                <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin presupuesto disponible</p>
                                 <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
-                                    Se han utilizado todas las plazas de recurso de bajas.
+                                    Se ha utilizado todo el presupuesto de recurso de bajas.
                                 </p>
                             </div>
                         ) : (
@@ -1513,7 +1518,10 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
                                                                     : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50'
                                                             }`}
                                                         >
-                                                            <span className="block">{p.descripcion}</span>
+                                                            <span className="flex items-center justify-between gap-2">
+                                                                <span className="min-w-0 truncate">{p.descripcion}</span>
+                                                                <span className="shrink-0 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">${fmtMoney(p.precio_unitario)}</span>
+                                                            </span>
                                                             <span className="mt-0.5 block font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{p.clave}</span>
                                                         </button>
                                                     </li>
@@ -1539,20 +1547,28 @@ function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgr
                 )}
             </div>
 
-            <div className="flex gap-2 border-t border-zinc-100 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-6">
-                <button
-                    type="button"
-                    disabled={!selProducto || saving || plazas === 0}
-                    onClick={handleAgregar}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-zinc-500/80 bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-800 transition disabled:opacity-40 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50"
-                >
-                    {saving ? <RotateCcw className="size-4 animate-spin" /> : <Package className="size-4" strokeWidth={2} />}
-                    {saving ? 'Agregando…' : 'Agregar producto'}
-                </button>
-                <button type="button" onClick={onClose}
-                    className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
-                    Cerrar
-                </button>
+            <div className="border-t border-zinc-100 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-6">
+                {selProducto && precioSeleccionado > 0 && (
+                    <p className={`mb-2 text-center text-[11px] font-medium tabular-nums ${precioSeleccionado > presupuestoDisponible ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                        Precio: ${fmtMoney(precioSeleccionado)}
+                        {precioSeleccionado > presupuestoDisponible && ' — excede el presupuesto disponible'}
+                    </p>
+                )}
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        disabled={!selProducto || saving || presupuestoDisponible <= 0 || precioSeleccionado > presupuestoDisponible}
+                        onClick={handleAgregar}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-zinc-500/80 bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-800 transition disabled:opacity-40 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50"
+                    >
+                        {saving ? <RotateCcw className="size-4 animate-spin" /> : <Package className="size-4" strokeWidth={2} />}
+                        {saving ? 'Agregando…' : 'Agregar producto'}
+                    </button>
+                    <button type="button" onClick={onClose}
+                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
+                        Cerrar
+                    </button>
+                </div>
             </div>
         </Modal>
     );
@@ -1569,13 +1585,13 @@ function MiDelegacionIndex({
     filters = {},
     acuse_anios_disponibles = [],
     acuse_anio_default = null,
-    plazas_baja_disponibles = 0,
+    presupuesto_baja_disponible = 0,
 }) {
     const [search, setSearch] = useState(filters.search || '');
     const [filtro, setFiltro] = useState(filters.filtro || 'todos');
     const [agregarTarget, setAgregarTarget] = useState(null);
-    const [plazasBajaCount, setPlazasBajaCount] = useState(plazas_baja_disponibles ?? 0);
-    useEffect(() => { setPlazasBajaCount(plazas_baja_disponibles ?? 0); }, [plazas_baja_disponibles]);
+    const [presupuestoBaja, setPresupuestoBaja] = useState(presupuesto_baja_disponible ?? 0);
+    useEffect(() => { setPresupuestoBaja(presupuesto_baja_disponible ?? 0); }, [presupuesto_baja_disponible]);
     const isFirstRender       = useRef(true);
     const anioRefFallback =
         resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
@@ -1678,9 +1694,6 @@ function MiDelegacionIndex({
 
                 <div className="mb-6 border-b border-zinc-100 pb-6 dark:border-zinc-800/80">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-                        <p className="max-w-2xl text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-                            Tallas, cambio de delegación y bajas se gestionan en cada fila.
-                        </p>
                         {periodo && periodo.estado !== 'abierto' && (
                             <p className="shrink-0 text-[12px] leading-snug text-zinc-500 dark:text-zinc-500 sm:text-right">
                                 <span className="inline-flex items-center gap-1.5">
@@ -1797,10 +1810,10 @@ function MiDelegacionIndex({
                                 <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
                                 Lista
                             </a>
-                            {periodo?.estado === 'abierto' && plazasBajaCount > 0 && (
+                            {periodo?.estado === 'abierto' && presupuestoBaja > 0 && (
                                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/70 bg-emerald-50/50 px-3 py-1.5 text-[12px] font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400">
                                     <Package className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                    <span className="tabular-nums">{plazasBajaCount}</span> {plazasBajaCount === 1 ? 'plaza' : 'plazas'} de baja
+                                    ${fmtMoney(presupuestoBaja)} disponible de baja
                                 </span>
                             )}
                         </div>
@@ -1911,7 +1924,7 @@ function MiDelegacionIndex({
                                 anioActual={anioVestuario}
                                 periodoAbierto={periodo?.estado === 'abierto'}
                                 acuseAnio={acuseAnio ? Number(acuseAnio) : null}
-                                plazasBaja={plazasBajaCount}
+                                presupuestoBaja={presupuestoBaja}
                                 onAbrirAgregarProducto={(e) => setAgregarTarget(e)}
                             />
                         ))}
@@ -1927,7 +1940,7 @@ function MiDelegacionIndex({
                     onClose={() => setAgregarTarget(null)}
                     empleadoId={agregarTarget?.id}
                     empleadoNombre={agregarTarget?.nombre_completo}
-                    onAgregado={(nuevasPlazas) => setPlazasBajaCount(nuevasPlazas)}
+                    onAgregado={(nuevoPresupuesto) => setPresupuestoBaja(nuevoPresupuesto)}
                 />
             </AdminPageShell>
         </>

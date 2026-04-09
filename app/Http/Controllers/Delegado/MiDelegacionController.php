@@ -265,7 +265,7 @@ class MiDelegacionController extends Controller
             ),
             'acuse_anios_disponibles' => $this->aniosAcuseDisponiblesCached($codigosFiltro, $search),
             'acuse_anio_default' => $anioCaptura,
-            'plazas_baja_disponibles' => $this->contarPlazasBajaDisponibles($codigosFiltro),
+            'presupuesto_baja_disponible' => $this->presupuestoBajaDisponible($codigosFiltro),
         ]);
     }
 
@@ -1703,24 +1703,26 @@ class MiDelegacionController extends Controller
         $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
 
         if ($codigosDelegacion === []) {
-            return response()->json(['data' => ['plazas_disponibles' => 0, 'plazas_usadas' => 0, 'catalogo' => []], 'message' => '', 'errors' => null]);
+            return response()->json(['data' => ['presupuesto_total' => 0, 'presupuesto_usado' => 0, 'presupuesto_disponible' => 0, 'catalogo' => []], 'message' => '', 'errors' => null]);
         }
 
-        $plazasDisponibles = (int) DB::table('asignacion_empleado_producto as aep')
+        $pool = (float) DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
             ->where('e.estado_delegacion', 'baja')
             ->where('aep.estado_anio_actual', 'pendiente')
             ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+            ->sum(DB::raw('COALESCE(pc.precio_unitario, 0) * GREATEST(COALESCE(aep.cantidad, 1), 1)'));
 
-        $plazasUsadas = (int) DB::table('asignacion_empleado_producto as aep')
+        $usado = (float) DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->where('e.estado_delegacion', 'baja')
-            ->where('aep.estado_anio_actual', 'baja')
-            ->where('aep.observacion_anio_actual', 'like', '%Consumido%')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
+            ->where('aep.observacion_anio_actual', 'like', '%Agregado con recurso de baja%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+            ->sum(DB::raw('COALESCE(pc.precio_unitario, 0) * GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+
+        $disponible = round(max(0.0, $pool - $usado), 2);
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
         $catalogo = DB::table('producto_cotizado as pc')
@@ -1731,6 +1733,7 @@ class MiDelegacionController extends Controller
                 'pl.id as producto_licitado_id',
                 'pc.clave',
                 'pc.descripcion',
+                'pc.precio_unitario',
                 'pl.numero_partida',
             ])
             ->orderBy('pc.clave')
@@ -1741,6 +1744,7 @@ class MiDelegacionController extends Controller
                 'producto_licitado_id' => (int) $r->producto_licitado_id,
                 'clave' => $r->clave,
                 'descripcion' => $r->descripcion,
+                'precio_unitario' => round((float) ($r->precio_unitario ?? 0), 2),
                 'numero_partida' => $r->numero_partida,
             ])
             ->values()
@@ -1748,8 +1752,9 @@ class MiDelegacionController extends Controller
 
         return response()->json([
             'data' => [
-                'plazas_disponibles' => $plazasDisponibles,
-                'plazas_usadas' => $plazasUsadas,
+                'presupuesto_total' => round($pool + $usado, 2),
+                'presupuesto_usado' => round($usado, 2),
+                'presupuesto_disponible' => $disponible,
                 'catalogo' => $catalogo,
             ],
             'message' => '',
@@ -1777,68 +1782,55 @@ class MiDelegacionController extends Controller
         $pc = DB::table('producto_cotizado')->where('id', $validated['producto_cotizado_id'])->first();
         abort_unless($pc !== null, 422, 'Producto no encontrado en el catálogo.');
 
-        $plazaLibre = AsignacionEmpleadoProducto::query()
-            ->whereHas('empleado', function ($q) use ($codigosDelegacion): void {
-                $q->where('estado_delegacion', 'baja');
-                if (is_array($codigosDelegacion)) {
-                    $q->whereIn('delegacion_codigo', $codigosDelegacion);
-                }
-            })
-            ->where('estado_anio_actual', 'pendiente')
-            ->where('observacion_anio_actual', 'like', '%reasignación%')
-            ->first();
-
-        abort_unless($plazaLibre !== null, 422, 'No hay recurso disponible de bajas.');
+        $precioProducto = round((float) ($pc->precio_unitario ?? 0), 2);
+        $disponible = $this->presupuestoBajaDisponible($codigosDelegacion);
+        abort_unless($disponible >= $precioProducto, 422, 'Presupuesto insuficiente. Disponible: $' . number_format($disponible, 2) . ', producto: $' . number_format($precioProducto, 2));
 
         $anioCaptura = $this->anioCaptura();
-        $cantidadActual = max(1, (int) ($plazaLibre->cantidad ?? 1));
 
-        DB::transaction(function () use ($plazaLibre, $empleado, $pc, $anioCaptura, $cantidadActual): void {
-            if ($cantidadActual <= 1) {
-                $plazaLibre->update([
-                    'estado_anio_actual' => 'baja',
-                    'observacion_anio_actual' => "Consumido: recurso asignado a empleado #{$empleado->id}.",
-                    'talla_actualizada_at' => now(),
-                ]);
-            } else {
-                $plazaLibre->update([
-                    'cantidad' => $cantidadActual - 1,
-                    'talla_actualizada_at' => now(),
-                ]);
-            }
+        AsignacionEmpleadoProducto::query()->create([
+            'anio' => $anioCaptura,
+            'empleado_id' => $empleado->id,
+            'producto_licitado_id' => (int) $pc->producto_licitado_id,
+            'producto_cotizado_id' => (int) $pc->id,
+            'clave_partida_presupuestal' => $pc->clave,
+            'cantidad' => 1,
+            'talla' => null,
+            'talla_anio_actual' => null,
+            'medida_anio_actual' => null,
+            'estado_anio_actual' => 'pendiente',
+            'observacion_anio_actual' => 'Agregado con recurso de baja.',
+            'talla_actualizada_at' => null,
+        ]);
 
-            AsignacionEmpleadoProducto::query()->create([
-                'anio' => $anioCaptura,
-                'empleado_id' => $empleado->id,
-                'producto_licitado_id' => (int) $pc->producto_licitado_id,
-                'producto_cotizado_id' => (int) $pc->id,
-                'clave_partida_presupuestal' => $pc->clave,
-                'cantidad' => 1,
-                'talla' => null,
-                'talla_anio_actual' => null,
-                'medida_anio_actual' => null,
-                'estado_anio_actual' => 'pendiente',
-                'observacion_anio_actual' => 'Agregado con recurso de baja.',
-                'talla_actualizada_at' => null,
-            ]);
-        });
+        $nuevoDisponible = $this->presupuestoBajaDisponible($codigosDelegacion);
 
         return response()->json([
-            'data' => ['plazas_disponibles' => $this->contarPlazasBajaDisponibles($codigosDelegacion)],
+            'data' => ['presupuesto_disponible' => $nuevoDisponible],
             'message' => 'Producto agregado correctamente.',
             'errors' => null,
         ]);
     }
 
-    private function contarPlazasBajaDisponibles(?array $codigosDelegacion): int
+    private function presupuestoBajaDisponible(?array $codigosDelegacion): float
     {
-        return (int) DB::table('asignacion_empleado_producto as aep')
+        $pool = (float) DB::table('asignacion_empleado_producto as aep')
             ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
             ->where('e.estado_delegacion', 'baja')
             ->where('aep.estado_anio_actual', 'pendiente')
             ->where('aep.observacion_anio_actual', 'like', '%reasignación%')
             ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->sum(DB::raw('GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+            ->sum(DB::raw('COALESCE(pc.precio_unitario, 0) * GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+
+        $usado = (float) DB::table('asignacion_empleado_producto as aep')
+            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
+            ->join('producto_cotizado as pc', 'pc.id', '=', 'aep.producto_cotizado_id')
+            ->where('aep.observacion_anio_actual', 'like', '%Agregado con recurso de baja%')
+            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
+            ->sum(DB::raw('COALESCE(pc.precio_unitario, 0) * GREATEST(COALESCE(aep.cantidad, 1), 1)'));
+
+        return round(max(0.0, $pool - $usado), 2);
     }
 
     private function resolverAsignacionObjetivoParaCapturaActual(AsignacionEmpleadoProducto $asignacion): AsignacionEmpleadoProducto
