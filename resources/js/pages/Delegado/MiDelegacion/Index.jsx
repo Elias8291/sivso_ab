@@ -1251,98 +1251,62 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                     </div>
                 </div>
 
-                {/* acciones: fila completa en móvil, columna a la derecha en desktop */}
-                <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-800/80 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
+                {/* acciones */}
+                <div className="flex w-full items-center justify-end gap-1 border-t border-zinc-100/80 pt-2.5 dark:border-zinc-800/60 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0">
                     {!solicitudPendiente && esCambio && (
-                        <button type="button" onClick={handleReactivar} disabled={reactivando}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-[11px] font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                        <button type="button" onClick={handleReactivar} disabled={reactivando} title="Reactivar"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
                             {reactivando ? <RotateCcw className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-                            Reactivar
+                            <span className="hidden sm:inline">Reactivar</span>
                         </button>
                     )}
 
                     {!esBaja && (
                         <button type="button" onClick={() => setVestuarioAbierto((p) => !p)}
-                            title={periodoAbierto
-                                ? (pendienteVestuario ? `Actualizar vestuario ${anioActual}` : `Vestuario ${anioActual}`)
-                                : `Ver vestuario ${anioActual}`}
-                            aria-label={
-                                (periodoAbierto
-                                    ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario')
-                                    : 'Ver vestuario')
-                                + ` ${anioActual}`
-                                + (total > 0 ? `, ${listos} de ${total} prendas` : '')
-                            }
-                            className={`inline-flex h-9 max-w-full flex-1 items-center justify-center gap-1.5 rounded-full border px-3 text-[11px] font-medium transition sm:flex-initial sm:justify-start ${
+                            title={periodoAbierto ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario') : 'Ver vestuario'}
+                            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium transition ${
                                 vestuarioAbierto
-                                    ? 'border-stone-300/80 bg-stone-200/40 text-stone-900 dark:border-stone-600 dark:bg-stone-800/70 dark:text-stone-100'
+                                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
                                     : periodoAbierto && pendienteVestuario
-                                        ? 'border-stone-200/90 bg-stone-50/90 text-stone-800 hover:border-stone-300 dark:border-stone-600/50 dark:bg-stone-900/40 dark:text-stone-200 dark:hover:border-stone-500/50'
-                                        : 'border-zinc-200/80 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50/90 dark:border-zinc-700/80 dark:bg-zinc-950/40 dark:text-zinc-300 dark:hover:bg-zinc-900/60'
+                                        ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
                             }`}>
-                            <span className="relative inline-flex shrink-0">
-                                <Shirt className="size-3.5 shrink-0 opacity-90" strokeWidth={1.75} />
-                                {periodoAbierto && pendienteVestuario && (
-                                    <span
-                                        className={`absolute -right-1 -top-1 flex size-3 items-center justify-center rounded-full border sm:hidden ${
-                                            vestuarioAbierto
-                                                ? 'border-stone-200 bg-white text-stone-700 dark:border-stone-600 dark:bg-zinc-900 dark:text-stone-300'
-                                                : 'border-zinc-200 bg-zinc-700 text-white dark:border-zinc-600 dark:bg-zinc-600 dark:text-white'
-                                        }`}
-                                        aria-hidden
-                                    >
-                                        <Pencil className="size-2" strokeWidth={2.5} />
-                                    </span>
-                                )}
-                            </span>
-                            <span className="hidden sm:inline md:hidden">
+                            <Shirt className="size-3.5" strokeWidth={1.75} />
+                            <span className="hidden sm:inline">
                                 {periodoAbierto ? (pendienteVestuario ? 'Actualizar' : 'Vestuario') : 'Ver'}
                             </span>
-                            <span className="hidden md:inline">
-                                {periodoAbierto ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario') : 'Ver vestuario'}
-                            </span>
-                            {total > 0 && (
-                                <span className={`tabular-nums opacity-80 ${
-                                    vestuarioAbierto ? 'text-zinc-800 dark:text-zinc-200' : ''
-                                }`}>{listos}/{total}</span>
-                            )}
-                            <ChevronDown className={`size-3.5 shrink-0 opacity-70 transition-transform duration-150 ease-out motion-reduce:transition-none sm:size-4 ${
-                                vestuarioAbierto ? 'rotate-180' : ''
-                            }`} strokeWidth={2} />
+                            {total > 0 && <span className="tabular-nums text-[10px] opacity-60">{listos}/{total}</span>}
+                            <ChevronDown className={`size-3 opacity-50 transition-transform duration-150 ${vestuarioAbierto ? 'rotate-180' : ''}`} strokeWidth={2} />
                         </button>
                     )}
 
                     {!esBaja && !solicitudPendiente && (
                         <>
-                            <button type="button" onClick={() => setModal('cambio')} title="Solicitar cambio de delegación"
-                                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-zinc-200/85 bg-zinc-50/90 px-3 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-100/90 sm:flex-initial dark:border-zinc-700/70 dark:bg-zinc-900/35 dark:text-zinc-400 dark:hover:bg-zinc-800/50">
-                                <ArrowLeftRight className="size-3.5 shrink-0 opacity-90" strokeWidth={1.8} />
-                                <span className="hidden sm:inline md:hidden">Cambio</span>
-                                <span className="hidden md:inline">Cambio delegación</span>
+                            <button type="button" onClick={() => setModal('cambio')} title="Cambio de delegación"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
+                                <ArrowLeftRight className="size-3.5" strokeWidth={1.75} />
+                                <span className="hidden sm:inline">Cambio</span>
                             </button>
 
                             <button type="button" onClick={() => setModal('baja')} title="Solicitar baja"
-                                className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-rose-200/50 bg-rose-50/40 px-3 text-[11px] font-medium text-rose-800/80 transition hover:bg-rose-50/80 sm:flex-initial dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400/85 dark:hover:bg-rose-950/30">
-                                <XCircle className="size-3.5 shrink-0 opacity-90" strokeWidth={1.8} />
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400">
+                                <XCircle className="size-3.5" strokeWidth={1.75} />
                                 <span className="hidden sm:inline">Baja</span>
                             </button>
                         </>
                     )}
 
                     {!esBaja && periodoAbierto && presupuestoBaja > 0 && onAbrirAgregarProducto && (
-                        <button type="button" onClick={() => onAbrirAgregarProducto(empleado)}
-                            title="Agregar producto con recurso de baja"
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/50 px-3 text-[11px] font-medium text-emerald-800 transition hover:bg-emerald-50 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
-                            <Package className="size-3.5 shrink-0 opacity-90" strokeWidth={1.75} />
+                        <button type="button" onClick={() => onAbrirAgregarProducto(empleado)} title="Agregar producto"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400">
+                            <Package className="size-3.5" strokeWidth={1.75} />
                             <span className="hidden sm:inline">Agregar</span>
-                            <span className="sm:hidden">+</span>
                         </button>
                     )}
 
-                    <button type="button" onClick={() => setVerProductos(true)}
-                        title="Ver productos asignados (licitados y cotizados)"
-                        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-zinc-200/70 bg-zinc-50/70 px-3 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-100/80 dark:border-zinc-700/70 dark:bg-zinc-900/40 dark:text-zinc-400 dark:hover:bg-zinc-800/60">
-                        <Package className="size-3.5 shrink-0 opacity-90" strokeWidth={1.75} />
+                    <button type="button" onClick={() => setVerProductos(true)} title="Ver productos"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
+                        <Package className="size-3.5" strokeWidth={1.75} />
                         <span className="hidden sm:inline">Productos</span>
                     </button>
                 </div>
