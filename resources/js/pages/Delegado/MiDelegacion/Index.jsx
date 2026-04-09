@@ -1024,7 +1024,7 @@ function ModalProductos({ empleado, open, onClose }) {
 
 /* ─── EmpleadoRow ────────────────────────────────────────────────── */
 
-function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, acuseAnio = null, presupuestoBaja = 0, onAbrirAgregarProducto }) {
+function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, presupuestoBaja = 0, onAbrirAgregarProducto }) {
     const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
     const [modal, setModal]                        = useState(null);
     const [verProductos, setVerProductos]          = useState(false);
@@ -1310,20 +1310,6 @@ function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true
                                 vestuarioAbierto ? 'rotate-180' : ''
                             }`} strokeWidth={2} />
                         </button>
-                    )}
-
-                    {!esBaja && !esCambio && total > 0 && empleado.tiene_registro_anio_actual === true && vestuarioListo && (
-                        <a
-                            href={route('my-delegation.empleado.acuse-pdf', { empleado: empleado.id, anio: acuseAnio || undefined })}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`Descargar acuse de recibo en PDF${acuseAnio ? ` (${acuseAnio})` : ''}`}
-                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-stone-200/90 bg-stone-100/60 px-3 text-[11px] font-medium text-stone-700 transition hover:bg-stone-100 dark:border-stone-600/40 dark:bg-stone-800/45 dark:text-stone-300 dark:hover:bg-stone-800/65"
-                        >
-                            <FileDown className="size-3.5 shrink-0 text-stone-500 dark:text-stone-400" strokeWidth={1.75} />
-                            <span className="hidden sm:inline">Acuse PDF</span>
-                            <span className="sm:hidden">PDF</span>
-                        </a>
                     )}
 
                     {!esBaja && !solicitudPendiente && (
@@ -1979,7 +1965,6 @@ function MiDelegacionIndex({
                                 delegaciones={delegaciones}
                                 anioActual={anioVestuario}
                                 periodoAbierto={periodo?.estado === 'abierto'}
-                                acuseAnio={acuseAnio ? Number(acuseAnio) : null}
                                 presupuestoBaja={presupuestoBaja}
                                 onAbrirAgregarProducto={(e) => setAgregarTarget(e)}
                             />

@@ -1,1 +1,0 @@
-import{n as e}from"./app-BBf_TZj1.js";import{t}from"./AuthenticatedLayout-Bt4eko3G.js";var n=e(),r=`truncate text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-lg`;function i(e){return i=>(0,n.jsx)(t,{header:(0,n.jsx)(`span`,{className:r,children:e}),children:i})}export{i as t};
