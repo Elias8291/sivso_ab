@@ -4,9 +4,9 @@ import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router } from '@inertiajs/react';
 import {
     CheckCircle2, ChevronDown, Clock, LayoutList,
-    Package, Tag,
+    Package, Search, Tag,
 } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { route } from 'ziggy-js';
 
 /* ──────────────────────────────────────────────
@@ -198,17 +198,8 @@ function ResumenVestuario({
 }) {
     const puedeVerResumen = useAuthCan()('Ver cotejo vestuario');
 
-    if (!puedeVerResumen) {
-        return (
-            <>
-                <Head title="Resumen de vestuario" />
-                <AdminPageShell
-                    title="Resumen de vestuario"
-                    description="No tienes permisos para consultar esta sección."
-                />
-            </>
-        );
-    }
+    // All hooks must be declared before any conditional return
+    const [buscarEmpleado, setBuscarEmpleado] = useState('');
 
     const navegar = useCallback((overrides) => {
         router.get(
@@ -223,6 +214,30 @@ function ResumenVestuario({
         { value: '', label: 'Todas las delegaciones' },
         ...delegaciones_opciones.map((c) => ({ value: c, label: c })),
     ];
+
+    const empleadosFiltrados = useMemo(() => {
+        const q = buscarEmpleado.trim().toLowerCase();
+        if (!q) return empleados_actualizados;
+        return empleados_actualizados.filter(
+            (e) =>
+                (e.nue && e.nue.toLowerCase().includes(q)) ||
+                (e.nombre_completo && e.nombre_completo.toLowerCase().includes(q)) ||
+                (e.ur && String(e.ur).includes(q)) ||
+                (e.delegacion_codigo && e.delegacion_codigo.toLowerCase().includes(q)),
+        );
+    }, [empleados_actualizados, buscarEmpleado]);
+
+    if (!puedeVerResumen) {
+        return (
+            <>
+                <Head title="Resumen de vestuario" />
+                <AdminPageShell
+                    title="Resumen de vestuario"
+                    description="No tienes permisos para consultar esta sección."
+                />
+            </>
+        );
+    }
 
     return (
         <>
@@ -285,7 +300,7 @@ function ResumenVestuario({
 
                 {/* ── Cotejo general: empleados actualizados ── */}
                 <div className="mb-4 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/30">
-                    <div className="flex items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-800">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-800">
                         <div>
                             <p className="text-[12px] font-semibold text-zinc-800 dark:text-zinc-100">
                                 Cotejo general de actualización
@@ -294,14 +309,28 @@ function ResumenVestuario({
                                 Empleados que ya actualizaron · verificar UR y Delegación
                             </p>
                         </div>
-                        <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                            {empleados_actualizados.length} registros
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[12px] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                <Search className="size-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.75} />
+                                <input
+                                    type="search"
+                                    value={buscarEmpleado}
+                                    onChange={(e) => setBuscarEmpleado(e.target.value)}
+                                    placeholder="Buscar..."
+                                    className="w-28 border-0 bg-transparent p-0 text-[12px] text-zinc-800 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                                />
+                            </label>
+                            <span className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                                {empleadosFiltrados.length}/{empleados_actualizados.length}
+                            </span>
+                        </div>
                     </div>
 
-                    {empleados_actualizados.length === 0 ? (
+                    {empleadosFiltrados.length === 0 ? (
                         <p className="px-4 py-6 text-[12px] text-zinc-500 dark:text-zinc-400">
-                            Aún no hay empleados con actualización registrada para los filtros seleccionados.
+                            {buscarEmpleado.trim()
+                                ? 'Sin resultados para la búsqueda.'
+                                : 'Aún no hay empleados con actualización registrada para los filtros seleccionados.'}
                         </p>
                     ) : (
                         <div className="overflow-x-auto">
@@ -317,7 +346,7 @@ function ResumenVestuario({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {empleados_actualizados.map((emp) => (
+                                    {empleadosFiltrados.map((emp) => (
                                         <tr key={emp.id} className="border-b border-zinc-100/80 dark:border-zinc-800/60">
                                             <td className="px-4 py-2 font-mono text-zinc-700 dark:text-zinc-300">{emp.nue || '—'}</td>
                                             <td className="px-4 py-2 text-zinc-800 dark:text-zinc-100">{emp.nombre_completo || '—'}</td>

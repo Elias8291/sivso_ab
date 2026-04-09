@@ -1,11 +1,19 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import DataTable from '@/components/admin/DataTable';
+import FormField from '@/components/admin/FormField';
+import Modal from '@/components/admin/Modal';
 import { useAuthCan } from '@/hooks/useAuthCan';
 import { createAdminPageLayout } from '@/layouts/adminPageLayout';
 import { Head, router } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { route } from 'ziggy-js';
+
+function money(value) {
+    return value != null
+        ? Number(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+        : '—';
+}
 
 function FiltroAnio({ anio, aniosDisponibles }) {
     return (
@@ -29,6 +37,22 @@ function FiltroAnio({ anio, aniosDisponibles }) {
                 ))}
             </select>
         </label>
+    );
+}
+
+function TabButton({ active, onClick, children }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition ${
+                active
+                    ? 'border-brand-gold/55 bg-brand-gold/[0.12] text-zinc-900 dark:border-brand-gold-soft/45 dark:bg-brand-gold-soft/[0.12] dark:text-zinc-50'
+                    : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300'
+            }`}
+        >
+            {children}
+        </button>
     );
 }
 
@@ -56,8 +80,6 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
         setNuevaCat({ codigo: '', nombre: '' });
         setCatError('');
     }, [open, item]);
-
-    if (!open || !item) return null;
 
     const submit = async (e) => {
         e.preventDefault();
@@ -102,105 +124,137 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
         }
     };
 
+    const detalles = useMemo(() => {
+        if (!item) return [];
+        const fields = [];
+        if (tipo === 'licitado') {
+            if (item.precio_unitario != null) fields.push({ label: 'Precio unitario', value: money(item.precio_unitario) });
+            if (item.cantidad_propuesta) fields.push({ label: 'Cantidad', value: item.cantidad_propuesta });
+            if (item.unidad) fields.push({ label: 'Unidad', value: item.unidad });
+            if (item.marca) fields.push({ label: 'Marca', value: item.marca });
+            if (item.proveedor) fields.push({ label: 'Proveedor', value: item.proveedor });
+            if (item.medida) fields.push({ label: 'Medida', value: item.medida });
+        } else {
+            if (item.precio_unitario != null) fields.push({ label: 'Precio unitario', value: money(item.precio_unitario) });
+            if (item.total != null) fields.push({ label: 'Total', value: money(item.total) });
+            if (item.referencia_codigo) fields.push({ label: 'Referencia', value: item.referencia_codigo });
+        }
+        if (item.partida_especifica) fields.push({ label: 'Partida', value: item.partida_especifica });
+        return fields;
+    }, [item, tipo]);
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-900/40" onClick={onClose} />
-            <form onSubmit={submit} className="relative z-10 w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 max-h-[90vh] overflow-y-auto" tabIndex={0}>
-                <h3 className="mb-4 text-[16px] font-semibold text-zinc-900 dark:text-zinc-100">Editar producto</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Clave</label>
-                        <input
-                            value={form.clave}
-                            onChange={(e) => setForm((p) => ({ ...p, clave: e.target.value }))}
-                            placeholder="Clave"
-                            className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-[13px] dark:border-zinc-700 dark:bg-zinc-800"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Descripción</label>
-                        <textarea
-                            value={form.descripcion}
-                            onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
-                            placeholder="Descripción del producto"
-                            rows={6}
-                            className="w-full resize-y rounded-lg border border-zinc-200 px-3 py-2 text-[13px] leading-relaxed dark:border-zinc-700 dark:bg-zinc-800"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="mb-1.5 block text-[12px] font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                            <select
-                                value={form.categoria_id}
-                                onChange={(e) => setForm((p) => ({ ...p, categoria_id: e.target.value }))}
-                                className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-[13px] dark:border-zinc-700 dark:bg-zinc-800"
-                            >
-                                <option value="">Sin categoría</option>
-                                {categorias.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                                ))}
-                            </select>
-                            <button
-                                type="button"
-                                onClick={() => { setShowNuevaCat((v) => !v); setCatError(''); }}
-                                className="rounded-lg border border-zinc-200 px-3 py-2 text-[12px] font-medium whitespace-nowrap dark:border-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                                title="Agregar nueva categoría"
-                            >
-                                {showNuevaCat ? '✕ Cancelar' : '+ Nueva Categoría'}
-                            </button>
-                        </div>
-                        {showNuevaCat && (
-                            <div className="mt-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-800/60">
-                                <p className="mb-3 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">Nueva categoría</p>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <input
-                                        value={nuevaCat.codigo}
-                                        onChange={(e) => setNuevaCat((p) => ({ ...p, codigo: e.target.value }))}
-                                        placeholder="Código"
-                                        maxLength={40}
-                                        className="w-full sm:w-32 rounded-md border border-zinc-300 px-3 py-2 text-[13px] dark:border-zinc-600 dark:bg-zinc-800"
-                                    />
-                                    <input
-                                        value={nuevaCat.nombre}
-                                        onChange={(e) => setNuevaCat((p) => ({ ...p, nombre: e.target.value }))}
-                                        placeholder="Nombre"
-                                        maxLength={120}
-                                        className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-[13px] dark:border-zinc-600 dark:bg-zinc-800"
-                                    />
-                                    <button
-                                        type="button"
-                                        disabled={savingCat || !nuevaCat.codigo.trim() || !nuevaCat.nombre.trim()}
-                                        onClick={guardarCategoria}
-                                        className="rounded-md bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 whitespace-nowrap"
-                                    >
-                                        {savingCat ? 'Guardando...' : 'Agregar'}
-                                    </button>
-                                </div>
-                                {catError && <p className="mt-2 text-[12px] text-red-600 dark:text-red-400">{catError}</p>}
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2">
-                    <button 
-                        type="button" 
-                        onClick={onClose} 
+        <Modal
+            open={open}
+            onClose={onClose}
+            title={`Editar producto ${tipo === 'licitado' ? 'licitado' : 'cotizado'}`}
+            maxWidth="max-w-xl sm:max-w-2xl"
+            footer={
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button
+                        type="button"
+                        onClick={onClose}
                         className="rounded-lg border border-zinc-300 px-4 py-2 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                         Cancelar
                     </button>
-                    <button 
-                        type="submit" 
-                        disabled={saving} 
+                    <button
+                        form="form-editar-producto"
+                        type="submit"
+                        disabled={saving}
                         className="rounded-lg bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
-                        {saving ? 'Guardando...' : 'Guardar'}
+                        {saving ? 'Guardando...' : 'Guardar cambios'}
                     </button>
                 </div>
+            }
+        >
+            {detalles.length > 0 && (
+                <dl className="mb-5 grid grid-cols-2 gap-x-4 gap-y-3 rounded-lg border border-zinc-200/80 bg-zinc-50 px-4 py-3 sm:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-900/30">
+                    {detalles.map((d) => (
+                        <div key={d.label}>
+                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{d.label}</dt>
+                            <dd className="mt-0.5 text-[12px] tabular-nums text-zinc-700 dark:text-zinc-300">{d.value}</dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
+            <form id="form-editar-producto" onSubmit={submit} className="space-y-4">
+                <FormField label="Clave" id="prod-clave">
+                    <input
+                        id="prod-clave"
+                        value={form.clave}
+                        onChange={(e) => setForm((p) => ({ ...p, clave: e.target.value }))}
+                        placeholder="Clave"
+                        className="block w-full rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[13px] text-zinc-800 outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 dark:border-zinc-700 dark:text-zinc-200"
+                        required
+                    />
+                </FormField>
+                <FormField label="Descripción" id="prod-descripcion">
+                    <textarea
+                        id="prod-descripcion"
+                        value={form.descripcion}
+                        onChange={(e) => setForm((p) => ({ ...p, descripcion: e.target.value }))}
+                        placeholder="Descripción del producto"
+                        rows={4}
+                        className="block w-full resize-y rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[13px] leading-relaxed text-zinc-800 outline-none transition-colors focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400/20 dark:border-zinc-700 dark:text-zinc-200"
+                        required
+                    />
+                </FormField>
+                <FormField label="Categoría" id="prod-categoria">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <select
+                            id="prod-categoria"
+                            value={form.categoria_id}
+                            onChange={(e) => setForm((p) => ({ ...p, categoria_id: e.target.value }))}
+                            className="flex-1 rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-[13px] dark:border-zinc-700 dark:text-zinc-200"
+                        >
+                            <option value="">Sin categoría</option>
+                            {categorias.map((c) => (
+                                <option key={c.id} value={c.id}>{c.nombre}</option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={() => { setShowNuevaCat((v) => !v); setCatError(''); }}
+                            className="whitespace-nowrap rounded-lg border border-zinc-200 px-3 py-2 text-[12px] font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        >
+                            {showNuevaCat ? '✕ Cancelar' : '+ Nueva'}
+                        </button>
+                    </div>
+                    {showNuevaCat && (
+                        <div className="mt-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-600 dark:bg-zinc-800/60">
+                            <p className="mb-3 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300">Nueva categoría</p>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                                <input
+                                    value={nuevaCat.codigo}
+                                    onChange={(e) => setNuevaCat((p) => ({ ...p, codigo: e.target.value }))}
+                                    placeholder="Código"
+                                    maxLength={40}
+                                    className="w-full rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-[13px] dark:border-zinc-600 sm:w-28"
+                                />
+                                <input
+                                    value={nuevaCat.nombre}
+                                    onChange={(e) => setNuevaCat((p) => ({ ...p, nombre: e.target.value }))}
+                                    placeholder="Nombre"
+                                    maxLength={120}
+                                    className="flex-1 rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-[13px] dark:border-zinc-600"
+                                />
+                                <button
+                                    type="button"
+                                    disabled={savingCat || !nuevaCat.codigo.trim() || !nuevaCat.nombre.trim()}
+                                    onClick={guardarCategoria}
+                                    className="whitespace-nowrap rounded-md bg-zinc-900 px-4 py-2 text-[13px] font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                                >
+                                    {savingCat ? 'Guardando...' : 'Agregar'}
+                                </button>
+                            </div>
+                            {catError && <p className="mt-2 text-[12px] text-red-600 dark:text-red-400">{catError}</p>}
+                        </div>
+                    )}
+                </FormField>
             </form>
-        </div>
+        </Modal>
     );
 }
 
@@ -211,10 +265,9 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
 
     const openEdit = (item, tipo) => {
         setEditing({
-            id: item.id,
+            ...item,
             tipo,
             clave: tipo === 'licitado' ? (item.codigo_catalogo ?? '') : (item.clave ?? ''),
-            descripcion: item.descripcion ?? '',
             categoria_id: categorias.find((c) => c.nombre === item.categoria)?.id ?? '',
         });
     };
@@ -227,6 +280,13 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                 key: 'categoria',
                 header: 'Categoría',
                 render: (row) => row.categoria || '—',
+            },
+            {
+                key: 'precio_unitario',
+                header: 'Precio unit.',
+                className: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+                render: (row) => money(row.precio_unitario),
             },
             ...(canGestionar
                 ? [
@@ -257,6 +317,13 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
                 header: 'Categoría',
                 render: (row) => row.categoria || '—',
             },
+            {
+                key: 'precio_unitario',
+                header: 'Precio unit.',
+                className: 'text-right',
+                cellClassName: 'text-right tabular-nums',
+                render: (row) => money(row.precio_unitario),
+            },
             ...(canGestionar
                 ? [
                       {
@@ -286,34 +353,21 @@ export default function ProductosIndex({ anio, anios_disponibles = [], licitados
             >
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <FiltroAnio anio={anio} aniosDisponibles={anios_disponibles} />
-                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        Licitados: {licitados.length} · Cotizados: {cotizados.length}
-                    </span>
                 </div>
 
                 <div className="mb-3 flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setTab('licitados')}
-                        className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition ${
-                            tab === 'licitados'
-                                ? 'border-brand-gold/55 bg-brand-gold/[0.12] text-zinc-900 dark:border-brand-gold-soft/45 dark:bg-brand-gold-soft/[0.12] dark:text-zinc-50'
-                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300'
-                        }`}
-                    >
+                    <TabButton active={tab === 'licitados'} onClick={() => setTab('licitados')}>
                         Licitados
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setTab('cotizados')}
-                        className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition ${
-                            tab === 'cotizados'
-                                ? 'border-brand-gold/55 bg-brand-gold/[0.12] text-zinc-900 dark:border-brand-gold-soft/45 dark:bg-brand-gold-soft/[0.12] dark:text-zinc-50'
-                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300'
-                        }`}
-                    >
+                        <span className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
+                            {licitados.length}
+                        </span>
+                    </TabButton>
+                    <TabButton active={tab === 'cotizados'} onClick={() => setTab('cotizados')}>
                         Cotizados
-                    </button>
+                        <span className="ml-1.5 rounded-full bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-400">
+                            {cotizados.length}
+                        </span>
+                    </TabButton>
                 </div>
 
                 {tab === 'licitados' ? (
