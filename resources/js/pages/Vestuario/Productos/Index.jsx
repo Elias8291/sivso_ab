@@ -105,7 +105,7 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-zinc-900/40" onClick={onClose} />
-            <form onSubmit={submit} className="relative z-10 w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 max-h-[90vh] overflow-y-auto">
+            <form onSubmit={submit} className="relative z-10 w-full max-w-2xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900 max-h-[90vh] overflow-y-auto" tabIndex={0}>
                 <h3 className="mb-4 text-[16px] font-semibold text-zinc-900 dark:text-zinc-100">Editar producto</h3>
                 <div className="space-y-4">
                     <div>
@@ -187,7 +187,7 @@ function EditarProductoModal({ open, item, tipo, categorias: categoriasProp, onC
                     <button 
                         type="button" 
                         onClick={onClose} 
-                        className="rounded-lg border border-zinc-300 px-4 py-2 text-[13px] font-medium hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-800"
+                        className="rounded-lg border border-zinc-300 px-4 py-2 text-[13px] font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                         Cancelar
                     </button>
