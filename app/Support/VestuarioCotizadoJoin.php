@@ -20,6 +20,12 @@ use Illuminate\Database\Query\Builder;
  * b) Si no hay pl_cat o no hay fila: cualquier producto_cotizado del año de catálogo con esa clave (MIN id).
  *
  * Requiere join `producto_licitado as pl` con `pl.id = aep.producto_licitado_id`.
+ *
+ * Tras `applyCotizadoResuelto`, el alias `pc_old` es la fila en `producto_cotizado` apuntada por
+ * `asignacion_empleado_producto.producto_cotizado_id` (left join).
+ *
+ * Los métodos `*PreferAsignacionFksql()` priorizan esa FK para listados «cotizados» por empleado;
+ * los métodos sin sufijo priorizan catálogo (vestuario / resúmenes alineados al ejercicio vigente).
  */
 final class VestuarioCotizadoJoin
 {
@@ -81,8 +87,75 @@ final class VestuarioCotizadoJoin
         return 'COALESCE(pc_cat.id, pc_cat_fb.id, pc_old.id)';
     }
 
+    /** Id de `producto_cotizado` para UI «cotizados»: primero la FK de la asignación, luego resolución por catálogo. */
+    public static function cotizadoIdPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.id, pc_cat.id, pc_cat_fb.id)';
+    }
+
+    /**
+     * Precio unitario contractual preferido; si no hay fila cotizada resuelta, muestra el del licitado (catálogo o fila de la asignación).
+     */
+    public static function coalescePrecioUnitarioSql(): string
+    {
+        return 'COALESCE(pc_cat.precio_unitario, pc_cat_fb.precio_unitario, pc_old.precio_unitario, pl_cat.precio_unitario, pl.precio_unitario)';
+    }
+
+    public static function coalescePrecioUnitarioPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.precio_unitario, pc_cat.precio_unitario, pc_cat_fb.precio_unitario, pl_cat.precio_unitario, pl.precio_unitario)';
+    }
+
+    /**
+     * Partida específica para vistas que listan cotizados junto al licitado de la asignación.
+     */
+    public static function coalescePartidaEspecificaSql(): string
+    {
+        return 'COALESCE(pc_cat.partida_especifica, pc_cat_fb.partida_especifica, pc_old.partida_especifica, pl_cat.partida_especifica, pl.partida_especifica)';
+    }
+
+    public static function coalescePartidaEspecificaPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.partida_especifica, pc_cat.partida_especifica, pc_cat_fb.partida_especifica, pl_cat.partida_especifica, pl.partida_especifica)';
+    }
+
     public static function coalesceClasificacionPrincipalIdSql(): string
     {
-        return 'COALESCE(pc_cat.clasificacion_principal_id, pc_cat_fb.clasificacion_principal_id, pc_old.clasificacion_principal_id)';
+        return 'COALESCE(pc_cat.clasificacion_principal_id, pc_cat_fb.clasificacion_principal_id, pc_old.clasificacion_principal_id, pl_cat.clasificacion_principal_id, pl.clasificacion_principal_id)';
+    }
+
+    public static function coalesceClasificacionPrincipalPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.clasificacion_principal_id, pc_cat.clasificacion_principal_id, pc_cat_fb.clasificacion_principal_id, pl_cat.clasificacion_principal_id, pl.clasificacion_principal_id)';
+    }
+
+    public static function coalesceDescripcionPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.descripcion, pc_cat.descripcion, pc_cat_fb.descripcion, pl_cat.descripcion, pl.descripcion)';
+    }
+
+    public static function coalesceClavePreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.clave, pc_cat.clave, pc_cat_fb.clave, pl_cat.codigo_catalogo, pl.codigo_catalogo)';
+    }
+
+    public static function coalesceNumeroPartidaPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.numero_partida, pc_cat.numero_partida, pc_cat_fb.numero_partida, pl_cat.numero_partida, pl.numero_partida)';
+    }
+
+    public static function coalesceImportePreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.importe, pc_cat.importe, pc_cat_fb.importe)';
+    }
+
+    public static function coalesceTotalPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.total, pc_cat.total, pc_cat_fb.total)';
+    }
+
+    public static function coalesceReferenciaPreferAsignacionFksql(): string
+    {
+        return 'COALESCE(pc_old.referencia_codigo, pc_cat.referencia_codigo, pc_cat_fb.referencia_codigo)';
     }
 }

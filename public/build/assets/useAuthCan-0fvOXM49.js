@@ -1,1 +1,0 @@
-import{r as e}from"./chunk-7ZXdHUL4.js";import{n as t}from"./jsx-runtime-BKjqYD_e.js";import{a as n}from"./app-DYo3O8BQ.js";var r=e(t(),1);function i(){let{auth:e}=n().props,t=!!e?.is_super_admin,i=!!e?.is_sivso_administrator,a=Array.isArray(e?.permissions)?e.permissions:[];return(0,r.useCallback)(e=>t||i||a.includes(e),[t,i,a])}export{i as t};

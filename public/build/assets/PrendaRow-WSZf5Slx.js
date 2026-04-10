@@ -1,1 +1,0 @@
-import{t as e}from"./PrendaRow-CECvjCWJ.js";export{e as PrendaRow};

@@ -1,0 +1,1 @@
+import{t as e}from"./VestuarioPanel-CxeyR7Xc.js";export{e as VestuarioPanel};

@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Services\Delegado\AcuseReciboVestuarioPdfService;
 use App\Services\Delegado\MiDelegacionAccessService;
 use App\Services\Delegado\NotificarAdminsNuevaSolicitudService;
+use App\Services\Delegado\ProductosEmpleadoMiDelegacionService;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -43,6 +44,7 @@ final class MiDelegacionController extends Controller
     public function __construct(
         private readonly MiDelegacionAccessService $access,
         private readonly NotificarAdminsNuevaSolicitudService $notificarAdminsNuevaSolicitud,
+        private readonly ProductosEmpleadoMiDelegacionService $productosEmpleadoMiDelegacion,
     ) {}
 
     /** @var list<int> */
@@ -1444,117 +1446,7 @@ final class MiDelegacionController extends Controller
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
-        $parseClasifs = static function (?string $raw): array {
-            if (! $raw) {
-                return [];
-            }
-
-            return collect(explode(';;', $raw))
-                ->map(function ($item) {
-                    [$codigo, $nombre] = array_pad(explode('|', $item, 2), 2, '');
-
-                    return ['codigo' => $codigo, 'nombre' => $nombre];
-                })
-                ->values()
-                ->all();
-        };
-
-        // Licitados — mismo criterio que vestuario: preferir licitado del año de catálogo (pl_cat) por partida
-        $licitados = DB::table('asignacion_empleado_producto as aep')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id')
-            ->leftJoin('producto_licitado as pl_cat', function ($join) use ($anioCatalogo): void {
-                $join->on('pl_cat.numero_partida', '=', 'pl.numero_partida')
-                    ->where('pl_cat.anio', '=', $anioCatalogo);
-            })
-            ->leftJoin('clasificacion_bien as cb', function ($join): void {
-                $join->whereRaw('cb.id = COALESCE(pl_cat.clasificacion_principal_id, pl.clasificacion_principal_id)');
-            })
-            ->where('aep.empleado_id', $empleadoId)
-            ->where('aep.anio', $anioConsulta)
-            ->select([
-                'aep.id                        as asignacion_id',
-                DB::raw('COALESCE(pl_cat.id, pl.id) as id'),
-                DB::raw('COALESCE(pl_cat.numero_partida, pl.numero_partida) as numero_partida'),
-                DB::raw('COALESCE(pl_cat.partida_especifica, pl.partida_especifica) as partida_especifica'),
-                DB::raw('COALESCE(pl_cat.codigo_catalogo, pl.codigo_catalogo) as codigo'),
-                DB::raw('COALESCE(pl_cat.descripcion, pl.descripcion) as descripcion'),
-                DB::raw('COALESCE(pl_cat.cantidad_propuesta, pl.cantidad_propuesta) as cantidad'),
-                DB::raw('COALESCE(pl_cat.unidad, pl.unidad) as unidad'),
-                DB::raw('COALESCE(pl_cat.marca, pl.marca) as marca'),
-                DB::raw('COALESCE(pl_cat.precio_unitario, pl.precio_unitario) as precio_unitario'),
-                DB::raw('COALESCE(pl_cat.proveedor, pl.proveedor) as proveedor'),
-                DB::raw('COALESCE(pl_cat.medida, pl.medida) as medida'),
-                'cb.codigo                      as categoria_codigo',
-                'cb.nombre                      as categoria',
-                'aep.clave_partida_presupuestal as clave_rubro',
-                'aep.cantidad                   as cantidad_asignada',
-                'aep.talla',
-                'aep.estado_anio_actual         as estado',
-            ])
-            ->selectRaw(
-                '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
-                ' FROM producto_licitado_clasificacion plc2 '.
-                ' JOIN clasificacion_bien cb2 ON cb2.id = plc2.clasificacion_id '.
-                ' WHERE plc2.producto_licitado_id = COALESCE(pl_cat.id, pl.id)) AS clasificaciones_raw'
-            )
-            ->orderByRaw('COALESCE(pl_cat.numero_partida, pl.numero_partida)')
-            ->get()
-            ->map(function ($r) use ($parseClasifs) {
-                $arr = (array) $r;
-                $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
-                unset($arr['clasificaciones_raw']);
-
-                return $arr;
-            })
-            ->values()
-            ->all();
-
-        // Cotizados — producto contractual (prioriza producto_cotizado del año de catálogo por clave/partida)
-        $cotizados = DB::table('asignacion_empleado_producto as aep')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
-        VestuarioCotizadoJoin::applyCotizadoResuelto($cotizados, 'aep', $anioCatalogo);
-        $cotizados->leftJoin('clasificacion_bien as cb', function ($join): void {
-            $join->whereRaw('cb.id = '.VestuarioCotizadoJoin::coalesceClasificacionPrincipalIdSql());
-        })
-            ->where('aep.empleado_id', $empleadoId)
-            ->where('aep.anio', $anioConsulta)
-            ->whereRaw('('.VestuarioCotizadoJoin::cotizadoResueltoIdSql().') IS NOT NULL')
-            ->select([
-                'aep.id                        as asignacion_id',
-                DB::raw(VestuarioCotizadoJoin::cotizadoResueltoIdSql().' as id'),
-                DB::raw('COALESCE(pc_cat.numero_partida, pc_cat_fb.numero_partida, pc_old.numero_partida) as numero_partida'),
-                DB::raw('COALESCE(pc_cat.partida_especifica, pc_cat_fb.partida_especifica, pc_old.partida_especifica) as partida_especifica'),
-                DB::raw('COALESCE(pc_cat.clave, pc_cat_fb.clave, pc_old.clave) as codigo'),
-                DB::raw('COALESCE(pc_cat.descripcion, pc_cat_fb.descripcion, pc_old.descripcion) as descripcion'),
-                DB::raw('COALESCE(pc_cat.precio_unitario, pc_cat_fb.precio_unitario, pc_old.precio_unitario) as precio_unitario'),
-                DB::raw('COALESCE(pc_cat.importe, pc_cat_fb.importe, pc_old.importe) as importe'),
-                DB::raw('COALESCE(pc_cat.total, pc_cat_fb.total, pc_old.total) as total'),
-                DB::raw('COALESCE(pc_cat.referencia_codigo, pc_cat_fb.referencia_codigo, pc_old.referencia_codigo) as referencia'),
-                'cb.codigo                      as categoria_codigo',
-                'cb.nombre                      as categoria',
-                'aep.clave_partida_presupuestal as clave_rubro',
-                'aep.cantidad                   as cantidad_asignada',
-                'aep.talla_anio_actual          as talla',
-                'aep.medida_anio_actual         as medida',
-                'aep.estado_anio_actual         as estado',
-            ])
-            ->selectRaw(
-                '(SELECT GROUP_CONCAT(CONCAT(cb2.codigo,"|",cb2.nombre) ORDER BY cb2.nombre SEPARATOR ";;") '.
-                ' FROM producto_cotizado_clasificacion pcc2 '.
-                ' JOIN clasificacion_bien cb2 ON cb2.id = pcc2.clasificacion_id '.
-                ' WHERE pcc2.producto_cotizado_id = '.VestuarioCotizadoJoin::cotizadoResueltoIdSql().') AS clasificaciones_raw'
-            )
-            ->orderByRaw('COALESCE(pc_cat.numero_partida, pc_cat_fb.numero_partida, pc_old.numero_partida)')
-            ->get()
-            ->map(function ($r) use ($parseClasifs) {
-                $arr = (array) $r;
-                $arr['clasificaciones'] = $parseClasifs($arr['clasificaciones_raw'] ?? null);
-                unset($arr['clasificaciones_raw']);
-
-                return $arr;
-            })
-            ->values()
-            ->all();
+        $listas = $this->productosEmpleadoMiDelegacion->licitadosYCotizados($empleadoId, $anioConsulta, $anioCatalogo);
 
         return response()->json([
             'data' => [
@@ -1565,8 +1457,8 @@ final class MiDelegacionController extends Controller
                 ],
                 'anio' => $anioConsulta,
                 'anios_disponibles' => $aniosDisponibles,
-                'licitados' => $licitados,
-                'cotizados' => $cotizados,
+                'licitados' => $listas['licitados'],
+                'cotizados' => $listas['cotizados'],
             ],
             'message' => null,
             'errors' => null,

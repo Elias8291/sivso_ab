@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 export function Modal({ open, onClose, children, maxWidthClass = 'max-w-md', tone = 'default' }) {
