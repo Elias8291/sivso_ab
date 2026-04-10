@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Delegado;
 
-use App\Events\SivsoNotificacion;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Delegado\ActualizarNueMiDelegacionRequest;
+use App\Http\Requests\Delegado\ActualizarTallaMiDelegacionRequest;
+use App\Http\Requests\Delegado\ActualizarTallasLoteMiDelegacionRequest;
+use App\Http\Requests\Delegado\AgregarProductoMiDelegacionRequest;
+use App\Http\Requests\Delegado\SolicitarMovimientoMiDelegacionRequest;
 use App\Models\AsignacionEmpleadoProducto;
 use App\Models\Delegacion;
 use App\Models\Empleado;
 use App\Models\PeriodoVestuario;
 use App\Models\SolicitudMovimiento;
 use App\Models\User;
-use App\Notifications\NuevaSolicitudNotification;
 use App\Services\Delegado\AcuseReciboVestuarioPdfService;
+use App\Services\Delegado\MiDelegacionAccessService;
+use App\Services\Delegado\NotificarAdminsNuevaSolicitudService;
 use App\Support\SivsoVestuario;
 use App\Support\VestuarioCotizadoJoin;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,8 +38,13 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
-class MiDelegacionController extends Controller
+final class MiDelegacionController extends Controller
 {
+    public function __construct(
+        private readonly MiDelegacionAccessService $access,
+        private readonly NotificarAdminsNuevaSolicitudService $notificarAdminsNuevaSolicitud,
+    ) {}
+
     /** @var list<int> */
     private const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
 
@@ -46,8 +56,8 @@ class MiDelegacionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
-        $contexto = $this->contextoDelegadoParaVista($user, $codigosDelegacion);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
+        $contexto = $this->access->contextoDelegadoParaVista($user, $codigosDelegacion);
 
         $resumenGlobal = $this->calcularResumenDesdeVestuario(
             $this->resumenVestuarioEmpleados($codigosDelegacion)
@@ -61,14 +71,20 @@ class MiDelegacionController extends Controller
                 ->pluck('ur_referencia', 'codigo')
                 ->all();
 
+            $filasPorDelegacion = $this->resumenVestuarioEmpleados($codigos);
             foreach ($codigos as $codigo) {
-                $r = $this->calcularResumenDesdeVestuario(
-                    $this->resumenVestuarioEmpleados([$codigo])
-                );
+                $sub = $filasPorDelegacion->filter(
+                    static fn (array $fila): bool => ($fila['delegacion_codigo'] ?? '') === $codigo
+                )->values();
+                $ur = $nombres[$codigo] ?? null;
+                $nombre = ($ur !== null && $ur !== '')
+                    ? sprintf('%s · Ref. UR %s', $codigo, $ur)
+                    : $codigo;
                 $delegacionesDetalle[] = [
                     'codigo' => $codigo,
-                    'nombre' => $nombres[$codigo] ?? $codigo,
-                    ...$r,
+                    'nombre' => $nombre,
+                    'ur_referencia' => $ur,
+                    ...$this->calcularResumenDesdeVestuario($sub),
                 ];
             }
         }
@@ -174,7 +190,7 @@ class MiDelegacionController extends Controller
         $modoVista = $request->input('modo');
         $modoVista = is_string($modoVista) ? trim($modoVista) : null;
 
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
         $codigosFiltro = $codigosDelegacion;
         if ($delegacionCodigo !== null) {
             if (is_array($codigosDelegacion)) {
@@ -184,7 +200,7 @@ class MiDelegacionController extends Controller
             }
         }
 
-        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
+        $contexto = $this->access->contextoDelegadoParaVista($user, $codigosFiltro);
 
         // Año base: el año anterior (donde ya hay prendas asignadas).
         // Año captura: el año actual (donde se crean los registros actualizados).
@@ -269,7 +285,7 @@ class MiDelegacionController extends Controller
         );
 
         // Delegaciones disponibles para transferencias (cacheado para evitar costo en cada request).
-        $delegaciones = Cache::remember('mi-delegacion:delegaciones-opciones:v1', now()->addMinutes(15), function (): array {
+        $delegaciones = Cache::remember(Delegacion::CACHE_DELEGACIONES_OPCIONES_KEY, now()->addMinutes(15), function (): array {
             return Delegacion::query()
                 ->select(['codigo', 'ur_referencia'])
                 ->orderBy('codigo')
@@ -419,7 +435,7 @@ class MiDelegacionController extends Controller
     public function vestuarioEmpleado(Request $request, int $empleadoId): JsonResponse
     {
         $empleado = Empleado::findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         return response()->json([
             'data' => [
@@ -750,7 +766,7 @@ class MiDelegacionController extends Controller
             ->with(['dependencia:ur,nombre_corto,nombre'])
             ->findOrFail($empleado);
 
-        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleadoModel), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($user, $empleadoModel), 403);
 
         $aniosDisponibles = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleadoModel->id)
@@ -786,7 +802,7 @@ class MiDelegacionController extends Controller
             );
         }
 
-        $contexto = $this->contextoDelegadoParaVista($user, $this->delegacionCodigosPermitidos($user));
+        $contexto = $this->access->contextoDelegadoParaVista($user, $this->access->delegacionCodigosPermitidos($user));
         $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
 
         $service = new AcuseReciboVestuarioPdfService;
@@ -860,7 +876,7 @@ class MiDelegacionController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
 
         $delegacionCodigo = $request->input('delegacion_codigo');
         $delegacionCodigo = is_string($delegacionCodigo) ? trim($delegacionCodigo) : null;
@@ -877,7 +893,7 @@ class MiDelegacionController extends Controller
             }
         }
 
-        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
+        $contexto = $this->access->contextoDelegadoParaVista($user, $codigosFiltro);
 
         $search = $request->input('search');
         $search = is_string($search) ? trim($search) : null;
@@ -953,7 +969,7 @@ class MiDelegacionController extends Controller
             $delegacionCodigo = null;
         }
 
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
         $codigosFiltro = $codigosDelegacion;
         if ($delegacionCodigo !== null) {
             if (is_array($codigosDelegacion)) {
@@ -962,7 +978,7 @@ class MiDelegacionController extends Controller
                 $codigosFiltro = [$delegacionCodigo];
             }
         }
-        $contexto = $this->contextoDelegadoParaVista($user, $codigosFiltro);
+        $contexto = $this->access->contextoDelegadoParaVista($user, $codigosFiltro);
 
         $anioVestuario = $request->integer('anio');
         if ($anioVestuario < 2000 || $anioVestuario > 2100) {
@@ -1079,7 +1095,7 @@ class MiDelegacionController extends Controller
      * Usa el año anterior como base y el año actual como destino de actualización.
      *
      * @param  list<string>|null  $codigosDelegacion
-     * @return Collection<int, array{id:int, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
+     * @return Collection<int, array{id:int, delegacion_codigo:string, estado_delegacion:string, total_prendas:int, confirmadas:int, bajas:int}>
      */
     private function resumenVestuarioEmpleados(?array $codigosDelegacion, ?string $search = null): Collection
     {
@@ -1107,14 +1123,16 @@ class MiDelegacionController extends Controller
             })
             ->select([
                 'e.id',
+                'e.delegacion_codigo',
                 'e.estado_delegacion',
                 DB::raw('COUNT(aep_base.id) as total_prendas'),
                 DB::raw('SUM(CASE WHEN aep_new.id IS NOT NULL THEN 1 ELSE 0 END) as confirmadas'),
             ])
-            ->groupBy('e.id', 'e.estado_delegacion')
+            ->groupBy('e.id', 'e.estado_delegacion', 'e.delegacion_codigo')
             ->get()
             ->map(static fn ($row): array => [
                 'id' => (int) $row->id,
+                'delegacion_codigo' => (string) ($row->delegacion_codigo ?? ''),
                 'estado_delegacion' => (string) ($row->estado_delegacion ?? 'activo'),
                 'total_prendas' => (int) $row->total_prendas,
                 'confirmadas' => (int) $row->confirmadas,
@@ -1126,17 +1144,12 @@ class MiDelegacionController extends Controller
     /**
      * Actualiza la talla del año actual para una asignación.
      */
-    public function actualizarTalla(Request $request, int $asignacionId): JsonResponse
+    public function actualizarTalla(ActualizarTallaMiDelegacionRequest $request, int $asignacionId): JsonResponse
     {
-        $validated = $request->validate([
-            'talla' => ['nullable', 'string', 'max:20'],
-            'medida' => ['nullable', 'string', 'max:20'],
-            'estado' => ['required', 'string', 'in:pendiente,confirmado,cambio,baja'],
-            'observacion' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $asignacion = AsignacionEmpleadoProducto::query()->with('empleado')->findOrFail($asignacionId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $asignacion->empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $asignacion->empleado), 403);
 
         $asignacionObjetivo = $this->resolverAsignacionObjetivoParaCapturaActual($asignacion);
         $asignacionObjetivo->update([
@@ -1163,7 +1176,7 @@ class MiDelegacionController extends Controller
      * Actualiza en bloque las tallas/medidas de todas las asignaciones de un empleado.
      * Recibe: { items: [{ id, talla, medida }] }
      */
-    public function actualizarTallasLote(Request $request, int $empleadoId): JsonResponse
+    public function actualizarTallasLote(ActualizarTallasLoteMiDelegacionRequest $request, int $empleadoId): JsonResponse
     {
         // Verificar periodo activo
         $periodo = PeriodoVestuario::activo();
@@ -1174,15 +1187,11 @@ class MiDelegacionController extends Controller
                 'errors' => null,
             ], 422);
         }
-        $validated = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.id' => ['required', 'integer'],
-            'items.*.talla' => ['nullable', 'string', 'max:20'],
-            'items.*.medida' => ['nullable', 'string', 'max:20'],
-        ]);
+
+        $validated = $request->validated();
 
         $empleado = Empleado::findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         $ids = array_column($validated['items'], 'id');
 
@@ -1202,15 +1211,17 @@ class MiDelegacionController extends Controller
         }
 
         $now = now();
-        foreach ($validated['items'] as $item) {
-            $asignacionObjetivo = $this->resolverAsignacionObjetivoParaCapturaActual($asignaciones[$item['id']]);
-            $asignacionObjetivo->update([
-                'talla_anio_actual' => $item['talla'] ?? null,
-                'medida_anio_actual' => $item['medida'] ?? null,
-                'estado_anio_actual' => 'confirmado',
-                'talla_actualizada_at' => $now,
-            ]);
-        }
+        DB::transaction(function () use ($validated, $asignaciones, $now): void {
+            foreach ($validated['items'] as $item) {
+                $asignacionObjetivo = $this->resolverAsignacionObjetivoParaCapturaActual($asignaciones[$item['id']]);
+                $asignacionObjetivo->update([
+                    'talla_anio_actual' => $item['talla'] ?? null,
+                    'medida_anio_actual' => $item['medida'] ?? null,
+                    'estado_anio_actual' => 'confirmado',
+                    'talla_actualizada_at' => $now,
+                ]);
+            }
+        });
 
         return response()->json([
             'data' => ['actualizadas' => count($validated['items'])],
@@ -1223,28 +1234,14 @@ class MiDelegacionController extends Controller
      * El delegado envía una solicitud de baja o cambio.
      * S.Administración la revisará y ejecutará el movimiento real.
      */
-    public function solicitarMovimiento(Request $request, int $empleadoId): JsonResponse
+    public function solicitarMovimiento(SolicitarMovimientoMiDelegacionRequest $request, int $empleadoId): JsonResponse
     {
-        $validated = $request->validate([
-            'tipo' => ['required', 'string', 'in:baja,cambio'],
-            'observacion' => ['nullable', 'string', 'max:500'],
-            'nueva_delegacion' => ['required_if:tipo,cambio', 'nullable', 'string', 'exists:delegacion,codigo'],
-            'baja_modo' => ['nullable', 'string', 'in:definitiva,sustitucion'],
-        ]);
+        $validated = $request->validated();
 
         if ($validated['tipo'] === 'baja') {
             $modo = $validated['baja_modo'] ?? 'definitiva';
             $validated['baja_modo'] = $modo;
-            if ($modo === 'sustitucion') {
-                $validated = array_merge($validated, $request->validate([
-                    'sustituto' => ['required', 'array'],
-                    'sustituto.nombre' => ['required', 'string', 'max:80'],
-                    'sustituto.apellido_paterno' => ['required', 'string', 'max:80'],
-                    'sustituto.apellido_materno' => ['nullable', 'string', 'max:80'],
-                    'sustituto.nue' => ['nullable', 'string', 'max:15'],
-                    'sustituto.sexo' => ['required', 'string', 'in:M,F'],
-                ]));
-            } else {
+            if ($modo !== 'sustitucion') {
                 $validated['sustituto'] = null;
             }
         } else {
@@ -1253,7 +1250,7 @@ class MiDelegacionController extends Controller
         }
 
         $empleado = Empleado::findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         // Verificar que no tenga ya una solicitud pendiente del mismo tipo
         $existente = SolicitudMovimiento::where('empleado_id', $empleadoId)
@@ -1311,21 +1308,7 @@ class MiDelegacionController extends Controller
             'sustituto' => $sustitutoPayload,
         ]);
 
-        // Notificar a todos los administradores (super_admin) de la nueva solicitud.
-        // notify() guarda en la tabla notifications (database).
-        // SivsoNotificacion se emite inmediatamente por WebSocket (ShouldBroadcastNow, sin queue).
-        $solicitud->load('empleado');
-        $notification = new NuevaSolicitudNotification($solicitud);
-
-        User::where('is_super_admin', true)
-            ->get()
-            ->each(function (User $admin) use ($notification) {
-                $admin->notify($notification);
-                $payload = array_merge($notification->toArray($admin), [
-                    'id' => $admin->notifications()->latest()->first()?->id,
-                ]);
-                broadcast(new SivsoNotificacion($payload, $admin->id));
-            });
+        $this->notificarAdminsNuevaSolicitud->notify($solicitud);
 
         return response()->json([
             'data' => [
@@ -1344,7 +1327,7 @@ class MiDelegacionController extends Controller
     public function reactivarEmpleado(Request $request, int $empleadoId): JsonResponse
     {
         $empleado = Empleado::findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         $estado = $empleado->estado_delegacion ?? 'activo';
         if ($estado === 'baja') {
@@ -1374,16 +1357,14 @@ class MiDelegacionController extends Controller
         ]);
     }
 
-    public function actualizarNue(Request $request, int $empleadoId): JsonResponse
+    public function actualizarNue(ActualizarNueMiDelegacionRequest $request, int $empleadoId): JsonResponse
     {
-        $validated = $request->validate([
-            'nue' => ['required', 'string', 'max:15'],
-        ]);
+        $validated = $request->validated();
 
         /** @var User $user */
         $user = $request->user();
         $empleado = Empleado::query()->findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
 
         $nueTrim = trim($validated['nue']);
         abort_unless($nueTrim !== '', 422, 'El NUE no puede estar vacío.');
@@ -1414,7 +1395,7 @@ class MiDelegacionController extends Controller
     public function showEmpleado(Request $request, int $empleadoId): InertiaResponse
     {
         $empleado = Empleado::query()->with('dependencia')->findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
         $aniosDisponibles = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleadoId)
@@ -1446,7 +1427,7 @@ class MiDelegacionController extends Controller
     public function productosEmpleado(Request $request, int $empleadoId): JsonResponse
     {
         $empleado = Empleado::findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
         $anioSolicitado = $request->integer('anio');
         $aniosDisponibles = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleadoId)
@@ -1603,7 +1584,7 @@ class MiDelegacionController extends Controller
             ->where('estado', 'pendiente')
             ->firstOrFail();
 
-        abort_unless($solicitud->empleado && $this->usuarioPuedeGestionarEmpleado($request->user(), $solicitud->empleado), 403);
+        abort_unless($solicitud->empleado && $this->access->usuarioPuedeGestionarEmpleado($request->user(), $solicitud->empleado), 403);
 
         $solicitud->delete();
 
@@ -1614,125 +1595,9 @@ class MiDelegacionController extends Controller
         ]);
     }
 
-    /**
-     * @return list<string>|null null = sin filtro (super admin); array vacío = usuario sin delegaciones asignadas
-     */
-    private function delegacionCodigosPermitidos(User $user): ?array
-    {
-        if ($user->is_super_admin) {
-            return null;
-        }
-
-        $user->loadMissing('delegado.delegaciones');
-
-        $delegado = $user->delegado;
-        if (! $delegado || $delegado->delegaciones->isEmpty()) {
-            return [];
-        }
-
-        return $delegado->delegaciones->pluck('codigo')->unique()->values()->all();
-    }
-
-    private function usuarioPuedeGestionarEmpleado(?User $user, ?Empleado $empleado): bool
-    {
-        if (! $user || ! $empleado) {
-            return false;
-        }
-
-        if ($user->is_super_admin) {
-            return true;
-        }
-
-        $codigos = $this->delegacionCodigosPermitidos($user);
-
-        return $codigos !== []
-            && in_array($empleado->delegacion_codigo, $codigos, true);
-    }
-
-    /**
-     * Resumen de asignaciones agrupado por prenda (clave + descripción) para el año de referencia.
-     * Incluye totales por año disponible en la delegación.
-     *
-     * @param  list<string>|null  $codigosDelegacion
-     * @return list<array<string, mixed>>
-     */
-    private function resumenPorCategoria(?array $codigosDelegacion): array
-    {
-        $anio = $this->anioBase();
-        $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
-
-        $query = DB::table('asignacion_empleado_producto as aep')
-            ->join('empleado as e', 'e.id', '=', 'aep.empleado_id')
-            ->join('producto_licitado as pl', 'pl.id', '=', 'aep.producto_licitado_id');
-        VestuarioCotizadoJoin::applyCotizadoResuelto($query, 'aep', $anioCatalogo);
-        $filas = $query->select([
-            'aep.anio',
-            DB::raw(VestuarioCotizadoJoin::coalesceClaveSql().' as clave'),
-            DB::raw(VestuarioCotizadoJoin::coalesceDescripcionSql().' as descripcion'),
-            DB::raw('COUNT(*) as total'),
-            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'confirmado' THEN 1 ELSE 0 END) as confirmadas"),
-            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'pendiente' THEN 1 ELSE 0 END) as pendientes"),
-            DB::raw("SUM(CASE WHEN aep.estado_anio_actual = 'baja'      THEN 1 ELSE 0 END) as bajas"),
-        ])
-            ->where('e.estado_delegacion', 'activo')
-            ->where('aep.anio', $anio)
-            ->when(is_array($codigosDelegacion), fn ($q) => $q->whereIn('e.delegacion_codigo', $codigosDelegacion))
-            ->groupByRaw('aep.anio, '.VestuarioCotizadoJoin::coalesceClaveSql().', '.VestuarioCotizadoJoin::coalesceDescripcionSql())
-            ->orderBy('aep.anio', 'desc')
-            ->orderBy('total', 'desc')
-            ->get();
-
-        return $filas->map(fn ($row) => [
-            'anio' => $row->anio,
-            'clave' => $row->clave,
-            'descripcion' => $row->descripcion,
-            'total' => (int) $row->total,
-            'confirmadas' => (int) $row->confirmadas,
-            'pendientes' => (int) $row->pendientes,
-            'bajas' => (int) $row->bajas,
-            'porcentaje' => $row->total > 0 ? round(($row->confirmadas / $row->total) * 100) : 0,
-        ])->values()->all();
-    }
-
-    /**
-     * @param  list<string>|null  $codigosDelegacion
-     * @return array{modo: string, delegaciones: list<string>, delegado_nombre: string|null}
-     */
-    private function contextoDelegadoParaVista(User $user, ?array $codigosDelegacion): array
-    {
-        if ($user->is_super_admin) {
-            return [
-                'modo' => 'super_admin',
-                'delegaciones' => [],
-                'delegado_nombre' => null,
-            ];
-        }
-
-        $user->loadMissing('delegado.delegaciones');
-        $delegado = $user->delegado;
-
-        if (! $delegado) {
-            return [
-                'modo' => 'sin_perfil',
-                'delegaciones' => [],
-                'delegado_nombre' => null,
-            ];
-        }
-
-        $codigos = is_array($codigosDelegacion)
-            ? $codigosDelegacion
-            : $delegado->delegaciones->pluck('codigo')->unique()->values()->all();
-
-        return [
-            'modo' => 'delegado',
-            'delegaciones' => $codigos,
-            'delegado_nombre' => $delegado->nombre_completo,
-        ];
-    }
-
     private function periodoActualCached(): ?array
     {
-        return Cache::remember('mi-del:periodo-vestuario:v1', now()->addSeconds(60), function (): ?array {
+        return Cache::remember(PeriodoVestuario::CACHE_PERIODO_MI_DELEGACION_KEY, now()->addSeconds(60), function (): ?array {
             return $this->periodoActual();
         });
     }
@@ -1797,7 +1662,7 @@ class MiDelegacionController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
 
         if ($codigosDelegacion === []) {
             return response()->json(['data' => ['presupuesto_total' => 0, 'presupuesto_usado' => 0, 'presupuesto_disponible' => 0, 'catalogo' => []], 'message' => '', 'errors' => null]);
@@ -1862,18 +1727,16 @@ class MiDelegacionController extends Controller
     /**
      * Agrega un producto del catálogo a un empleado, consumiendo una plaza de baja.
      */
-    public function agregarProductoEmpleado(Request $request, int $empleadoId): JsonResponse
+    public function agregarProductoEmpleado(AgregarProductoMiDelegacionRequest $request, int $empleadoId): JsonResponse
     {
-        $validated = $request->validate([
-            'producto_cotizado_id' => ['required', 'integer', 'exists:producto_cotizado,id'],
-        ]);
+        $validated = $request->validated();
 
         /** @var User $user */
         $user = $request->user();
-        $codigosDelegacion = $this->delegacionCodigosPermitidos($user);
+        $codigosDelegacion = $this->access->delegacionCodigosPermitidos($user);
 
         $empleado = Empleado::query()->findOrFail($empleadoId);
-        abort_unless($this->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
+        abort_unless($this->access->usuarioPuedeGestionarEmpleado($user, $empleado), 403);
         abort_unless($empleado->estado_delegacion !== 'baja', 422, 'No se puede asignar a un empleado dado de baja.');
 
         $pc = DB::table('producto_cotizado')->where('id', $validated['producto_cotizado_id'])->first();
@@ -1881,7 +1744,7 @@ class MiDelegacionController extends Controller
 
         $precioProducto = round((float) ($pc->precio_unitario ?? 0), 2);
         $disponible = $this->presupuestoBajaDisponible($codigosDelegacion);
-        abort_unless($disponible >= $precioProducto, 422, 'Presupuesto insuficiente. Disponible: $' . number_format($disponible, 2) . ', producto: $' . number_format($precioProducto, 2));
+        abort_unless($disponible >= $precioProducto, 422, 'Presupuesto insuficiente. Disponible: $'.number_format($disponible, 2).', producto: $'.number_format($precioProducto, 2));
 
         $anioCaptura = $this->anioCaptura();
 

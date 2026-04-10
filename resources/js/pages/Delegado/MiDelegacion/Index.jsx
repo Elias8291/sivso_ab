@@ -1,1326 +1,113 @@
 import AdminPageShell from '@/components/admin/AdminPageShell';
 import TablePagination from '@/components/admin/TablePagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
-import axios from 'axios';
-import {
-    AlertTriangle,
-    ArrowLeftRight,
-    Check,
-    CheckCircle2,
-    ChevronDown,
-    Clock,
-    Eye,
-    FileDown,
-    Info,
-    Lock,
-    Package,
-    Pencil,
-    RotateCcw,
-    Search,
-    Shirt,
-    Users,
-    X,
-    XCircle,
-} from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { ChevronDown, FileDown, Info, Lock, Package, Search, Users } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { route } from 'ziggy-js';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { EmpleadoRow } from './components/EmpleadoRow';
+import { ModalAgregarProducto } from './components/ModalAgregarProducto';
+import { ResumenProgreso, StatsBar } from './components/ResumenProgreso';
 
 const FILTROS = [
-    { key: 'todos',       label: 'Todos'       },
-    { key: 'listos',      label: 'Listos'      },
-    { key: 'sin_empezar', label: 'Sin empezar' },
-    { key: 'bajas',       label: 'Bajas'       },
-    { key: 'sin_nue',     label: 'Sin NUE'     },
+    { key: 'todos',       label: 'Todos'        },
+    { key: 'listos',      label: 'Actualizados' },
+    { key: 'sin_empezar', label: 'Pendientes'   },
+    { key: 'bajas',       label: 'Bajas'        },
+    { key: 'sin_nue',     label: 'Sin NUE'      },
 ];
 
-const PER_PAGE_OPCIONES = [10, 15, 20, 30, 50, 100];
+const PER_PAGE_OPTS = [10, 15, 20, 30, 50, 100];
 
 const moneyFmt = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function fmtMoney(v) { return moneyFmt.format(Number(v) || 0); }
-
-/* ─── PrendaRow ──────────────────────────────────────────────────── */
-/* Ahora es controlado: recibe draft del panel padre y lo notifica */
-
-function PrendaRow({ item, draftTalla, draftMedida, onDraftChange, onDraftRevert, periodoAbierto = true }) {
-    const [editando, setEditando] = useState(false);
-
-    const talla = draftTalla ?? item.talla ?? '';
-    const medida = draftMedida ?? item.medida ?? '';
-    const dirty = draftTalla !== undefined || draftMedida !== undefined;
-    const confirmado = item.estado === 'confirmado' && !dirty;
-
-    const cancelar = () => {
-        onDraftRevert(item.id);
-        setEditando(false);
-    };
-
-    return (
-        <div className={`transition-colors ${
-            editando
-                ? 'rounded-xl bg-zinc-50/80 dark:bg-zinc-900/40'
-                : dirty
-                    ? 'rounded-xl bg-amber-50/50 ring-1 ring-amber-200/30 dark:bg-amber-950/15 dark:ring-amber-700/20'
-                    : confirmado
-                        ? 'rounded-xl bg-stone-50/50 dark:bg-stone-900/20'
-                        : ''
-        }`}>
-            <div className="flex gap-3 px-1 py-3 sm:gap-3.5 sm:py-3.5">
-                <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
-                    dirty
-                        ? 'bg-amber-100/60 dark:bg-amber-900/30'
-                        : confirmado
-                            ? 'bg-stone-200/50 dark:bg-stone-800/50'
-                            : 'bg-zinc-100 dark:bg-zinc-800'
-                }`}>
-                    {dirty
-                        ? <Pencil className="size-3 text-amber-600 dark:text-amber-400" strokeWidth={2} />
-                        : confirmado
-                            ? <CheckCircle2 className="size-3 text-stone-500 dark:text-stone-400" strokeWidth={1.75} />
-                            : <Clock className="size-3 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
-                    }
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="min-w-0">
-                        {item.clave && (
-                            <p className="font-mono text-[9px] text-zinc-400 dark:text-zinc-500">{item.clave}</p>
-                        )}
-                        <p className={`[overflow-wrap:anywhere] break-words text-[13px] font-medium leading-snug ${
-                            confirmado ? 'text-zinc-800 dark:text-zinc-100' : 'text-zinc-800 dark:text-zinc-200'
-                        }`}>
-                            {item.prenda}
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
-                        <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                            <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
-                                dirty
-                                    ? 'border-amber-300/50 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/25'
-                                    : confirmado
-                                        ? 'border-stone-200/70 bg-stone-50/70 dark:border-stone-600/40 dark:bg-stone-800/35'
-                                        : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
-                            }`}>
-                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${dirty ? 'text-amber-500 dark:text-amber-500' : confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>T</span>
-                                <span className={`font-mono text-[9px] font-semibold leading-none ${dirty ? 'text-amber-800 dark:text-amber-300' : confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{talla || '—'}</span>
-                            </span>
-                            <span className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-px ${
-                                dirty
-                                    ? 'border-amber-300/50 bg-amber-50/70 dark:border-amber-700/30 dark:bg-amber-900/25'
-                                    : confirmado
-                                        ? 'border-stone-200/70 bg-stone-50/70 dark:border-stone-600/40 dark:bg-stone-800/35'
-                                        : 'border-zinc-200/70 bg-zinc-50 dark:border-zinc-700/70 dark:bg-zinc-800/50'
-                            }`}>
-                                <span className={`text-[7px] font-semibold uppercase tracking-wide ${dirty ? 'text-amber-500 dark:text-amber-500' : confirmado ? 'text-stone-500 dark:text-stone-400' : 'text-zinc-400'}`}>M</span>
-                                <span className={`font-mono text-[9px] font-semibold leading-none ${dirty ? 'text-amber-800 dark:text-amber-300' : confirmado ? 'text-stone-800 dark:text-stone-300' : 'text-zinc-800 dark:text-zinc-200'}`}>{medida || '—'}</span>
-                            </span>
-                        </div>
-                        {!editando && periodoAbierto && (
-                            <button type="button" onClick={() => setEditando(true)}
-                                className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-3 text-[11px] font-medium transition ${
-                                    dirty
-                                        ? 'border-amber-300/60 bg-amber-50/80 text-amber-800 hover:bg-amber-100/70 dark:border-amber-700/35 dark:bg-amber-900/25 dark:text-amber-300 dark:hover:bg-amber-900/40'
-                                        : confirmado
-                                            ? 'border-stone-200/80 bg-white text-stone-800 hover:bg-stone-50/90 dark:border-stone-600/45 dark:bg-stone-900/35 dark:text-stone-300 dark:hover:bg-stone-800/45'
-                                            : 'border-zinc-200/90 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                                }`}>
-                                <Pencil className="size-3" strokeWidth={2} />
-                                {dirty ? 'Editado' : 'Editar'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* panel edición inline */}
-            <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${editando ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="overflow-hidden">
-                    <div className="flex flex-col gap-3 border-t border-zinc-100 pb-1 pt-4 dark:border-zinc-800/80 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3 sm:pb-2 sm:pt-3.5">
-                        <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-1 sm:flex-wrap sm:items-end">
-                            {[
-                                { lbl: 'Talla',  val: talla,  field: 'talla',  ph: item.talla_anterior || 'Ej. M' },
-                                { lbl: 'Medida', val: medida, field: 'medida', ph: 'Ej. 34' },
-                            ].map(({ lbl, val, field, ph }) => (
-                                <div key={lbl} className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[7rem]">
-                                    <label htmlFor={`prenda-${item.id}-${lbl}`}
-                                        className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-                                        {lbl}
-                                    </label>
-                                    <input
-                                        id={`prenda-${item.id}-${lbl}`}
-                                        type="text"
-                                        value={val}
-                                        onChange={(e) => onDraftChange(item.id, field, field === 'talla' ? e.target.value.toUpperCase() : e.target.value)}
-                                        placeholder={ph}
-                                        maxLength={20}
-                                        className="min-h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 font-mono text-[14px] font-bold text-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-300 focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 sm:min-h-0 sm:py-2 sm:text-[13px] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                                        inputMode="text"
-                                        autoComplete="off"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex w-full gap-2 sm:w-auto sm:shrink-0 sm:items-center">
-                            <button type="button" onClick={() => setEditando(false)}
-                                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 sm:min-h-0 sm:flex-initial sm:rounded-md sm:px-3 sm:py-2 sm:text-[12px]">
-                                <CheckCircle2 className="size-4 shrink-0 sm:size-3.5" />
-                                Listo
-                            </button>
-                            {dirty && (
-                                <button type="button" onClick={cancelar}
-                                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[13px] text-zinc-500 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 sm:min-h-0 sm:rounded-md sm:py-2 sm:text-[12px]">
-                                    <RotateCcw className="size-3.5" strokeWidth={2} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/* ─── VestuarioPanel ─────────────────────────────────────────────── */
-
-function VestuarioPanel({ empleadoId, vestuario, onPrendasGuardadas, anioActual = new Date().getFullYear(), periodoAbierto = true, loading = false }) {
-    // drafts: { [asignacionId]: { talla?, medida? } }
-    const [drafts, setDrafts]   = useState({});
-    const [saving, setSaving]   = useState(false);
-    const [flashOk, setFlashOk] = useState(false);
-    const [errMsg, setErrMsg]   = useState('');
-
-    const dirtyCount = Object.keys(drafts).length;
-
-    const onDraftChange = useCallback((id, field, value) => {
-        setDrafts((prev) => ({
-            ...prev,
-            [id]: { ...(prev[id] ?? {}), [field]: value },
-        }));
-    }, []);
-
-    const onDraftRevert = useCallback((id) => {
-        setDrafts((prev) => {
-            const next = { ...prev };
-            delete next[id];
-            return next;
-        });
-    }, []);
-
-    const guardarTodo = async () => {
-        if (dirtyCount === 0) return;
-        setSaving(true);
-        setErrMsg('');
-        try {
-            const items = vestuario
-                .filter((v) => drafts[v.id])
-                .map((v) => ({
-                    id:     v.id,
-                    talla:  drafts[v.id]?.talla  ?? v.talla  ?? null,
-                    medida: drafts[v.id]?.medida ?? v.medida ?? null,
-                }));
-            await axios.patch(route('my-delegation.vestuario.lote', empleadoId), { items });
-            items.forEach(({ id, talla, medida }) => onPrendasGuardadas(id, talla, medida));
-            setDrafts({});
-            setFlashOk(true);
-            setTimeout(() => setFlashOk(false), 3000);
-            // Recarga solo las stats sin mover scroll ni estado de filtros
-            router.reload({ only: ['resumen'], preserveScroll: true });
-        } catch (e) {
-            setErrMsg(e?.response?.data?.message ?? 'Error al guardar. Intenta de nuevo.');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const confirmadas = vestuario.filter((v) => {
-        if (drafts[v.id]) return true; // contará como confirmado tras guardar
-        return v.estado === 'confirmado';
-    }).length;
-    const total = vestuario.length;
-    const pct   = total > 0 ? Math.round((confirmadas / total) * 100) : 0;
-
-    return (
-        <div className="border-t border-zinc-100 px-4 pb-4 pt-4 dark:border-zinc-800/90">
-            {/* cabecera */}
-            <div className="mb-4 flex flex-col gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800/80 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                    Vestuario <span className="tabular-nums text-zinc-500 dark:text-zinc-400">{anioActual}</span>
-                </p>
-                <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                    <span className="text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">{confirmadas}</span>
-                        <span className="text-zinc-300 dark:text-zinc-600"> / {total}</span>
-                    </span>
-                    {total > 0 && (
-                        <div className="h-0.5 w-full overflow-hidden rounded-full bg-zinc-200/90 dark:bg-zinc-800 sm:w-36">
-                            <div
-                                className="h-full rounded-full bg-gradient-to-r from-stone-300/50 to-stone-400/35 dark:from-stone-600/40 dark:to-stone-500/30 transition-all duration-500"
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="flex items-center justify-center gap-2 py-6 text-[12px] text-zinc-400 dark:text-zinc-500">
-                    <RotateCcw className="size-3.5 animate-spin" aria-hidden />
-                    Cargando prendas (catálogo vigente por clave)…
-                </div>
-            ) : total === 0 ? (
-                <p className="py-3.5 text-center text-[12px] text-zinc-400 dark:text-zinc-500">
-                    Sin prendas asignadas en el año de referencia.
-                </p>
-            ) : (
-                <>
-                    <ul className="m-0 flex list-none flex-col divide-y divide-zinc-100 p-0 dark:divide-zinc-800/80">
-                        {vestuario.map((item) => (
-                            <li key={item.id}>
-                                <PrendaRow
-                                    item={item}
-                                    draftTalla={drafts[item.id]?.talla}
-                                    draftMedida={drafts[item.id]?.medida}
-                                    onDraftChange={onDraftChange}
-                                    onDraftRevert={onDraftRevert}
-                                    periodoAbierto={periodoAbierto}
-                                />
-                            </li>
-                        ))}
-                    </ul>
-
-                    {/* barra de guardado global */}
-                    {(dirtyCount > 0 || flashOk || errMsg) && (
-                        <div className="mt-3 flex flex-col gap-2">
-                            {errMsg && (
-                                <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-600 dark:bg-red-950/30 dark:text-red-400">
-                                    {errMsg}
-                                </p>
-                            )}
-                            {flashOk && (
-                                <p className="flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-2 text-[11px] font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                                    <CheckCircle2 className="size-3.5 shrink-0 text-stone-500 dark:text-stone-400" />
-                                    Vestuario actualizado correctamente.
-                                </p>
-                            )}
-                            {dirtyCount > 0 && (
-                                <button type="button" onClick={guardarTodo} disabled={saving}
-                                    className="flex w-full items-center justify-center gap-2 rounded-full border border-stone-700/90 bg-stone-800 px-5 py-2.5 text-[12px] font-medium text-stone-50 transition hover:bg-stone-700 disabled:opacity-50 dark:border-stone-500 dark:bg-stone-600 dark:text-stone-50 dark:hover:bg-stone-500">
-                                    {saving
-                                        ? <><RotateCcw className="size-4 animate-spin" /> Guardando…</>
-                                        : <><CheckCircle2 className="size-4" /> Actualizar todo · <span className="tabular-nums">{dirtyCount} {dirtyCount === 1 ? 'prenda' : 'prendas'}</span></>
-                                    }
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
-    );
-}
-
-/* ─── Modal base ─────────────────────────────────────────────────── */
-
-function Modal({ open, onClose, children, maxWidthClass = 'max-w-md', tone = 'default' }) {
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e) => e.key === 'Escape' && onClose();
-        document.addEventListener('keydown', onKey);
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.removeEventListener('keydown', onKey);
-            document.body.style.overflow = '';
-        };
-    }, [open, onClose]);
-
-    if (!open) return null;
-
-    const shellTone = tone === 'bajaSoft'
-        ? 'border-stone-200/50 bg-white shadow-sm shadow-stone-900/[0.04] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none'
-        : 'border-zinc-200/70 bg-zinc-50 shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-zinc-900';
-
-    const backdropTone = tone === 'bajaSoft'
-        ? 'bg-stone-900/25 backdrop-blur-[3px] dark:bg-zinc-900/40'
-        : 'bg-zinc-900/40 backdrop-blur-[2px]';
-
-    return createPortal(
-        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto overscroll-contain sm:items-center sm:p-6">
-            <div className={`fixed inset-0 ${backdropTone}`} onClick={onClose} />
-            <div
-                className={`relative z-10 w-full ${maxWidthClass} max-h-[min(95dvh,calc(100dvh-env(safe-area-inset-bottom)))] overflow-y-auto overscroll-y-contain rounded-t-2xl border sm:max-h-[min(90dvh,900px)] sm:rounded-2xl ${shellTone}`}
-                style={{ animation: 'modalIn 0.16s cubic-bezier(.16,1,.3,1)' }}
-            >
-                {children}
-            </div>
-            <style>{`
-                @keyframes modalIn {
-                    from { opacity:0; transform:scale(0.96) translateY(10px); }
-                    to   { opacity:1; transform:scale(1)    translateY(0);    }
-                }
-            `}</style>
-        </div>,
-        document.body,
-    );
-}
-
-/* ─── ModalAccionEmpleado ────────────────────────────────────────── */
-
-const MODAL_CFG = {
-    baja: {
-        iconBg:   'bg-stone-100/80 dark:bg-zinc-800',
-        iconClr:  'text-stone-500 dark:text-zinc-400',
-        warnBg:   'bg-stone-50/95 dark:bg-zinc-900/50',
-        warnRing: 'ring-stone-200/45 dark:ring-zinc-700/80',
-        warnTxt:  'text-stone-600 dark:text-zinc-400',
-        inputCls: 'border-stone-200/80 bg-white focus:border-stone-400/90 focus:ring-stone-200/30 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-500',
-        btnCls:   'border-2 border-stone-500/75 bg-white text-stone-800 hover:bg-stone-50/90 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50',
-        icon:     <XCircle className="size-5" strokeWidth={1.8} />,
-        title:    'Solicitar baja',
-        label:    'Motivo de baja',
-        ph:       'Ej. Renuncia voluntaria, licencia médica indefinida, jubilación…',
-        btnLbl:   'Enviar solicitud',
-        warn:     (
-            <>
-                Elige si la baja es <strong className="font-semibold text-stone-700 dark:text-zinc-200">definitiva</strong> o si <strong className="font-semibold text-stone-700 dark:text-zinc-200">llega una persona en su lugar</strong>.
-                En ambos casos se envía una <strong className="font-semibold text-stone-700 dark:text-zinc-200">solicitud</strong> a S.Administración; con sustituto incluye nombre y sexo (hombre/mujer) para el vestuario del nuevo empleado.
-            </>
-        ),
-    },
-    cambio: {
-        iconBg:   'bg-zinc-100 dark:bg-zinc-800',
-        iconClr:  'text-zinc-600 dark:text-zinc-400',
-        warnBg:   'bg-zinc-50 dark:bg-zinc-900/50',
-        warnRing: 'ring-zinc-200/80 dark:ring-zinc-700/80',
-        warnTxt:  'text-zinc-600 dark:text-zinc-400',
-        inputCls: 'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-200/40 dark:border-zinc-700 dark:focus:border-zinc-500',
-        selectCls:'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-200/40 dark:border-zinc-700 dark:focus:border-zinc-500',
-        btnCls:   'border-2 border-zinc-500/80 bg-white text-zinc-800 hover:bg-zinc-50/90 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50',
-        icon:     <ArrowLeftRight className="size-5" strokeWidth={1.8} />,
-        title:    'Solicitar cambio de delegación',
-        label:    'Nota del cambio',
-        ph:       'Ej. Asignado a nuevas funciones, cambio de área…',
-        btnLbl:   'Enviar solicitud',
-        warn:     (
-            <>
-                Se enviará una <strong className="font-semibold">solicitud de cambio</strong> a S.Administración.
-                Si el destino es de la misma UR, el recurso acompaña automáticamente al empleado.
-                Si cambia de UR, la decisión de recurso y prendas se toma en Solicitudes.
-                El movimiento se ejecuta hasta que sea aprobado.
-            </>
-        ),
-    },
-};
-
-function ModalAccionEmpleado({ open, accion, empleado, delegaciones = [], onCerrar, onGuardado }) {
-    const [obs, setObs]                     = useState('');
-    const [nuevaDelegacion, setNuevaDelegacion] = useState('');
-    const [bajaModo, setBajaModo]           = useState('definitiva');
-    const [sustNombre, setSustNombre]       = useState('');
-    const [sustApPat, setSustApPat]         = useState('');
-    const [sustApMat, setSustApMat]         = useState('');
-    const [sustNue, setSustNue]             = useState('');
-    const [sustSexo, setSustSexo]           = useState('M');
-    const [saving, setSaving]               = useState(false);
-    const [error, setError]                 = useState('');
-
-    // Delegaciones disponibles (misma u otra UR), excluyendo la actual.
-    const delegacionesDisponibles = delegaciones.filter(
-        (d) => d.codigo !== empleado?.delegacion_codigo,
-    );
-
-    useEffect(() => {
-        if (open) {
-            setObs('');
-            setNuevaDelegacion('');
-            setError('');
-            setBajaModo('definitiva');
-            setSustNombre('');
-            setSustApPat('');
-            setSustApMat('');
-            setSustNue('');
-            setSustSexo('M');
-        }
-    }, [open]);
-
-    const cfg = MODAL_CFG[accion] ?? MODAL_CFG.baja;
-
-    const guardar = async () => {
-        if (accion === 'cambio' && !nuevaDelegacion) {
-            setError('Debes seleccionar la delegación destino.');
-            return;
-        }
-        if (accion === 'baja' && bajaModo === 'sustitucion') {
-            if (!sustNombre.trim() || !sustApPat.trim()) {
-                setError('Indica nombre y primer apellido de quien llega en su lugar.');
-                return;
-            }
-        }
-        setError('');
-        setSaving(true);
-        try {
-            const payload = {
-                tipo: accion,
-                observacion: obs || null,
-                nueva_delegacion: accion === 'cambio' ? nuevaDelegacion : undefined,
-            };
-            if (accion === 'baja') {
-                payload.baja_modo = bajaModo;
-                if (bajaModo === 'sustitucion') {
-                    payload.sustituto = {
-                        nombre: sustNombre.trim(),
-                        apellido_paterno: sustApPat.trim(),
-                        apellido_materno: sustApMat.trim() || '',
-                        nue: sustNue.trim() || null,
-                        sexo: sustSexo,
-                    };
-                }
-            }
-            const { data } = await axios.post(route('my-delegation.solicitar', empleado?.id), payload);
-            onGuardado(accion, obs, nuevaDelegacion, data.data?.solicitud_id, { baja_modo: accion === 'baja' ? bajaModo : undefined });
-        } catch (e) {
-            setError(e?.response?.data?.message ?? 'No se pudo enviar la solicitud.');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const esBajaUi = accion === 'baja';
-
-    return (
-        <Modal open={open} onClose={onCerrar} maxWidthClass={esBajaUi ? 'max-w-2xl' : 'max-w-lg'} tone={esBajaUi ? 'bajaSoft' : 'default'}>
-            {/* Cabecera */}
-            <div className={`flex items-start justify-between gap-3 px-6 pb-4 pt-6 ${esBajaUi ? 'sm:px-8' : ''}`}>
-                <div className="flex min-w-0 flex-1 items-center gap-4">
-                    <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${cfg.iconBg}`}>
-                        <span className={cfg.iconClr}>{cfg.icon}</span>
-                    </div>
-                    <div className="min-w-0">
-                        <h2 className={`text-[15px] font-bold ${esBajaUi ? 'text-stone-800 dark:text-zinc-100' : 'text-zinc-900 dark:text-zinc-100'}`}>{cfg.title}</h2>
-                        <p className={`mt-0.5 truncate text-[11px] ${esBajaUi ? 'max-w-none text-stone-500 dark:text-zinc-400' : 'max-w-[210px] text-zinc-500 dark:text-zinc-400'}`}>
-                            {empleado?.nombre_completo}
-                        </p>
-                    </div>
-                </div>
-                <button type="button" onClick={onCerrar}
-                    className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl transition dark:hover:bg-zinc-800 dark:hover:text-zinc-300 ${esBajaUi ? 'text-stone-400 hover:bg-stone-100 hover:text-stone-600' : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600'}`}>
-                    <X className="size-4" />
-                </button>
-            </div>
-
-            {/* Divisor sutil */}
-            <div className={`mx-6 h-px sm:mx-8 ${esBajaUi ? 'bg-stone-100 dark:bg-zinc-800' : 'bg-zinc-100 dark:bg-zinc-800'}`} />
-
-            {/* Cuerpo */}
-            <div className={`px-6 py-5 ${esBajaUi ? 'sm:px-8' : ''}`}>
-                {/* Aviso */}
-                <div className={`mb-5 flex items-start gap-3 rounded-lg px-4 py-3 ring-1 ${cfg.warnBg} ${cfg.warnRing}`}>
-                    <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${cfg.iconClr}`} />
-                    <p className={`text-[12px] leading-snug ${cfg.warnTxt}`}>{cfg.warn}</p>
-                </div>
-
-                {/* Tipo de baja — solo baja */}
-                {accion === 'baja' && (
-                    <div className="mb-5 space-y-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 dark:text-zinc-500">Modalidad</p>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <button
-                                type="button"
-                                onClick={() => { setBajaModo('definitiva'); setError(''); }}
-                                className={`rounded-xl px-3 py-2.5 text-left text-[12px] font-medium transition ${
-                                    bajaModo === 'definitiva'
-                                        ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
-                                        : 'border border-stone-200/90 bg-stone-50/70 text-stone-700 hover:border-stone-300/90 hover:bg-stone-100/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                                }`}
-                            >
-                                Baja definitiva
-                                <span className="mt-0.5 block text-[10px] font-normal opacity-90">No hay relevo en el puesto</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setBajaModo('sustitucion'); setError(''); }}
-                                className={`rounded-xl px-3 py-2.5 text-left text-[12px] font-medium transition ${
-                                    bajaModo === 'sustitucion'
-                                        ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
-                                        : 'border border-stone-200/90 bg-stone-50/70 text-stone-700 hover:border-stone-300/90 hover:bg-stone-100/80 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                                }`}
-                            >
-                                Llega otra persona
-                                <span className="mt-0.5 block text-[10px] font-normal opacity-90">Se solicita alta del sustituto</span>
-                            </button>
-                        </div>
-
-                        {bajaModo === 'sustitucion' && (
-                            <div className="space-y-3 rounded-xl border border-stone-200/60 bg-stone-50/70 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/30">
-                                <div className="flex items-center gap-2 text-[11px] font-medium text-stone-600 dark:text-zinc-400">
-                                    <Users className="size-3.5 shrink-0 opacity-80" strokeWidth={2} />
-                                    Datos de quien llega (van a la solicitud)
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="sm:col-span-2">
-                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Nombre <span className="text-stone-700 dark:text-zinc-200">*</span></label>
-                                        <input
-                                            type="text"
-                                            value={sustNombre}
-                                            onChange={(e) => setSustNombre(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Primer apellido <span className="text-stone-700 dark:text-zinc-200">*</span></label>
-                                        <input
-                                            type="text"
-                                            value={sustApPat}
-                                            onChange={(e) => setSustApPat(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">Segundo apellido</label>
-                                        <input
-                                            type="text"
-                                            value={sustApMat}
-                                            onChange={(e) => setSustApMat(e.target.value)}
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 text-[13px] text-stone-800 outline-none dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <label className="mb-1 block text-[10px] font-medium text-stone-500 dark:text-zinc-500">
-                                            NUE <span className="font-normal text-stone-400 dark:text-zinc-500">— opcional</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={sustNue}
-                                            onChange={(e) => setSustNue(e.target.value)}
-                                            maxLength={15}
-                                            placeholder="Número de empleado único"
-                                            className={`w-full rounded-lg border bg-white px-3 py-2 font-mono text-[13px] text-stone-800 outline-none placeholder:font-sans dark:bg-zinc-900 dark:text-zinc-200 ${cfg.inputCls}`}
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div className="sm:col-span-2">
-                                        <p className="mb-2 text-[10px] font-medium text-stone-500 dark:text-zinc-500">Sexo (vestuario) <span className="text-stone-700 dark:text-zinc-200">*</span></p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {[
-                                                ['M', 'Hombre'],
-                                                ['F', 'Mujer'],
-                                            ].map(([val, label]) => (
-                                                <button
-                                                    key={val}
-                                                    type="button"
-                                                    onClick={() => setSustSexo(val)}
-                                                    className={`rounded-full px-4 py-1.5 text-[12px] font-medium transition ${
-                                                        sustSexo === val
-                                                            ? 'border-2 border-stone-500/75 bg-white text-stone-800 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100'
-                                                            : 'border border-stone-200/90 bg-white/80 text-stone-600 hover:border-stone-300/80 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-400 dark:hover:border-zinc-600'
-                                                    }`}
-                                                >
-                                                    {label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Selector de delegación destino — solo para cambio */}
-                {accion === 'cambio' && (
-                    <div className="mb-5">
-                        <label className="mb-2 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                            Delegación destino <span className="text-zinc-700 dark:text-zinc-300">*</span>
-                        </label>
-
-                        {delegacionesDisponibles.length === 0 ? (
-                            <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-[12px] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-400">
-                                No hay delegaciones destino disponibles.
-                            </p>
-                        ) : (
-                            <select
-                                value={nuevaDelegacion}
-                                onChange={(e) => { setNuevaDelegacion(e.target.value); setError(''); }}
-                                className={`w-full rounded-lg border bg-zinc-50/60 px-4 py-2.5 text-[13px] text-zinc-800 outline-none transition-[border-color,box-shadow] focus:bg-zinc-100 focus:ring-2 dark:bg-zinc-800/40 dark:text-zinc-200 dark:focus:bg-zinc-800 ${cfg.selectCls}`}
-                            >
-                                <option value="">— Selecciona la delegación destino —</option>
-                                {delegacionesDisponibles.map((d) => (
-                                    <option key={d.codigo} value={d.codigo}>
-                                        {d.codigo}
-                                        {d.ur === empleado?.ur ? ' — Misma UR' : ` — UR ${d.ur ?? 'N/D'}`}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        {error && (
-                            <p className="mt-1.5 text-[11px] font-medium text-rose-500 dark:text-rose-400">{error}</p>
-                        )}
-                    </div>
-                )}
-
-                {/* Observación */}
-                <div className="mb-6">
-                    <label className={`mb-2 block text-[11px] font-semibold uppercase tracking-widest dark:text-zinc-500 ${esBajaUi ? 'text-stone-400' : 'text-zinc-400'}`}>
-                        {cfg.label}
-                        <span className={`ml-1.5 font-normal normal-case tracking-normal ${esBajaUi ? 'text-stone-400/90' : 'text-zinc-400'}`}> — opcional</span>
-                    </label>
-                    <textarea
-                        value={obs} onChange={(e) => setObs(e.target.value)}
-                        rows={2} maxLength={255} placeholder={cfg.ph}
-                        className={`w-full resize-none rounded-lg border px-4 py-3 text-[13px] outline-none transition-[border-color,box-shadow] focus:ring-2 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:bg-zinc-800 ${esBajaUi
-                            ? 'border-stone-200/80 bg-white text-stone-800 placeholder:text-stone-400/80 focus:bg-stone-50/50 focus:ring-stone-200/35 dark:border-zinc-700 dark:bg-zinc-800/40 dark:focus:bg-zinc-800'
-                            : 'bg-zinc-50/60 text-zinc-800 placeholder:text-zinc-400 focus:bg-zinc-100 dark:bg-zinc-800/40 dark:focus:bg-zinc-800'} ${cfg.inputCls}`}
-                    />
-                    <p className={`mt-1 text-right text-[10px] tabular-nums ${esBajaUi ? 'text-stone-400 dark:text-zinc-500' : 'text-zinc-400'}`}>{obs.length}/255</p>
-                </div>
-
-                {/* Error */}
-                {error && (
-                    <p className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-medium dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-800/30 ${esBajaUi
-                        ? 'bg-rose-50/90 text-rose-600/95 ring-1 ring-rose-200/40'
-                        : 'bg-rose-50 text-rose-600 ring-1 ring-rose-200/50'}`}
-                    >
-                        <AlertTriangle className="size-4 shrink-0" /> {error}
-                    </p>
-                )}
-
-                {/* Botones */}
-                <div className="flex flex-col-reverse gap-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:pb-0">
-                    <button type="button" onClick={guardar} disabled={saving}
-                        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium transition-opacity disabled:opacity-50 ${cfg.btnCls}`}>
-                        {saving ? <RotateCcw className="size-4 animate-spin" /> : cfg.icon}
-                        {saving ? 'Enviando…' : cfg.btnLbl}
-                    </button>
-                    <button type="button" onClick={onCerrar}
-                        className={`rounded-lg border px-4 py-2.5 text-[13px] font-medium sm:shrink-0 ${esBajaUi
-                            ? 'border-stone-200/90 bg-stone-50/90 text-stone-600 hover:bg-stone-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                            : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800'}`}
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </Modal>
-    );
-}
-
-/* ─── EmpleadoRow ────────────────────────────────────────────────── */
-
-function EmpleadoRow({ empleado, delegaciones, anioActual, periodoAbierto = true, presupuestoBaja = 0, onAbrirAgregarProducto }) {
-    const [vestuarioAbierto, setVestuarioAbierto] = useState(false);
-    const [modal, setModal]                        = useState(null);
-    const [vestuario, setVestuario]                = useState(empleado.vestuario);
-    const [vestuarioCargando, setVestuarioCargando] = useState(false);
-    const [vestuarioFetchKey, setVestuarioFetchKey] = useState(0);
-    const [estadoDelegacion, setEstadoDelegacion]  = useState(empleado.estado_delegacion || 'activo');
-    const [obsDelegacion, setObsDelegacion]        = useState(empleado.observacion_delegacion || '');
-    const [solicitudPendiente, setSolicitudPendiente] = useState(empleado.solicitud_pendiente ?? null);
-    const [reactivando, setReactivando]               = useState(false);
-    const [nueLocal, setNueLocal]                     = useState(empleado.nue ?? '');
-    const [editandoNue, setEditandoNue]               = useState(false);
-    const [nueInput, setNueInput]                     = useState('');
-    const [nueSaving, setNueSaving]                   = useState(false);
-    const [nueError, setNueError]                     = useState('');
-
-    const cerrarModal = () => setModal(null);
-
-    const handleReactivar = async () => {
-        setReactivando(true);
-        try {
-            await axios.patch(route('my-delegation.empleado.reactivar', empleado.id));
-            setEstadoDelegacion('activo');
-            setObsDelegacion('');
-        } catch { /* sin acción */ } finally {
-            setReactivando(false);
-        }
-    };
-
-    const iniciarEdicionNue = () => {
-        setNueInput(nueLocal || '');
-        setNueError('');
-        setEditandoNue(true);
-    };
-
-    const guardarNue = async () => {
-        const v = nueInput.trim();
-        if (!v) { setNueError('Ingresa un NUE.'); return; }
-        setNueSaving(true);
-        setNueError('');
-        try {
-            const { data } = await axios.patch(route('my-delegation.empleado.nue', empleado.id), { nue: v });
-            setNueLocal(data.data?.nue ?? v);
-            setEditandoNue(false);
-        } catch (e) {
-            setNueError(e?.response?.data?.message ?? 'Error al guardar NUE.');
-        } finally {
-            setNueSaving(false);
-        }
-    };
-
-    // Llamado cuando el panel guarda una prenda individual o en lote
-    const handlePrendaGuardada = useCallback((id, nuevaTalla, nuevaMedida) => {
-        setVestuario((prev) => prev.map((v) =>
-            v.id === id ? { ...v, talla: nuevaTalla, medida: nuevaMedida, estado: 'confirmado' } : v
-        ));
-    }, []);
-
-    const handleSolicitudEnviada = useCallback((tipo, obs, destino, solicitudId, meta = {}) => {
-        setSolicitudPendiente({
-            id: solicitudId,
-            tipo,
-            delegacion_destino: destino,
-            baja_modo: meta.baja_modo ?? null,
-        });
-        cerrarModal();
-    }, []);
-
-    const handleCancelarSolicitud = async () => {
-        if (!solicitudPendiente?.id) return;
-        try {
-            await axios.delete(route('my-delegation.solicitud.cancelar', solicitudPendiente.id));
-            setSolicitudPendiente(null);
-        } catch { /* sin acción */ }
-    };
-
-    useEffect(() => {
-        if (!vestuarioAbierto) return;
-        let cancelled = false;
-        setVestuarioCargando(true);
-        axios
-            .get(route('my-delegation.empleado.vestuario', empleado.id))
-            .then((r) => {
-                if (cancelled) return;
-                const list = r.data?.data?.vestuario;
-                if (Array.isArray(list)) {
-                    setVestuario(list);
-                    setVestuarioFetchKey((k) => k + 1);
-                }
-            })
-            .catch(() => { /* mantener lista previa */ })
-            .finally(() => {
-                if (!cancelled) setVestuarioCargando(false);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [vestuarioAbierto, empleado.id]);
-
-    /** Listado inicial viene sin prendas; usar métricas del servidor hasta cargar el detalle al abrir el panel. */
-    const tieneDetalleVestuario = vestuario.length > 0;
-    const totalPrendas = tieneDetalleVestuario ? vestuario.length : (empleado.total_prendas ?? 0);
-    const enBajaCount = tieneDetalleVestuario
-        ? vestuario.filter((v) => v.estado === 'baja').length
-        : (empleado.bajas_vestuario ?? 0);
-    const confirmadasOCambio = tieneDetalleVestuario
-        ? vestuario.filter((v) => v.estado === 'confirmado' || v.estado === 'cambio').length
-        : (empleado.confirmadas ?? 0);
-    const requeridas = totalPrendas - enBajaCount;
-    const listos = confirmadasOCambio;
-    const completo = tieneDetalleVestuario
-        ? totalPrendas > 0 && confirmadasOCambio >= requeridas
-        : empleado.vestuario_listo === true;
-    /** Coincide con backend; con detalle local, `completo` gana sobre la marca del listado. */
-    const vestuarioListo = empleado.vestuario_listo === true || completo;
-    const pendienteVestuario = totalPrendas > 0 && !completo;
-    const total = totalPrendas;
-    const esBaja   = estadoDelegacion === 'baja';
-    const esCambio = estadoDelegacion === 'cambio';
-
-    const cardCls = esBaja
-        ? 'border-rose-200/50 bg-rose-50/20 dark:border-rose-900/25 dark:bg-rose-950/10'
-        : esCambio
-            ? 'border-zinc-200/80 bg-zinc-50/40 dark:border-zinc-800 dark:bg-zinc-950/25'
-            : vestuarioListo && !esBaja && !esCambio
-                ? 'border-zinc-200/80 border-l-[3px] border-l-stone-300/80 bg-stone-50/30 shadow-sm shadow-zinc-900/[0.02] hover:border-zinc-300/90 dark:border-zinc-800 dark:border-l-stone-600/50 dark:bg-zinc-950/35 dark:shadow-none dark:hover:border-zinc-700'
-                : vestuarioAbierto
-                    ? 'border-zinc-300/90 bg-white dark:border-zinc-600 dark:bg-zinc-950/50'
-                    : 'border-zinc-200/70 bg-white hover:border-zinc-300/80 dark:border-zinc-800 dark:bg-zinc-950/30 dark:hover:border-zinc-700';
-
-    const avatarCls = esBaja
-        ? 'bg-rose-50/90 text-rose-700/90 ring-1 ring-rose-100/80 dark:bg-rose-950/25 dark:text-rose-400/90 dark:ring-rose-900/30'
-        : esCambio
-            ? 'bg-zinc-100 text-zinc-600 ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700'
-            : vestuarioListo
-                ? 'bg-stone-100/80 text-stone-700 ring-1 ring-stone-200/60 dark:bg-stone-800/50 dark:text-stone-300 dark:ring-stone-600/40'
-                : 'bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200/60 dark:bg-zinc-800/80 dark:text-zinc-400 dark:ring-zinc-700/80';
-
-    return (
-        <div className={`overflow-hidden rounded-2xl border ${cardCls}`}>
-
-            {/* ── cabecera tarjeta: datos + acciones ── */}
-            <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <div className="flex min-w-0 flex-1 gap-3">
-                    {/* avatar */}
-                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${avatarCls}`}>
-                        {esBaja
-                            ? <XCircle className="size-4" strokeWidth={1.5} />
-                            : esCambio
-                                ? <ArrowLeftRight className="size-4" strokeWidth={1.5} />
-                                : empleado.nombre_completo.charAt(0)
-                        }
-                    </div>
-
-                    <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className={`min-w-0 break-words text-[13px] font-medium leading-snug tracking-tight ${
-                                esBaja ? 'text-rose-600/75 line-through decoration-rose-200/70 dark:text-rose-400/75' : 'text-zinc-800 dark:text-zinc-100'
-                            }`}>
-                                {empleado.nombre_completo}
-                            </span>
-                            {esBaja && (
-                                <span className="inline-flex shrink-0 items-center rounded-full bg-rose-50/90 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-rose-700/85 dark:bg-rose-950/30 dark:text-rose-400/90">
-                                    Baja
-                                </span>
-                            )}
-                            {esCambio && (
-                                <span className="inline-flex shrink-0 items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                                    Cambio
-                                </span>
-                            )}
-                            {!esBaja && !esCambio && (
-                                <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums ${
-                                    vestuarioListo
-                                        ? 'bg-stone-100/90 text-stone-700 dark:bg-stone-800/60 dark:text-stone-300'
-                                        : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800/90 dark:text-zinc-400'
-                                }`}>
-                                    {vestuarioListo ? 'Actualizado' : `${listos}/${total}`}
-                                </span>
-                            )}
-                        </div>
-                        {nueLocal ? (
-                            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{nueLocal}</p>
-                        ) : editandoNue ? (
-                            <div className="flex items-center gap-1.5">
-                                <input
-                                    type="text"
-                                    value={nueInput}
-                                    onChange={(e) => { setNueInput(e.target.value); setNueError(''); }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') guardarNue(); if (e.key === 'Escape') setEditandoNue(false); }}
-                                    maxLength={15}
-                                    placeholder="NUE"
-                                    autoFocus
-                                    className="w-24 rounded border border-zinc-300 bg-white px-1.5 py-0.5 font-mono text-[11px] text-zinc-800 outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
-                                />
-                                <button type="button" onClick={guardarNue} disabled={nueSaving}
-                                    className="flex size-5 items-center justify-center rounded text-emerald-600 transition hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
-                                    {nueSaving ? <RotateCcw className="size-3 animate-spin" /> : <Check className="size-3" strokeWidth={2.5} />}
-                                </button>
-                                <button type="button" onClick={() => setEditandoNue(false)}
-                                    className="flex size-5 items-center justify-center rounded text-zinc-400 transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                                    <X className="size-3" strokeWidth={2} />
-                                </button>
-                                {nueError && <span className="text-[10px] text-rose-500">{nueError}</span>}
-                            </div>
-                        ) : (
-                            <button type="button" onClick={iniciarEdicionNue}
-                                className="inline-flex items-center gap-1 font-mono text-[11px] text-amber-600/80 transition hover:text-amber-700 dark:text-amber-400/80 dark:hover:text-amber-300">
-                                <Pencil className="size-2.5" strokeWidth={2} />
-                                Sin NUE — asignar
-                            </button>
-                        )}
-                        {obsDelegacion && (
-                            <p className="break-words text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                                “{obsDelegacion}”
-                            </p>
-                        )}
-                        {esBaja && !solicitudPendiente && (
-                            <p className="mt-1 flex items-start gap-1.5 rounded-lg bg-rose-50/60 px-2.5 py-1.5 text-[10px] leading-snug text-rose-700/80 dark:bg-rose-950/20 dark:text-rose-400/90">
-                                <Info className="mt-px size-3 shrink-0" strokeWidth={2} />
-                                Sus productos y presupuesto quedan en la delegación y se pueden repartir entre los demás empleados.
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="h-px bg-zinc-100/70 sm:hidden dark:bg-zinc-800/50" aria-hidden />
-
-                {/* acciones */}
-                <div className="flex w-full items-center justify-end gap-1 sm:w-auto sm:shrink-0">
-                    {!solicitudPendiente && esCambio && (
-                        <button type="button" onClick={handleReactivar} disabled={reactivando} title="Reactivar"
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
-                            {reactivando ? <RotateCcw className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-                            <span className="hidden sm:inline">Reactivar</span>
-                        </button>
-                    )}
-
-                    {!esBaja && (
-                        <button type="button" onClick={() => setVestuarioAbierto((p) => !p)}
-                            title={periodoAbierto ? (pendienteVestuario ? 'Actualizar vestuario' : 'Vestuario') : 'Ver vestuario'}
-                            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium transition ${
-                                vestuarioAbierto
-                                    ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
-                                    : periodoAbierto && pendienteVestuario
-                                        ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
-                            }`}>
-                            <Shirt className="size-3.5" strokeWidth={1.75} />
-                            <span className="hidden sm:inline">
-                                {periodoAbierto ? (pendienteVestuario ? 'Actualizar' : 'Vestuario') : 'Ver'}
-                            </span>
-                            {total > 0 && <span className="tabular-nums text-[10px] opacity-60">{listos}/{total}</span>}
-                            <ChevronDown className={`size-3 opacity-50 transition-transform duration-150 ${vestuarioAbierto ? 'rotate-180' : ''}`} strokeWidth={2} />
-                        </button>
-                    )}
-
-                    {!esBaja && !solicitudPendiente && (
-                        <>
-                            <button type="button" onClick={() => setModal('cambio')} title="Cambio de delegación"
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
-                                <ArrowLeftRight className="size-3.5" strokeWidth={1.75} />
-                                <span className="hidden sm:inline">Cambio</span>
-                            </button>
-
-                            <button type="button" onClick={() => setModal('baja')} title="Solicitar baja"
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600 dark:text-zinc-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400">
-                                <XCircle className="size-3.5" strokeWidth={1.75} />
-                                <span className="hidden sm:inline">Baja</span>
-                            </button>
-                        </>
-                    )}
-
-                    {!esBaja && periodoAbierto && presupuestoBaja > 0 && onAbrirAgregarProducto && (
-                        <button type="button" onClick={() => onAbrirAgregarProducto(empleado)} title="Agregar producto"
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-zinc-400 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-400">
-                            <Package className="size-3.5" strokeWidth={1.75} />
-                            <span className="hidden sm:inline">Agregar</span>
-                        </button>
-                    )}
-
-                    <Link href={route('my-delegation.empleado.show', empleado.id)} title="Ver empleado"
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200">
-                        <Eye className="size-3.5" strokeWidth={1.75} />
-                        <span className="hidden sm:inline">Ver</span>
-                    </Link>
-                </div>
-            </div>
-
-            {/* ── solicitud pendiente ── */}
-            {solicitudPendiente && (
-                <div className="flex flex-col gap-3 border-t border-zinc-100 bg-zinc-50/50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/35 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                    <div className="flex min-w-0 items-start gap-2.5 text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-400 sm:items-center">
-                        <Clock className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500 sm:mt-0" strokeWidth={1.5} />
-                        <span className="min-w-0 break-words">
-                            Solicitud de{' '}
-                            <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                                {solicitudPendiente.tipo === 'baja' && solicitudPendiente.baja_modo === 'sustitucion'
-                                    ? 'baja con sustituto'
-                                    : solicitudPendiente.tipo}
-                            </span>{' '}
-                            en revisión
-                            {solicitudPendiente.delegacion_destino && (
-                                <> · <span className="break-all font-mono text-[11px] text-zinc-600 dark:text-zinc-400 sm:break-normal">{solicitudPendiente.delegacion_destino}</span></>
-                            )}
-                        </span>
-                    </div>
-                    <button type="button" onClick={handleCancelarSolicitud}
-                        className="flex h-9 shrink-0 items-center justify-center gap-1 self-end rounded-full border border-zinc-200 bg-white px-3 text-[11px] font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:self-auto">
-                        <X className="size-3.5" strokeWidth={2} /> Cancelar
-                    </button>
-                </div>
-            )}
-
-            {/* ── vestuario accordion ── */}
-            <div className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${vestuarioAbierto ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="overflow-hidden">
-                    <VestuarioPanel
-                        key={`${empleado.id}-${vestuarioFetchKey}`}
-                        empleadoId={empleado.id}
-                        vestuario={vestuario}
-                        onPrendasGuardadas={handlePrendaGuardada}
-                        anioActual={anioActual}
-                        periodoAbierto={periodoAbierto}
-                        loading={vestuarioCargando}
-                    />
-                </div>
-            </div>
-
-            {/* ── modales ── */}
-            <ModalAccionEmpleado open={modal === 'baja'}   accion="baja"   empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
-            <ModalAccionEmpleado open={modal === 'cambio'} accion="cambio" empleado={empleado} delegaciones={delegaciones} onCerrar={cerrarModal} onGuardado={handleSolicitudEnviada} />
-        </div>
-    );
-}
-
-/* ─── ModalAgregarProducto ────────────────────────────────────────── */
-
-function ModalAgregarProducto({ open, onClose, empleadoId, empleadoNombre, onAgregado }) {
-    const [catalogo, setCatalogo] = useState([]);
-    const [presupuestoTotal, setPresupuestoTotal] = useState(0);
-    const [presupuestoUsado, setPresupuestoUsado] = useState(0);
-    const [presupuestoDisponible, setPresupuestoDisponible] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [selProducto, setSelProducto] = useState('');
-    const [busqueda, setBusqueda] = useState('');
-    const [mensajeExito, setMensajeExito] = useState('');
-
-    useEffect(() => {
-        if (!open) return;
-        setLoading(true);
-        setError('');
-        setMensajeExito('');
-        setSelProducto('');
-        setBusqueda('');
-        axios.get(route('my-delegation.recurso-baja'))
-            .then((r) => {
-                setCatalogo(r.data?.data?.catalogo ?? []);
-                setPresupuestoTotal(r.data?.data?.presupuesto_total ?? 0);
-                setPresupuestoUsado(r.data?.data?.presupuesto_usado ?? 0);
-                setPresupuestoDisponible(r.data?.data?.presupuesto_disponible ?? 0);
-            })
-            .catch(() => setError('No se pudo cargar el catálogo.'))
-            .finally(() => setLoading(false));
-    }, [open]);
-
-    const catalogoFiltrado = useMemo(() => {
-        if (!busqueda.trim()) return catalogo;
-        const t = busqueda.toLowerCase();
-        return catalogo.filter((p) =>
-            (p.descripcion ?? '').toLowerCase().includes(t) || (p.clave ?? '').toLowerCase().includes(t),
+const fmtMoney = (v) => moneyFmt.format(Number(v) || 0);
+
+/* ─── Bloque de período (compacto, en la sección de cabecera) ──────── */
+function PeriodoTag({ periodo }) {
+    if (!periodo) return null;
+    const abierto = periodo.estado === 'abierto';
+
+    if (!abierto) {
+        return (
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
+                <Lock className="size-3 shrink-0 opacity-60" strokeWidth={1.5} aria-hidden />
+                <span className="font-medium">{periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}</span>
+                <span className="text-zinc-400 dark:text-zinc-500">· {periodo.nombre}</span>
+            </span>
         );
-    }, [catalogo, busqueda]);
+    }
 
-    const productoSeleccionado = catalogo.find((c) => c.producto_cotizado_id === Number(selProducto));
-    const precioSeleccionado = productoSeleccionado?.precio_unitario ?? 0;
-
-    const handleAgregar = async () => {
-        if (!selProducto || !empleadoId) return;
-        setSaving(true);
-        setError('');
-        setMensajeExito('');
-        try {
-            const { data } = await axios.post(route('my-delegation.agregar-producto', empleadoId), {
-                producto_cotizado_id: Number(selProducto),
-            });
-            const nuevoDisponible = data.data?.presupuesto_disponible ?? Math.max(0, presupuestoDisponible - precioSeleccionado);
-            setPresupuestoDisponible(nuevoDisponible);
-            setPresupuestoUsado((prev) => prev + precioSeleccionado);
-            setSelProducto('');
-            setMensajeExito(`${productoSeleccionado?.descripcion ?? 'Producto'} agregado.`);
-            setTimeout(() => setMensajeExito(''), 3000);
-            if (onAgregado) onAgregado(nuevoDisponible);
-        } catch (e) {
-            setError(e?.response?.data?.message ?? 'Error al agregar el producto.');
-        } finally {
-            setSaving(false);
-        }
-    };
+    const fechaFin = periodo.fecha_fin
+        ? new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+        : null;
 
     return (
-        <Modal open={open} onClose={onClose} maxWidthClass="max-w-lg">
-            <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5 sm:px-6">
-                <div className="min-w-0">
-                    <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">Agregar producto</h2>
-                    <p className="mt-0.5 truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {empleadoNombre}
-                    </p>
-                </div>
-                <button type="button" onClick={onClose}
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800">
-                    <X className="size-4" />
-                </button>
-            </div>
-
-            <div className="mx-5 h-px bg-zinc-100 dark:bg-zinc-800 sm:mx-6" />
-
-            <div className="max-h-[min(65dvh,500px)] overflow-y-auto overscroll-y-contain px-5 py-4 sm:px-6">
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <RotateCcw className="size-5 animate-spin text-zinc-400" />
-                    </div>
-                ) : (
-                    <>
-                        {/* Presupuesto disponible */}
-                        <div className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
-                            <Package className="size-4 shrink-0 text-zinc-400" strokeWidth={1.8} />
-                            <div className="min-w-0 flex-1">
-                                <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">
-                                    <span className="tabular-nums font-bold text-zinc-900 dark:text-zinc-100">${fmtMoney(presupuestoDisponible)}</span>{' '}
-                                    disponible
-                                </p>
-                                {presupuestoTotal > 0 && (
-                                    <div className="mt-1.5 flex items-center gap-2">
-                                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
-                                            <div
-                                                className="h-full rounded-full bg-zinc-500 transition-all duration-500 dark:bg-zinc-400"
-                                                style={{ width: `${Math.min(100, Math.round((presupuestoUsado / presupuestoTotal) * 100))}%` }}
-                                            />
-                                        </div>
-                                        <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                                            ${fmtMoney(presupuestoUsado)} / ${fmtMoney(presupuestoTotal)}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {presupuestoDisponible <= 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                                <Package className="size-7 text-zinc-300 dark:text-zinc-600" strokeWidth={1.25} />
-                                <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin presupuesto disponible</p>
-                                <p className="text-[12px] text-zinc-400 dark:text-zinc-500">
-                                    Se ha utilizado todo el presupuesto de recurso de bajas.
-                                </p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Buscador del catálogo */}
-                                <div className="mb-3">
-                                    <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                                        Buscar producto en catálogo
-                                    </label>
-                                    <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-                                        <Search className="size-3.5 shrink-0 text-zinc-400" />
-                                        <input
-                                            type="text"
-                                            value={busqueda}
-                                            onChange={(e) => setBusqueda(e.target.value)}
-                                            placeholder="Clave o descripción…"
-                                            className="w-full border-0 bg-transparent p-0 text-[12px] text-zinc-800 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-200"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Selector de producto */}
-                                <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
-                                    {catalogoFiltrado.length === 0 ? (
-                                        <p className="px-3 py-4 text-center text-[12px] text-zinc-400">Sin resultados.</p>
-                                    ) : (
-                                        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                            {catalogoFiltrado.map((p) => {
-                                                const selected = selProducto === String(p.producto_cotizado_id);
-                                                return (
-                                                    <li key={p.producto_cotizado_id}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setSelProducto(String(p.producto_cotizado_id))}
-                                                            className={`w-full px-3 py-2 text-left text-[12px] transition ${
-                                                                selected
-                                                                    ? 'bg-zinc-100 font-medium text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
-                                                                    : 'text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50'
-                                                            }`}
-                                                        >
-                                                            <span className="flex items-center justify-between gap-2">
-                                                                <span className="min-w-0 truncate">{p.descripcion}</span>
-                                                                <span className="shrink-0 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">${fmtMoney(p.precio_unitario)}</span>
-                                                            </span>
-                                                            <span className="mt-0.5 block font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{p.clave}</span>
-                                                        </button>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {error && (
-                            <p className="mb-3 flex items-center gap-2 rounded-xl bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-600 ring-1 ring-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:ring-rose-800/30">
-                                <AlertTriangle className="size-4 shrink-0" /> {error}
-                            </p>
-                        )}
-                        {mensajeExito && (
-                            <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-[12px] font-medium text-emerald-700 ring-1 ring-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:ring-emerald-800/30">
-                                <CheckCircle2 className="size-4 shrink-0" /> {mensajeExito}
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-
-            <div className="border-t border-zinc-100 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-6">
-                {selProducto && precioSeleccionado > 0 && (
-                    <p className={`mb-2 text-center text-[11px] font-medium tabular-nums ${precioSeleccionado > presupuestoDisponible ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
-                        Precio: ${fmtMoney(precioSeleccionado)}
-                        {precioSeleccionado > presupuestoDisponible && ' — excede el presupuesto disponible'}
-                    </p>
-                )}
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        disabled={!selProducto || saving || presupuestoDisponible <= 0 || precioSeleccionado > presupuestoDisponible}
-                        onClick={handleAgregar}
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-zinc-500/80 bg-white px-4 py-2.5 text-[13px] font-medium text-zinc-800 transition disabled:opacity-40 hover:bg-zinc-50 dark:border-zinc-400/90 dark:bg-zinc-950/40 dark:text-zinc-100 dark:hover:bg-zinc-900/50"
-                    >
-                        {saving ? <RotateCcw className="size-4 animate-spin" /> : <Package className="size-4" strokeWidth={2} />}
-                        {saving ? 'Agregando…' : 'Agregar producto'}
-                    </button>
-                    <button type="button" onClick={onClose}
-                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-medium text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </Modal>
+        <span className="inline-flex items-center gap-1.5 text-[12px]">
+            <span className="size-1.5 rounded-full bg-brand-gold dark:bg-brand-gold-soft" aria-hidden />
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">{periodo.nombre}</span>
+            {fechaFin && (
+                <span className="tabular-nums text-zinc-500 dark:text-zinc-400">· hasta {fechaFin}</span>
+            )}
+        </span>
     );
 }
 
-/* ─── página principal ───────────────────────────────────────────── */
-
+/* ─── Página principal ──────────────────────────────────────────────── */
 function MiDelegacionIndex({
     empleados,
     delegaciones = [],
-    contexto = {},
-    resumen = {},
-    periodo = null,
-    filters = {},
+    contexto     = {},
+    resumen      = {},
+    periodo      = null,
+    filters      = {},
     acuse_anios_disponibles = [],
-    acuse_anio_default = null,
+    acuse_anio_default      = null,
     presupuesto_baja_disponible = 0,
 }) {
-    const [search, setSearch] = useState(filters.search || '');
-    const [filtro, setFiltro] = useState(filters.filtro || 'todos');
+    const [search, setSearch]           = useState(filters.search || '');
+    const [filtro, setFiltro]           = useState(filters.filtro || 'todos');
     const [agregarTarget, setAgregarTarget] = useState(null);
     const [presupuestoBaja, setPresupuestoBaja] = useState(presupuesto_baja_disponible ?? 0);
-    useEffect(() => { setPresupuestoBaja(presupuesto_baja_disponible ?? 0); }, [presupuesto_baja_disponible]);
-    const isFirstRender       = useRef(true);
-    const anioRefFallback =
-        resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
-    const anioVestuario       = resumen.anio_actual ?? new Date().getFullYear();
+    const isFirstRender = useRef(true);
 
-    const perPage = PER_PAGE_OPCIONES.includes(Number(filters.per_page))
-        ? Number(filters.per_page)
-        : 20;
-    const esVistaIndependiente = filters.modo === 'independiente'
+    useEffect(() => { setPresupuestoBaja(presupuesto_baja_disponible ?? 0); }, [presupuesto_baja_disponible]);
+
+    const anioRef      = resumen.anio_ref ?? resumen.anio_actual ?? new Date().getFullYear();
+    const anioVestuario = resumen.anio_actual ?? new Date().getFullYear();
+
+    const perPage = PER_PAGE_OPTS.includes(Number(filters.per_page)) ? Number(filters.per_page) : 20;
+
+    const esVistaInd = filters.modo === 'independiente'
         || (typeof filters.delegacion_codigo === 'string' && filters.delegacion_codigo.startsWith('IND-'));
-    const moduleTitle = esVistaIndependiente ? 'Delegación independiente' : 'Mi Delegación';
+    const moduleTitle = esVistaInd ? 'Delegación independiente' : 'Mi Delegación';
+
     const aniosAcuse = Array.isArray(acuse_anios_disponibles) ? acuse_anios_disponibles : [];
-    const acuseAnio =
-        aniosAcuse.length > 0
-            ? String(acuse_anio_default && aniosAcuse.includes(acuse_anio_default) ? acuse_anio_default : aniosAcuse[0])
-            : '';
+    const acuseAnio  = aniosAcuse.length > 0
+        ? String(acuse_anio_default && aniosAcuse.includes(acuse_anio_default) ? acuse_anio_default : aniosAcuse[0])
+        : '';
     const exportParams = {
-        search: search || undefined,
+        search:             search || undefined,
         filtro,
-        delegacion_codigo: filters.delegacion_codigo ?? undefined,
-        modo: filters.modo ?? undefined,
-        anio: acuseAnio ? Number(acuseAnio) : undefined,
+        delegacion_codigo:  filters.delegacion_codigo ?? undefined,
+        modo:               filters.modo ?? undefined,
+        anio:               acuseAnio ? Number(acuseAnio) : undefined,
     };
 
+    /* ── navegación con filtros ── */
     const navegar = (overrides = {}) => {
         const q = {
-            filtro: overrides.filtro !== undefined ? overrides.filtro : filtro,
-            per_page: overrides.per_page !== undefined ? overrides.per_page : perPage,
-            page: overrides.page !== undefined ? overrides.page : 1,
+            filtro:            overrides.filtro    !== undefined ? overrides.filtro    : filtro,
+            per_page:          overrides.per_page  !== undefined ? overrides.per_page  : perPage,
+            page:              overrides.page      !== undefined ? overrides.page      : 1,
             delegacion_codigo: filters.delegacion_codigo ?? undefined,
-            modo: filters.modo ?? undefined,
+            modo:              filters.modo ?? undefined,
         };
         const s = overrides.search !== undefined ? overrides.search : search;
-        if (s) {
-            q.search = s;
-        }
+        if (s) q.search = s;
         router.get(route('my-delegation.index'), q, {
-            preserveState: true,
+            preserveState:  true,
             preserveScroll: overrides.preserveScroll !== false,
-            replace: true,
+            replace:        true,
         });
     };
 
@@ -1330,14 +117,11 @@ function MiDelegacionIndex({
         return () => clearTimeout(t);
     }, [search]);
 
-    const handleFiltro = (key) => {
-        setFiltro(key);
-        navegar({ filtro: key, page: 1 });
-    };
+    const handleFiltro       = (key) => { setFiltro(key); navegar({ filtro: key, page: 1 }); };
+    const handlePerPage      = (e)   => navegar({ per_page: Number(e.target.value), page: 1, preserveScroll: false });
 
-    const handlePerPageChange = (e) => {
-        navegar({ per_page: Number(e.target.value), page: 1, preserveScroll: false });
-    };
+    const hayAcuseCompleto = (resumen.total ?? 0) > 0 && (resumen.listos ?? 0) >= (resumen.total ?? 0);
+    const periodoAbierto   = periodo?.estado === 'abierto';
 
     return (
         <>
@@ -1346,31 +130,19 @@ function MiDelegacionIndex({
                 title={moduleTitle}
                 description={
                     contexto.modo === 'super_admin' ? (
-                        <>
-                            Vista global (super admin).{' '}
-                            <span className="tabular-nums">
-                                Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref.{' '}
-                                {anioRefFallback}
-                            </span>
-                        </>
+                        <>Vista global (super admin). <span className="tabular-nums">Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref. {anioRef}</span></>
                     ) : contexto.modo === 'delegado' && contexto.delegaciones?.length ? (
                         <p className="text-[13px] leading-snug text-zinc-600 dark:text-zinc-400">
-                            <span className="font-medium text-zinc-800 dark:text-zinc-100">
-                                {contexto.delegado_nombre ?? 'Delegado'}
-                            </span>
+                            <span className="font-medium text-zinc-800 dark:text-zinc-100">{contexto.delegado_nombre ?? 'Delegado'}</span>
                             <span className="text-zinc-300 dark:text-zinc-600" aria-hidden> · </span>
-                            <span className="font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                                {contexto.delegaciones.join(' · ')}
-                            </span>
+                            <span className="font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{contexto.delegaciones.join(' · ')}</span>
                         </p>
                     ) : (
-                        <span className="tabular-nums">
-                            Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref.{' '}
-                            {anioRefFallback}
-                        </span>
+                        <span className="tabular-nums">Vestuario {resumen.anio_actual ?? new Date().getFullYear()} · ref. {anioRef}</span>
                     )
                 }
             >
+                {/* Sin perfil */}
                 {contexto.modo === 'sin_perfil' && (
                     <div className="mb-5 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
                         <Info className="mt-0.5 size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
@@ -1381,75 +153,63 @@ function MiDelegacionIndex({
                     </div>
                 )}
 
-                <div className="mb-6 border-b border-zinc-100 pb-6 dark:border-zinc-800/80">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
-                        {periodo && periodo.estado !== 'abierto' && (
-                            <p className="shrink-0 text-[12px] leading-snug text-zinc-500 dark:text-zinc-500 sm:text-right">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <Lock className="size-3 shrink-0 opacity-60" strokeWidth={1.5} aria-hidden />
-                                    {periodo.estado === 'cerrado' ? 'Período cerrado' : 'Período próximo'}
-                                </span>
-                                <span className="mt-1 block text-zinc-600 dark:text-zinc-400">{periodo.nombre}</span>
-                            </p>
+                {/* Cabecera: período + descarga de lista ─────────────── */}
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800/80">
+                    <PeriodoTag periodo={periodo} />
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Acuse general */}
+                        {hayAcuseCompleto ? (
+                            <a
+                                href={route('my-delegation.acuse-general.pdf', exportParams)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-white"
+                            >
+                                <FileDown className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                Acuse general
+                            </a>
+                        ) : (
+                            <span
+                                className="inline-flex cursor-not-allowed items-center gap-1.5 text-[12px] font-medium text-zinc-400 dark:text-zinc-600"
+                                title="Actualiza el vestuario de todos los empleados para habilitar el acuse general"
+                            >
+                                <Lock className="size-3 shrink-0 opacity-60" strokeWidth={2} aria-hidden />
+                                Acuse general
+                            </span>
                         )}
-                        {periodo?.estado === 'abierto' && (
-                            <p className="shrink-0 text-[12px] leading-snug text-zinc-500 dark:text-zinc-500 sm:text-right">
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">{periodo.nombre}</span>
-                                {periodo.fecha_fin && (
-                                    <>
-                                        <span className="text-zinc-300 dark:text-zinc-600"> · </span>
-                                        <span className="tabular-nums">
-                                            hasta{' '}
-                                            {new Date(periodo.fecha_fin + 'T12:00:00').toLocaleDateString('es-MX', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric',
-                                            })}
-                                        </span>
-                                    </>
-                                )}
-                            </p>
+
+                        {/* Lista de empleados */}
+                        <a
+                            href={route('my-delegation.empleados.lista.pdf', exportParams)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-200 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-400 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-zinc-200"
+                        >
+                            <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                            Lista
+                        </a>
+
+                        {/* Presupuesto de bajas disponible */}
+                        {periodoAbierto && presupuestoBaja > 0 && (
+                            <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/70 bg-emerald-50/50 px-3 py-1.5 text-[12px] font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400">
+                                <Package className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+                                ${fmtMoney(presupuestoBaja)} de baja
+                            </span>
                         )}
                     </div>
                 </div>
 
-                <section className="mb-8 space-y-4" aria-label="Resumen y filtros">
-                    <div
-                        className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-zinc-500 dark:text-zinc-400"
-                        aria-live="polite"
-                    >
-                        <span className="tabular-nums">
-                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                Total
-                            </span>
-                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.total ?? empleados.total}</span>
-                        </span>
-                        <span className="text-zinc-200 dark:text-zinc-700" aria-hidden>
-                            ·
-                        </span>
-                        <span className="tabular-nums">
-                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                Listos
-                            </span>
-                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.listos ?? 0}</span>
-                        </span>
-                        <span className="text-zinc-200 dark:text-zinc-700" aria-hidden>
-                            ·
-                        </span>
-                        <span className="tabular-nums">
-                            <span className="mr-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                                Sin empezar
-                            </span>
-                            <span className="font-medium text-zinc-900 dark:text-zinc-100">{resumen.sin_empezar ?? 0}</span>
-                        </span>
-                    </div>
+                {/* Resumen de progreso ─────────────────────────────── */}
+                <div className="mb-6">
+                    <ResumenProgreso resumen={resumen} />
+                </div>
 
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                        <div
-                            role="tablist"
-                            aria-label="Filtrar empleados por estado"
-                            className="flex flex-wrap gap-1"
-                        >
+                {/* Filtros + stats + ayuda ─────────────────────────── */}
+                <section className="mb-6 space-y-3" aria-label="Filtros y resumen">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        {/* Filtros de estado */}
+                        <div role="tablist" aria-label="Filtrar empleados por estado" className="flex flex-wrap gap-1">
                             {FILTROS.map((f) => {
                                 const active = filtro === f.key;
                                 return (
@@ -1470,48 +230,30 @@ function MiDelegacionIndex({
                                 );
                             })}
                         </div>
-                        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-100 pt-4 sm:border-t-0 sm:pt-0 dark:border-zinc-800/80">
-                            {(resumen.total ?? 0) > 0 && (resumen.listos ?? 0) >= (resumen.total ?? 0) ? (
-                                <a
-                                    href={route('my-delegation.acuse-general.pdf', exportParams)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-600 dark:hover:text-white dark:hover:decoration-zinc-400"
-                                >
-                                    <FileDown className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                    Acuse general
-                                </a>
-                            ) : (
-                                <span
-                                    className="inline-flex cursor-not-allowed items-center gap-1.5 text-[12px] font-medium text-zinc-400 dark:text-zinc-600"
-                                    title="Actualiza el vestuario de todos los empleados para generar el acuse general"
-                                >
-                                    <Lock className="size-3 shrink-0 opacity-60" strokeWidth={2} aria-hidden />
-                                    Acuse general
-                                </span>
-                            )}
-                            <a
-                                href={route('my-delegation.empleados.lista.pdf', exportParams)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-zinc-600 underline decoration-zinc-200 underline-offset-4 transition hover:text-zinc-900 hover:decoration-zinc-400 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-zinc-200"
-                            >
-                                <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                Lista
-                            </a>
-                            {periodo?.estado === 'abierto' && presupuestoBaja > 0 && (
-                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200/70 bg-emerald-50/50 px-3 py-1.5 text-[12px] font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/20 dark:text-emerald-400">
-                                    <Package className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-                                    ${fmtMoney(presupuestoBaja)} disponible de baja
-                                </span>
-                            )}
-                        </div>
+
+                        <StatsBar resumen={resumen} />
                     </div>
+
+                    {/* Acordeón de ayuda */}
+                    <details className="group rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/20">
+                        <summary className="cursor-pointer list-none text-[12px] font-medium text-zinc-500 marker:content-none dark:text-zinc-400 [&::-webkit-details-marker]:hidden">
+                            <span className="inline-flex items-center gap-1.5">
+                                <ChevronDown className="size-3.5 shrink-0 opacity-60 transition group-open:rotate-180" strokeWidth={2} aria-hidden />
+                                ¿Cómo funciona esta pantalla?
+                            </span>
+                        </summary>
+                        <p className="mt-2 border-t border-zinc-100 pt-2 text-[11px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                            <strong className="font-medium text-zinc-700 dark:text-zinc-300">Vestuario</strong>: tallas y medidas del periodo.{' '}
+                            <strong className="font-medium text-zinc-700 dark:text-zinc-300">Ver</strong>: productos por año.{' '}
+                            <strong className="font-medium text-zinc-700 dark:text-zinc-300">Más</strong>: cambio de delegación, baja y agregar con presupuesto de bajas.
+                        </p>
+                    </details>
                 </section>
 
-                <div className="mb-10 max-w-md">
+                {/* Buscador ───────────────────────────────────────── */}
+                <div className="mb-6 max-w-md">
                     <label htmlFor="mi-del-busqueda" className="mb-2 block text-[11px] text-zinc-400 dark:text-zinc-500">
-                        Buscar
+                        Buscar empleado
                     </label>
                     <div className="group flex items-center gap-3 border-b border-zinc-200 pb-2 transition-colors focus-within:border-zinc-400 dark:border-zinc-700 dark:focus-within:border-zinc-500">
                         <Search className="size-4 shrink-0 text-zinc-300 transition group-focus-within:text-zinc-500 dark:text-zinc-600 dark:group-focus-within:text-zinc-400" aria-hidden />
@@ -1523,53 +265,16 @@ function MiDelegacionIndex({
                             onChange={(e) => setSearch(e.target.value)}
                             className="min-w-0 flex-1 border-0 bg-transparent p-0 text-[15px] text-zinc-900 placeholder:text-zinc-300 outline-none focus:ring-0 dark:text-zinc-100 dark:placeholder:text-zinc-600"
                         />
-                        {search ? (
-                            <button
-                                type="button"
-                                onClick={() => setSearch('')}
-                                className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-                            >
+                        {search && (
+                            <button type="button" onClick={() => setSearch('')}
+                                className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300">
                                 Limpiar
                             </button>
-                        ) : null}
+                        )}
                     </div>
                 </div>
 
-                {(resumen.total ?? 0) > 0 && (
-                    <div className={`mb-6 flex items-center gap-3 rounded-xl border px-4 py-3 ${
-                        (resumen.listos ?? 0) >= (resumen.total ?? 0)
-                            ? 'border-stone-200/70 bg-stone-50/50 dark:border-stone-700/40 dark:bg-stone-900/20'
-                            : 'border-zinc-200/70 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/30'
-                    }`}>
-                        {(resumen.listos ?? 0) >= (resumen.total ?? 0) ? (
-                            <>
-                                <CheckCircle2 className="size-4 shrink-0 text-stone-500 dark:text-stone-400" strokeWidth={1.75} />
-                                <p className="text-[13px] leading-snug text-stone-700 dark:text-stone-300">
-                                    <span className="font-semibold">Actualización completa.</span>{' '}
-                                    Todos los empleados tienen su vestuario al día. Ya puedes generar el acuse general.
-                                </p>
-                            </>
-                        ) : (
-                            <>
-                                <Clock className="size-4 shrink-0 text-zinc-400 dark:text-zinc-500" strokeWidth={1.5} />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[13px] leading-snug text-zinc-600 dark:text-zinc-400">
-                                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">{resumen.listos ?? 0}</span> de{' '}
-                                        <span className="font-semibold tabular-nums text-zinc-800 dark:text-zinc-200">{resumen.total ?? 0}</span>{' '}
-                                        empleados actualizados. Completa todos para generar el acuse general.
-                                    </p>
-                                    <div className="mt-2 h-1 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200/90 dark:bg-zinc-800">
-                                        <div
-                                            className="h-full rounded-full bg-gradient-to-r from-stone-300/60 to-stone-400/45 transition-all duration-500 dark:from-stone-600/50 dark:to-stone-500/35"
-                                            style={{ width: `${(resumen.total ?? 0) > 0 ? Math.round(((resumen.listos ?? 0) / (resumen.total ?? 0)) * 100) : 0}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )}
-
+                {/* Cabecera de la lista ───────────────────────────── */}
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <h2 className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
                         Empleados
@@ -1579,13 +284,11 @@ function MiDelegacionIndex({
                             <span className="whitespace-nowrap">Ver</span>
                             <select
                                 value={perPage}
-                                onChange={handlePerPageChange}
+                                onChange={handlePerPage}
                                 aria-label="Empleados por página"
-                                className="cursor-pointer rounded-lg border border-zinc-200 bg-zinc-50 py-1.5 pl-2.5 pr-8 text-[12px] font-medium text-zinc-800 shadow-sm outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-600 dark:focus:ring-zinc-900/40"
+                                className="cursor-pointer rounded-lg border border-zinc-200 bg-zinc-50 py-1.5 pl-2.5 pr-8 text-[12px] font-medium text-zinc-800 shadow-sm outline-none transition-[border-color,box-shadow] focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                             >
-                                {PER_PAGE_OPCIONES.map((n) => (
-                                    <option key={n} value={n}>{n}</option>
-                                ))}
+                                {PER_PAGE_OPTS.map((n) => <option key={n} value={n}>{n}</option>)}
                             </select>
                             <span className="whitespace-nowrap text-zinc-500 dark:text-zinc-400">por página</span>
                         </label>
@@ -1595,12 +298,13 @@ function MiDelegacionIndex({
                     </div>
                 </div>
 
+                {/* Lista de empleados ──────────────────────────────── */}
                 {empleados.data.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-zinc-200 bg-zinc-50 py-16 dark:border-zinc-800 dark:bg-zinc-900/20">
                         <Users className="size-8 text-zinc-300 dark:text-zinc-600" strokeWidth={1.25} aria-hidden />
                         <div className="text-center">
                             <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">Sin resultados</p>
-                            <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">Ajusta búsqueda o filtro.</p>
+                            <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">Ajusta la búsqueda o el filtro.</p>
                         </div>
                     </div>
                 ) : (
@@ -1611,7 +315,7 @@ function MiDelegacionIndex({
                                 empleado={emp}
                                 delegaciones={delegaciones}
                                 anioActual={anioVestuario}
-                                periodoAbierto={periodo?.estado === 'abierto'}
+                                periodoAbierto={periodoAbierto}
                                 presupuestoBaja={presupuestoBaja}
                                 onAbrirAgregarProducto={(e) => setAgregarTarget(e)}
                             />
@@ -1623,6 +327,7 @@ function MiDelegacionIndex({
                     <div className="mt-6"><TablePagination pagination={empleados} /></div>
                 )}
 
+                {/* Modal agregar producto (nivel página, una sola instancia) */}
                 <ModalAgregarProducto
                     open={!!agregarTarget}
                     onClose={() => setAgregarTarget(null)}
@@ -1637,10 +342,10 @@ function MiDelegacionIndex({
 
 MiDelegacionIndex.layout = (page) => {
     const filtroCodigo = page?.props?.filters?.delegacion_codigo;
-    const modo = page?.props?.filters?.modo;
-    const esVistaInd = modo === 'independiente'
+    const modo         = page?.props?.filters?.modo;
+    const esVistaInd   = modo === 'independiente'
         || (typeof filtroCodigo === 'string' && filtroCodigo.startsWith('IND-'));
-    const layoutTitle = esVistaInd ? 'Delegación independiente' : 'Mi Delegación';
+    const layoutTitle  = esVistaInd ? 'Delegación independiente' : 'Mi Delegación';
 
     return (
         <AuthenticatedLayout
