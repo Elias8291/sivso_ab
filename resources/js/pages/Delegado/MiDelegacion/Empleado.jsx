@@ -237,7 +237,7 @@ function EmpleadoPage({ empleado: empleadoProp, anios_disponibles = [], anio_def
                     cotizados: asListaProductos(raw.cotizados),
                 };
                 setData(payload);
-                if (payload.anio != null && !anio) setAnio(String(payload.anio));
+                if (payload.anio != null && String(payload.anio) !== anio) setAnio(String(payload.anio));
                 if (!payload.licitados.length && payload.cotizados.length) setTab('cotizados');
             })
             .catch(() => setError('No se pudieron cargar los productos.'))

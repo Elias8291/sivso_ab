@@ -1399,7 +1399,7 @@ final class MiDelegacionController extends Controller
         $empleado = Empleado::query()->with('dependencia')->findOrFail($empleadoId);
         abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
 
-        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+        $aniosConDatos = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleadoId)
             ->distinct()
             ->orderByDesc('anio')
@@ -1407,6 +1407,12 @@ final class MiDelegacionController extends Controller
             ->map(static fn ($anio) => (int) $anio)
             ->values()
             ->all();
+
+        // Garantizar que siempre haya al menos un año en el selector. Si el empleado
+        // aún no tiene asignaciones, mostrar el año de referencia del sistema para que
+        // el usuario vea el selector (con estado vacío) en lugar de una pantalla en blanco.
+        $anioFallback = SivsoVestuario::anioAsignacionesVestuario();
+        $aniosDisponibles = $aniosConDatos !== [] ? $aniosConDatos : [$anioFallback];
 
         return Inertia::render('Delegado/MiDelegacion/Empleado', [
             'empleado' => [
@@ -1419,7 +1425,7 @@ final class MiDelegacionController extends Controller
                 'estado_delegacion' => $empleado->estado_delegacion ?? 'activo',
             ],
             'anios_disponibles' => $aniosDisponibles,
-            'anio_default' => $aniosDisponibles[0] ?? $this->anioCaptura(),
+            'anio_default' => $aniosConDatos[0] ?? $anioFallback,
         ]);
     }
 
@@ -1431,7 +1437,7 @@ final class MiDelegacionController extends Controller
         $empleado = Empleado::findOrFail($empleadoId);
         abort_unless($this->access->usuarioPuedeGestionarEmpleado($request->user(), $empleado), 403);
         $anioSolicitado = $request->integer('anio');
-        $aniosDisponibles = DB::table('asignacion_empleado_producto')
+        $aniosConDatos = DB::table('asignacion_empleado_producto')
             ->where('empleado_id', $empleadoId)
             ->distinct()
             ->orderByDesc('anio')
@@ -1440,9 +1446,12 @@ final class MiDelegacionController extends Controller
             ->values()
             ->all();
 
+        $anioFallback = SivsoVestuario::anioAsignacionesVestuario();
+        $aniosDisponibles = $aniosConDatos !== [] ? $aniosConDatos : [$anioFallback];
+
         $anioConsulta = in_array($anioSolicitado, $aniosDisponibles, true)
             ? $anioSolicitado
-            : ($aniosDisponibles[0] ?? $this->anioCaptura());
+            : ($aniosConDatos[0] ?? $anioFallback);
 
         $anioCatalogo = SivsoVestuario::anioCatalogoResuelto();
 
