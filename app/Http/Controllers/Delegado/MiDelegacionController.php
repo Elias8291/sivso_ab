@@ -828,6 +828,7 @@ final class MiDelegacionController extends Controller
             $request->request->all()
         );
         [$query, $resumenVestuario, $contexto] = $this->buildEmpleadosQueryParaExport($requestAnioActual, $user);
+        $query->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario));
         $empleados = $query->get();
         $delegadoNombre = $contexto['delegado_nombre'] ?? $user->name ?? 'DELEGADO';
         $service = new AcuseReciboVestuarioPdfService;
@@ -993,7 +994,6 @@ final class MiDelegacionController extends Controller
 
         $empleadosQuery = Empleado::query()
             ->with(['dependencia:ur,nombre_corto,nombre', 'delegacion:codigo'])
-            ->whereHas('asignaciones', fn ($q) => $q->where('anio', $anioVestuario))
             ->when(is_array($codigosFiltro), fn ($q) => $q->whereIn('delegacion_codigo', $codigosFiltro))
             ->when($search !== null, function ($query) use ($search): void {
                 $query->where(function ($q) use ($search): void {
